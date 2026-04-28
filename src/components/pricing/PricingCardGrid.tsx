@@ -164,23 +164,48 @@ export function PricingCardGrid({
                     : "Billed monthly"}
               </p>
 
-              <Button
-                asChild
-                size="default"
-                disabled={isCurrent}
-                variant={showHighlight ? "default" : onDark ? "outline" : "outline"}
-                className={cn(
-                  "mt-5 w-full justify-center",
-                  onDark &&
-                    !showHighlight &&
-                    "border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white",
-                )}
-              >
-                <NavLink to={ctaTo(plan, ctaTarget)}>
-                  {ctaLabel(plan, currentPlan)}
-                  {!isCurrent && plan.id !== "free" ? <ArrowRight className="ml-1 h-4 w-4" /> : null}
-                </NavLink>
-              </Button>
+              {onSelectPlan && plan.id !== "free" && plan.id !== "business" ? (
+                <Button
+                  size="default"
+                  disabled={isCurrent || pendingPlan === plan.id}
+                  onClick={() => onSelectPlan(plan.id, interval)}
+                  variant={showHighlight ? "default" : "outline"}
+                  className={cn(
+                    "mt-5 w-full justify-center",
+                    onDark &&
+                      !showHighlight &&
+                      "border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white",
+                  )}
+                >
+                  {ctaLabel(plan, currentPlan, pendingPlan === plan.id)}
+                  {!isCurrent ? <ArrowRight className="ml-1 h-4 w-4" /> : null}
+                </Button>
+              ) : (
+                <Button
+                  asChild
+                  size="default"
+                  disabled={isCurrent}
+                  variant={showHighlight ? "default" : "outline"}
+                  className={cn(
+                    "mt-5 w-full justify-center",
+                    onDark &&
+                      !showHighlight &&
+                      "border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white",
+                  )}
+                >
+                  {plan.id === "business" ? (
+                    <a href={ctaTo(plan, ctaTarget)}>
+                      {ctaLabel(plan, currentPlan)}
+                      <ArrowRight className="ml-1 h-4 w-4" />
+                    </a>
+                  ) : (
+                    <NavLink to={ctaTo(plan, ctaTarget)}>
+                      {ctaLabel(plan, currentPlan)}
+                      {!isCurrent && plan.id !== "free" ? <ArrowRight className="ml-1 h-4 w-4" /> : null}
+                    </NavLink>
+                  )}
+                </Button>
+              )}
 
               <ul className="mt-6 space-y-2.5 text-sm">
                 {plan.features.slice(0, 7).map((f) => (
