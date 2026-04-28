@@ -1,58 +1,94 @@
-# GA4 Event Tracking
+# End-to-end QA across all plan tiers
 
-The GA4 base tag (`G-GJCZPQ3WJ9`) is already in `index.html`. SPA route changes don't auto-fire pageviews, so we need a router listener plus a thin event helper used at key surfaces.
+Goal: exercise every non-SMS feature of PhotoBrief from a fresh mock account on each plan tier (`free`, `starter`, `pro`, `team`, `business`), and produce a single test report listing PASS/FAIL/BLOCKED per scenario with evidence.
 
-## What gets tracked
+## Approach
 
-**Automatic**
-- `page_view` on every React Router navigation (path + title)
+1. **Five mock accounts**, one per tier, created via the normal signup flow so the `handle_new_user` trigger seeds workspace + brand + subscription rows naturally.
+   - Emails: `qa+free@photobrief.test`, `qa+starter@…`, `qa+pro@…`, `qa+team@…`, `qa+business@…`
+   - After signup, a SQL migration upgrades each workspace's `business_workspaces.plan_tier` and matching `subscriptions.plan_tier` to the target tier. (Stripe checkout is not exercised — going through real Stripe would require live cards. Tier gating logic is what we're verifying, and that keys off `plan_tier`, not Stripe state.)
+   - Email confirmation: I'll temporarily auto-confirm these test users via `cloud--configure_auth` only if signup blocks on email verification; otherwise insert `email_confirmed_at` directly.
 
-**Key user events**
-- `cta_click` — marketing CTAs (hero "Get started", pricing plan buttons, final CTA card, founding banner)
-- `signup_started` / `signup_completed` — Auth page
-- `guide_viewed` — opening a guide (Library card click + GuideDetailPage mount)
-- `guide_created` — successful guide save in Builder
-- `request_created` — successful request creation
-- `request_sent` — request link sent to recipient
-- `step_completed` — recipient finishes a capture step (PublicRecipientPage)
-- `submission_completed` — recipient submits the brief
-- `submission_reviewed` — internal review action
-- `plan_upgrade_clicked` — UpgradePrompt / PricingCardGrid CTAs
-- `checkout_started` — Stripe checkout opened
+2. **Drive the UI with the browser tool** (`navigate_to_sandbox`, `observe`, `act`) for each account, walking the flows below. Where the browser tool has known gaps (file upload widgets, canvas, real email delivery), fall back to direct DB / edge-function calls and note it as "verified via API" rather than "verified via UI".
 
-All events include relevant low-cardinality params (e.g. `guide_id`, `plan`, `step_index`) — never PII.
+3. **Submit a recipient response** for each tier by visiting `/r/:token` in a logged-out browser context, answering context questions, and uploading a sample image (a small PNG generated in `/tmp`). If the upload widget resists automation, POST directly to storage + `captured_media` using the request token header and note the substitution.
 
-## Implementation
+4. **Produce `/mnt/documents/qa-report.md`** with one section per tier and a final cross-tier matrix showing which gates fired correctly (request cap, seat cap, internal notes, custom guides, message templates).
 
-### 1. New file: `src/lib/analytics.ts`
-- `GA_MEASUREMENT_ID = "G-GJCZPQ3WJ9"`
-- Type-safe wrappers around `window.gtag`:
-  - `trackPageView(path, title?)` → `gtag('event','page_view',{page_path,page_title,page_location})`
-  - `trackEvent(name, params?)` → `gtag('event', name, params)`
-- Safe no-ops if `gtag` is undefined (SSR / blocked).
-- `declare global { interface Window { gtag?: (...args: any[]) => void; dataLayer?: any[] } }`
+## Scenarios per tier
 
-### 2. New component: `src/components/analytics/RouteTracker.tsx`
-- Uses `useLocation()`; on pathname/search change, calls `trackPageView` and disables the auto `page_view` from the base config to avoid duplicates.
+For each account:
 
-### 3. Update `index.html`
-- Change `gtag('config', 'G-GJCZPQ3WJ9')` to `gtag('config', 'G-GJCZPQ3WJ9', { send_page_view: false })` so the SPA tracker is the single source of truth.
+```text
+Auth & onboarding
+  - Signup -> trigger seeds workspace, brand_profile, subscription, profile
+  - Onboarding page completes and sets profiles.onboarded_at
+  - Login / logout / password reset request
 
-### 4. Mount tracker in `src/App.tsx`
-- Add `<RouteTracker />` inside `<BrowserRouter>`.
+Workspace settings
+  - /settings/brand: edit name, color, intro/completion msg, save, reload, persisted
+  - /settings/templates: create + edit + delete (Pro+); on Free/Starter expect PLAN_FEATURE_LOCKED
+  - /settings/team: invite a second email; on Free/Starter the seat cap (1) blocks
+  - /settings/sms: page renders, shows "not configured" state (no actual Twilio calls)
+  - /settings/billing: shows current tier + portal button (don't open Stripe)
 
-### 5. Wire `trackEvent` calls at these surfaces
-- `src/pages/Landing.tsx` + marketing CTA components → `cta_click` with `{location: 'hero'|'final'|'founding_banner'}`
-- `src/pages/Auth.tsx` → `signup_started`, `signup_completed`, `login_completed`
-- `src/features/guides/pages/GuideLibraryPage.tsx` (card open) and `GuideDetailPage.tsx` (mount) → `guide_viewed`
-- `src/features/guides/pages/GuideBuilderPage.tsx` (save success) → `guide_created`
-- `src/features/requests/pages/CreateRequestPage.tsx` (create success) → `request_created`; send action → `request_sent`
-- `src/features/capture/pages/PublicRecipientPage.tsx` → `step_completed` per step, `submission_completed` at end
-- `src/features/submissions/pages/SubmissionReviewPage.tsx` → `submission_reviewed`
-- `src/components/pricing/PricingCardGrid.tsx` + `UpgradePrompt.tsx` → `plan_upgrade_clicked` with `{plan, interval}`
-- `src/components/billing/StripeEmbeddedCheckout.tsx` mount → `checkout_started`
+Guides
+  - /guides: global templates visible
+  - Clone a global template into the workspace
+  - /guides/new: build a custom guide with 2 steps + 1 context question
+    -> on Free/Starter expect PLAN_FEATURE_LOCKED on insert
+  - Edit a step, reorder, save
 
-## Notes
-- No PII is sent (no emails, names, raw tokens). IDs only where useful.
-- Public recipient route `/r/:token` will send `page_path` as `/r/:token` (token replaced) to avoid leaking tokens into GA.
-- All tracking is client-side; no edge function needed. The `GOOGLE_ANALYTICS_API_KEY` secret you added isn't required for sending events — it would only be used later if we want to *read* analytics server-side.
+Requests
+  - /requests/new: create request against the cloned guide
+  - Create requests up to (cap+1) to verify PLAN_LIMIT_REACHED at the boundary
+    (free=3, starter=25 — only do full cap on free; for higher tiers create 2 and
+     verify usage_events row appears + cap value reads correctly)
+  - /requests/:id: change channel (Email/Both) — SMS option disabled (no Twilio),
+    persisted selection still in localStorage after reload
+
+Recipient flow (public, no auth)
+  - Open /r/:token in fresh context
+  - Answer context questions
+  - Upload one sample image per step
+  - Submit -> recipient confirmation page
+  - Verify submissions row + captured_media rows + notification fires for workspace
+
+Submission review
+  - /submissions/:id: see media, AI summary fields, missing_items
+  - Add internal note -> Pro+ only; Free/Starter expect PLAN_FEATURE_LOCKED
+  - Mark reviewed -> submitted_at/reviewed_at populated
+
+Notifications & messaging
+  - In-app notifications appear for: request_message_*, submission_received, request_opened
+  - Send reminder from request detail; verify request_messages row inserted
+    (email delivery itself logged in email_send_log, not actually sent in test)
+
+Data retention sanity
+  - run_data_retention() invoked manually; verify nothing deleted for fresh data
+```
+
+## Acceptance criteria
+
+- `qa-report.md` lists every scenario above × 5 tiers with status and evidence (route, screenshot path, or SQL row count).
+- Plan-gate triggers fire correctly: at least one PASS row per gate (`enforce_request_limit`, `enforce_seat_cap`, `enforce_internal_notes_plan`, `enforce_custom_guides_plan`, `enforce_message_templates_plan`).
+- All bugs found are listed with reproduction steps. Plan does NOT include fixing them — if the user wants fixes, that's a follow-up.
+
+## Out of scope
+
+- SMS send / inbound (excluded per request).
+- Real Stripe checkout (would charge real cards). Tier gating verified via direct `plan_tier` updates, which is what the gates actually check.
+- Real email delivery (Resend/SES). Verified by `email_send_log` rows + edge-function 200s.
+- Load / performance testing.
+- Visual regression beyond "page rendered without runtime error".
+
+## Technical notes
+
+- Mock users created via `supabase.auth.signUp` from a one-off node script run with `code--exec`, then a migration sets plan_tier + bypasses email confirmation for these specific emails.
+- Browser sessions: one `navigate_to_sandbox` per tier, then `act` through flows. Use `set_viewport_size 1280x720`. Logged-out recipient pass uses a separate sandbox session per request token.
+- Cleanup: at the end, a migration deletes the 5 test workspaces (cascade clears requests/submissions/etc.) and the 5 auth users. Cleanup runs even if tests fail.
+- Estimated runtime: ~25–40 minutes of tool calls. I'll keep the report updated incrementally so partial results survive a mid-run failure.
+
+## Deliverable
+
+`/mnt/documents/qa-report.md` plus a short chat summary of: total PASS / FAIL / BLOCKED counts, top 5 issues found, and any gates that did not behave as the schema implies.
