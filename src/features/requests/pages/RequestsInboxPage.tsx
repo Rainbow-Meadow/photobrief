@@ -84,6 +84,100 @@ export default function RequestsInboxPage() {
     [],
   );
 
+  // Drop selections that are no longer in the filtered view
+  useEffect(() => {
+    setSelected((prev) => {
+      const ids = new Set(filtered.map((r) => r.id));
+      let changed = false;
+      const next = new Set<string>();
+      prev.forEach((id) => {
+        if (ids.has(id)) next.add(id);
+        else changed = true;
+      });
+      return changed ? next : prev;
+    });
+  }, [filtered]);
+
+  const allSelected = filtered.length > 0 && filtered.every((r) => selected.has(r.id));
+  const someSelected = selected.size > 0 && !allSelected;
+
+  const toggleAll = () => {
+    setSelected(allSelected ? new Set() : new Set(filtered.map((r) => r.id)));
+  };
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelected(new Set());
+
+  const ensureBulkAllowed = () => {
+    if (canBulk) return true;
+    const plan = minPlanFor("bulk_actions");
+    toast.error(`Bulk actions are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`);
+    return false;
+  };
+
+  const refetchInbox = () =>
+    queryClient.invalidateQueries({ queryKey: ["requests", workspace?.id] });
+
+  const handleBulkArchive = async () => {
+    if (!ensureBulkAllowed()) return;
+    setBulkBusy(true);
+    const ids = Array.from(selected);
+    try {
+      await requestsService.bulkUpdateStatus(ids, "archived");
+      toast.success(`Archived ${ids.length} request${ids.length === 1 ? "" : "s"}`);
+      clearSelection();
+      await refetchInbox();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not archive");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!ensureBulkAllowed()) return;
+    if (!window.confirm(`Delete ${selected.size} request(s)? This cannot be undone.`)) return;
+    setBulkBusy(true);
+    const ids = Array.from(selected);
+    try {
+      await requestsService.bulkDelete(ids);
+      toast.success(`Deleted ${ids.length} request${ids.length === 1 ? "" : "s"}`);
+      clearSelection();
+      await refetchInbox();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not delete");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleBulkAssign = async (assigneeId: string | null, name: string) => {
+    if (!ensureBulkAllowed()) return;
+    if (!canAssign) {
+      const plan = minPlanFor("assignments");
+      toast.error(`Assignments are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`);
+      return;
+    }
+    setBulkBusy(true);
+    const ids = Array.from(selected);
+    try {
+      await requestsService.bulkAssign(ids, assigneeId);
+      toast.success(`Assigned ${ids.length} to ${name}`);
+      clearSelection();
+      await refetchInbox();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not assign");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
