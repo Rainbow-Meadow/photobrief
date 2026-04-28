@@ -193,6 +193,7 @@ export default function TeamSettingsPage() {
               </div>
             </section>
           )}
+          {wsId && <ApiKeysSection workspaceId={wsId} canManage={true} />}
         </>
       )}
     </div>
