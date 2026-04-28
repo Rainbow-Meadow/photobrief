@@ -21,6 +21,7 @@ interface BrandForm {
   completion_message: string;
   contact_email: string;
   contact_phone: string;
+  hide_photobrief_branding: boolean;
 }
 
 const EMPTY: BrandForm = {
@@ -32,6 +33,7 @@ const EMPTY: BrandForm = {
   completion_message: "Thanks! We've got everything we need.",
   contact_email: "",
   contact_phone: "",
+  hide_photobrief_branding: false,
 };
 
 export default function BrandSettingsPage() {
@@ -57,7 +59,7 @@ export default function BrandSettingsPage() {
         supabase
           .from("brand_profiles")
           .select(
-            "id, primary_color, logo_url, request_heading, intro_message, completion_message, contact_email, contact_phone",
+            "id, primary_color, logo_url, request_heading, intro_message, completion_message, contact_email, contact_phone, hide_photobrief_branding",
           )
           .eq("workspace_id", workspace.id)
           .maybeSingle(),
@@ -79,6 +81,7 @@ export default function BrandSettingsPage() {
         completion_message: bp?.completion_message ?? EMPTY.completion_message,
         contact_email: bp?.contact_email ?? "",
         contact_phone: bp?.contact_phone ?? "",
+        hide_photobrief_branding: !!bp?.hide_photobrief_branding,
       });
       setLoading(false);
     })();
@@ -145,6 +148,7 @@ export default function BrandSettingsPage() {
         completion_message: form.completion_message,
         contact_email: form.contact_email || null,
         contact_phone: form.contact_phone || null,
+        hide_photobrief_branding: canWhiteLabel ? form.hide_photobrief_branding : false,
       };
 
       const { error: bpErr } = profileId
@@ -440,9 +444,20 @@ export default function BrandSettingsPage() {
       <div className="max-w-3xl space-y-3">
         <h3 className="text-sm font-semibold text-foreground">White-label</h3>
         {canWhiteLabel ? (
-          <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground shadow-elev-sm">
-            White-label is enabled — recipient pages and emails won't show PhotoBrief branding.
-          </div>
+          <label className="flex items-start gap-3 rounded-lg border bg-card p-4 text-sm shadow-elev-sm cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4"
+              checked={form.hide_photobrief_branding}
+              onChange={(e) => update("hide_photobrief_branding", e.target.checked)}
+            />
+            <div className="space-y-1">
+              <p className="font-medium text-foreground">Hide PhotoBrief branding</p>
+              <p className="text-xs text-muted-foreground">
+                Removes the "PhotoBrief" wordmark from recipient pages. Save changes to apply.
+              </p>
+            </div>
+          </label>
         ) : (
           <UpgradePromptCard feature="white_label" variant="inline" />
         )}
