@@ -110,7 +110,25 @@ Deno.serve(async (req) => {
         .maybeSingle(),
     ]);
 
-    const channel = payload.channel ?? "email";
+    // Resolve channel: explicit payload wins; otherwise use the workspace's
+    // SMS default if SMS is enabled & verified, else fall back to email.
+    let channel: "email" | "sms" | "both" = payload.channel ?? "email";
+    if (!payload.channel) {
+      const { data: smsCfg } = await admin
+        .from("workspace_sms_config")
+        .select("default_channel, enabled, verified_at, from_number")
+        .eq("workspace_id", request.workspace_id)
+        .maybeSingle();
+      const smsReady =
+        smsCfg?.enabled && smsCfg.verified_at && smsCfg.from_number;
+      if (smsReady && smsCfg.default_channel) {
+        channel = smsCfg.default_channel as "email" | "sms" | "both";
+      }
+      // Down-grade if a channel can't actually be used for this recipient.
+      if (channel === "sms" && !request.recipient_phone) channel = "email";
+      if (channel === "both" && !request.recipient_phone) channel = "email";
+      if (channel === "both" && !request.recipient_email) channel = "sms";
+    }
     const link = `${APP_URL}/r/${request.token}`;
     const businessName = ws?.name ?? "PhotoBrief";
     const firstName = (request.recipient_name ?? "there").split(" ")[0];
