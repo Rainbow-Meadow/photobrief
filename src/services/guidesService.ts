@@ -159,9 +159,9 @@ export const guidesService = {
         order_index: idx,
         title: s.title,
         instruction: s.instructions ?? null,
-        capture_type: s.shotType ?? "photo",
-        overlay_type: s.overlayType ?? null,
-        ai_checks: s.aiChecks ?? [],
+        capture_type: (s.shotType ?? "photo") as any,
+        overlay_type: (s.overlayType ?? null) as any,
+        ai_checks: (s.aiChecks ?? []) as any,
         required: s.required ?? true,
       }));
       const { error: stepsErr } = await supabase.from("guide_steps").insert(stepRows);
@@ -174,7 +174,7 @@ export const guidesService = {
         order_index: idx,
         label: q.prompt,
         input_type: q.inputType ?? "short_text",
-        options: q.options ?? null,
+        options: (q.options ?? null) as any,
         required: q.required ?? false,
       }));
       const { error: qErr } = await supabase.from("context_questions").insert(qRows);
