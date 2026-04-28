@@ -28,6 +28,7 @@ import GuideBuilderPage from "@/features/guides/pages/GuideBuilderPage";
 import GuideDetailPage from "@/features/guides/pages/GuideDetailPage";
 import PublicRecipientPage from "@/features/capture/pages/PublicRecipientPage";
 import RecipientConfirmationPage from "@/features/capture/pages/RecipientConfirmationPage";
+import AcceptInvitePage from "@/features/workspace/pages/AcceptInvitePage";
 
 const queryClient = new QueryClient();
 
