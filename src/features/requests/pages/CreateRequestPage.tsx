@@ -88,18 +88,25 @@ export default function CreateRequestPage() {
       });
       return;
     }
-    // Phase 3: mock — show toast with copyable link, then go to inbox.
+    // Phase 3: mock — generate the link, fire lifecycle events, then go to inbox.
     const token = `tok_${Math.random().toString(36).slice(2, 8)}`;
     const link = `${window.location.origin}/r/${token}`;
-    toast.success("Request link created", {
-      description: link,
-      action: {
-        label: "Copy",
-        onClick: () => {
-          navigator.clipboard.writeText(link).catch(() => undefined);
-          toast.success("Link copied");
-        },
-      },
+    const recipient = draft.recipientName || "your customer";
+
+    notificationService.notify({
+      event: "request_created",
+      audience: "business",
+      title: `Request "${draft.title}" created`,
+      body: `Draft saved — link ready for ${recipient}.`,
+      href: "/requests",
+    });
+    notificationService.notify({
+      event: "request_sent",
+      audience: "recipient",
+      title: `Request sent to ${recipient}`,
+      body: link,
+      href: "/requests",
+      recipientEmail: draft.recipientContact,
     });
     navigate("/requests");
   };
