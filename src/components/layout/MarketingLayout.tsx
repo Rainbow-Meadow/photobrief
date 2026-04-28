@@ -8,21 +8,22 @@ import { Button } from "@/components/ui/button";
 export function MarketingLayout() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="border-b">
+      <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <NavLink to="/" aria-label="PhotoBrief home">
             <BrandMark variant="horizontal" tone="dark" size={32} eager />
           </NavLink>
-          <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground sm:flex">
+          <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground sm:flex">
+            <a href="/#how-it-works" className="hover:text-foreground">How it works</a>
+            <a href="/#use-cases" className="hover:text-foreground">Use cases</a>
             <NavLink to="/pricing" className="hover:text-foreground">Pricing</NavLink>
-            <NavLink to="/auth" className="hover:text-foreground">Sign in</NavLink>
           </nav>
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm" className="sm:hidden">
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
               <NavLink to="/auth">Sign in</NavLink>
             </Button>
-            <Button asChild size="sm">
-              <NavLink to="/auth?mode=signup">Start free</NavLink>
+            <Button asChild size="sm" className="rounded-full px-4">
+              <NavLink to="/auth?mode=signup">Try Free</NavLink>
             </Button>
           </div>
         </div>
