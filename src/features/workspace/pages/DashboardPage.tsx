@@ -23,6 +23,8 @@ import { AssistantPanel } from "@/features/workspace/components/AssistantPanel";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { messagingService } from "@/services/messagingService";
+import { usePlan } from "@/hooks/usePlan";
+import { getPlanLimit, minPlanFor } from "@/config/planLimits";
 
 async function sendReminder(requestId: string, recipientName: string) {
   const t = toast.loading(`Sending reminder to ${recipientName}…`);
@@ -45,6 +47,8 @@ async function sendReminder(requestId: string, recipientName: string) {
 export default function DashboardPage() {
   const requests = useRequests();
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const { can } = usePlan();
+  const canRemind = can("reminders");
 
   const metrics = useMemo(() => {
     const readyToReview = requests.filter((r) => r.status === "submitted").length;
@@ -147,7 +151,7 @@ export default function DashboardPage() {
               items={needsActionList}
               ctaLabel="View open"
               ctaHref="/requests?status=needs_customer_action"
-              showReminder
+              showReminder={canRemind}
             />
           </div>
         </div>
@@ -209,6 +213,22 @@ function DashboardList({ title, emptyLabel, items, ctaLabel, ctaHref, showRemind
                       aria-label="Send reminder"
                     >
                       <Bell className="h-4 w-4" />
+                    </Button>
+                  ) : null}
+                  {showReminder === false ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        const plan = minPlanFor("reminders");
+                        toast.error(
+                          `Reminders are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`,
+                        );
+                      }}
+                      aria-label="Send reminder (upgrade required)"
+                      title="Available on Pro and above"
+                    >
+                      <Bell className="h-4 w-4 opacity-40" />
                     </Button>
                   ) : null}
                 </div>
