@@ -199,32 +199,55 @@ function prettyLabel(type: string) {
 }
 
 async function persist(req: Request, capturedMediaId: string, result: any) {
-  const auth = req.headers.get("Authorization");
-  if (!auth) return;
-  // Verify caller via anon JWT, then write with service role to bypass RLS races.
-  const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-    global: { headers: { Authorization: auth } },
-  });
-  const { data: u } = await userClient.auth.getUser();
-  if (!u?.user) return;
-
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-  // Confirm membership.
+
+  // Look up media + the request_id behind its submission.
   const { data: media } = await admin
     .from("captured_media")
-    .select("id, submission_id, submissions!inner(workspace_id)")
+    .select("id, submission_id, submissions!inner(workspace_id, request_id)")
     .eq("id", capturedMediaId)
     .maybeSingle();
   if (!media) return;
-  const ws = (media as any).submissions?.workspace_id;
-  const { data: member } = await admin
-    .from("workspace_members")
-    .select("user_id")
-    .eq("workspace_id", ws)
-    .eq("user_id", u.user.id)
-    .eq("status", "active")
-    .maybeSingle();
-  if (!member) return;
+  const submission: any = (media as any).submissions;
+  const workspaceId = submission?.workspace_id;
+  const requestId = submission?.request_id;
+
+  // Authorize: either an authenticated workspace member, OR an anon
+  // recipient whose x-request-token header resolves to the same request.
+  let authorized = false;
+
+  const auth = req.headers.get("Authorization");
+  if (auth) {
+    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: auth } },
+    });
+    const { data: u } = await userClient.auth.getUser();
+    if (u?.user) {
+      const { data: member } = await admin
+        .from("workspace_members")
+        .select("user_id")
+        .eq("workspace_id", workspaceId)
+        .eq("user_id", u.user.id)
+        .eq("status", "active")
+        .maybeSingle();
+      if (member) authorized = true;
+    }
+  }
+
+  if (!authorized) {
+    const token = req.headers.get("x-request-token");
+    if (token && requestId) {
+      const { data: tokReq } = await admin
+        .from("photo_brief_requests")
+        .select("id")
+        .eq("token", token)
+        .eq("id", requestId)
+        .maybeSingle();
+      if (tokReq) authorized = true;
+    }
+  }
+
+  if (!authorized) return;
 
   await admin
     .from("captured_media")
