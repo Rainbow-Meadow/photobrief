@@ -5,43 +5,48 @@ export interface CuratedCategoryMeta {
   label: string;
   blurb: string;
   /** Lucide icon name — looked up at render time. */
-  icon: "Wrench" | "Home" | "PackageCheck" | "Megaphone" | "Sparkles";
+  icon: "Wrench" | "Home" | "PackageCheck" | "Megaphone" | "Heart";
 }
 
 /**
- * The five curated buckets shown in the public Guide Library.
- * Internal templates live behind an admin toggle — they don't appear here.
+ * The five topline buckets from the PhotoBrief Template Directory workbook.
+ * Mirrors the DB `topline_category` enum — keep these in lock-step.
  */
 export const curatedCategories: CuratedCategoryMeta[] = [
   {
-    id: "service_quote",
-    label: "Service Quote Intake",
-    blurb: "Estimate jobs faster with photos before the truck rolls.",
+    id: "field_service_quote_intake",
+    label: "Field Service & Quote Intake",
+    blurb:
+      "Contractors and service businesses that need job scope, access, issue photos, and quote-ready context.",
     icon: "Wrench",
   },
   {
-    id: "property_proof",
-    label: "Property, Proof & Records",
-    blurb: "Move-in / move-out, condition reports, and proof-of-completion.",
+    id: "property_realestate_claims",
+    label: "Property, Real Estate & Claims",
+    blurb:
+      "Condition documentation, tenant requests, inspections, and claim packets.",
     icon: "Home",
   },
   {
-    id: "product_support",
-    label: "Product Support & Claims",
-    blurb: "Diagnose returns, warranty claims, and product issues.",
+    id: "commerce_warranty_resale",
+    label: "Commerce, Warranty & Resale",
+    blurb:
+      "Support, warranty, returns, marketplace listings, and resale photo workflows.",
     icon: "PackageCheck",
   },
   {
-    id: "sales_listing",
-    label: "Sales, Listings & Marketing",
-    blurb: "Capture listing-quality photos with the right shot list.",
-    icon: "Megaphone",
+    id: "care_health_living_systems",
+    label: "Care, Health & Living Systems",
+    blurb:
+      "Pets, vet documentation, plants, aquariums, and other living-system contexts with careful wording.",
+    icon: "Heart",
   },
   {
-    id: "custom_intake",
-    label: "Custom Business Intake",
-    blurb: "Generic starting points you can rebrand for any workflow.",
-    icon: "Sparkles",
+    id: "marketing_content_capture",
+    label: "Marketing & Content Capture",
+    blurb:
+      "Product marketing, social crops, before/after content, and small business visual assets.",
+    icon: "Megaphone",
   },
 ];
 
