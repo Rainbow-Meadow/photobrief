@@ -692,9 +692,11 @@ export type Database = {
           created_at: string
           current_period_end: string
           current_period_start: string
+          environment: string
           id: string
           is_founding_pro: boolean
           plan_tier: Database["public"]["Enums"]["plan_tier"]
+          price_id: string | null
           renewal_date: string | null
           status: string
           stripe_customer_id: string | null
@@ -709,9 +711,11 @@ export type Database = {
           created_at?: string
           current_period_end?: string
           current_period_start?: string
+          environment?: string
           id?: string
           is_founding_pro?: boolean
           plan_tier?: Database["public"]["Enums"]["plan_tier"]
+          price_id?: string | null
           renewal_date?: string | null
           status?: string
           stripe_customer_id?: string | null
@@ -726,9 +730,11 @@ export type Database = {
           created_at?: string
           current_period_end?: string
           current_period_start?: string
+          environment?: string
           id?: string
           is_founding_pro?: boolean
           plan_tier?: Database["public"]["Enums"]["plan_tier"]
+          price_id?: string | null
           renewal_date?: string | null
           status?: string
           stripe_customer_id?: string | null
@@ -841,6 +847,13 @@ export type Database = {
         Returns: boolean
       }
       is_workspace_member: { Args: { _workspace_id: string }; Returns: boolean }
+      plan_from_price_id: {
+        Args: { _price_id: string }
+        Returns: {
+          billing_interval: string
+          plan: Database["public"]["Enums"]["plan_tier"]
+        }[]
+      }
       plan_request_cap: {
         Args: { _plan: Database["public"]["Enums"]["plan_tier"] }
         Returns: number
