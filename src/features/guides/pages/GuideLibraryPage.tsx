@@ -18,6 +18,8 @@ const iconMap = { Wrench, Home, PackageCheck, Megaphone, Sparkles };
 export default function GuideLibraryPage() {
   const launchGuides = useLaunchGuides();
   const internalGuides = useInternalGuides();
+  const { workspace } = useCurrentWorkspace();
+  const { data: workspaceGuides = [] } = useWorkspaceGuides(workspace?.id);
   const navigate = useNavigate();
   const { can } = usePlan();
   const canCustomGuides = can("custom_guides");
