@@ -18,6 +18,7 @@ import { formatRelativeTime } from "@/utils/format";
 import { guideTemplates } from "@/config/guideTemplates";
 import { mockTeamMembers } from "@/config/mockData";
 import { toast } from "sonner";
+import { notificationService } from "@/services/notificationService";
 import {
   InboxFilters,
   applyInboxFilters,
@@ -153,7 +154,19 @@ export default function RequestsInboxPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => toast.success("Reminder sent (mock)")}>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  notificationService.notify({
+                                    event: "reminder_sent",
+                                    audience: "recipient",
+                                    title: `Reminder sent to ${r.recipientName}`,
+                                    body: r.guideName,
+                                    requestId: r.id,
+                                    recipientEmail: r.recipientContact,
+                                    href: `/requests/${r.id}`,
+                                  })
+                                }
+                              >
                                 <Bell className="mr-2 h-3.5 w-3.5" /> Send reminder
                               </DropdownMenuItem>
                               <DropdownMenuItem
