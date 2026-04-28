@@ -47,9 +47,10 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
           </Route>
 
-          {/* Onboarding (no sidebar) */}
+          {/* Onboarding + invite acceptance (no sidebar) */}
           <Route element={<MarketingLayout />}>
             <Route path="/onboarding" element={<OnboardingPage />} />
+            <Route path="/invite/:token" element={<AcceptInvitePage />} />
           </Route>
 
           {/* Authenticated business app */}
