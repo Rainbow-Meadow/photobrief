@@ -9,9 +9,9 @@ export function MarketingLayout() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <NavLink to="/" aria-label="PhotoBrief home">
-            <BrandMark variant="horizontal" tone="dark" size={32} eager />
+            <BrandMark variant="horizontal" tone="dark" size={44} eager />
           </NavLink>
           <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground sm:flex">
             <a href="/#how-it-works" className="hover:text-foreground">How it works</a>
