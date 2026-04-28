@@ -124,16 +124,13 @@ export default function BillingSettingsPage() {
               label="Requests this month"
               used={usage.requests}
               cap={current.quotas.requestsPerMonth}
+              loading={usageLoading}
             />
             <UsageMeter
               label="AI checks this month"
               used={usage.aiChecks}
               cap={current.quotas.aiChecksPerMonth}
-            />
-            <UsageMeter
-              label="Saved templates"
-              used={1}
-              cap={current.quotas.savedTemplates}
+              loading={usageLoading}
             />
           </div>
         </div>
@@ -147,6 +144,22 @@ export default function BillingSettingsPage() {
           compact
           heading="Change plan"
           subheading="Upgrade or downgrade any time. Annual saves 20%."
+          onSelectPlan={async (plan, interval) => {
+            setOpening("checkout");
+            const { data, error } = await supabase.functions.invoke("create-checkout", {
+              body: { workspace_id: workspace.id, plan, interval },
+            });
+            setOpening(null);
+            if (error || !data?.url) {
+              toast({
+                title: "Couldn't start checkout",
+                description: error?.message ?? "Please try again in a moment.",
+                variant: "destructive",
+              });
+              return;
+            }
+            window.location.href = data.url;
+          }}
         />
       </section>
 
