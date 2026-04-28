@@ -60,11 +60,21 @@ export default function GuideLibraryPage() {
               {showInternal ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
               {showInternal ? "Hide internal templates" : "Show internal templates"}
             </Button>
-            <Button asChild className="gap-1.5">
-              <NavLink to="/guides/new">
+            {canCustomGuides ? (
+              <Button asChild className="gap-1.5">
+                <NavLink to="/guides/new">
+                  <Plus className="h-4 w-4" /> New guide
+                </NavLink>
+              </Button>
+            ) : (
+              <Button
+                className="gap-1.5"
+                onClick={() => toast.error("Custom guides are on Pro", { description: "Upgrade to build your own." })}
+              >
                 <Plus className="h-4 w-4" /> New guide
-              </NavLink>
-            </Button>
+                <span className="ml-1 text-[10px] uppercase tracking-wide opacity-80">Pro</span>
+              </Button>
+            )}
           </div>
         }
       />
