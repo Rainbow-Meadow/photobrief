@@ -436,11 +436,16 @@ export default function SubmissionReviewPage() {
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
-                onClick={() => toast.error("Assigning teammates requires the Business plan")}
-                title="Available on Business"
+                onClick={() => {
+                  const plan = minPlanFor("assignments");
+                  toast.error(
+                    `Assignments are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`,
+                  );
+                }}
+                title="Available on Pro and above"
               >
                 <UserPlus2 className="h-3.5 w-3.5" /> Assign
-                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Business</span>
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Pro</span>
               </Button>
             )}
             <Button size="sm" className="gap-1.5" onClick={handleMarkReviewed}>
