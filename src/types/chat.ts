@@ -20,6 +20,12 @@ export interface CapturedPhoto {
   checks: AICheckResultMock[];
   /** True if recipient chose "Use anyway" despite warnings/fails. */
   acceptedDespiteWarnings: boolean;
+  /** Storage path inside `submission-media` once uploaded. */
+  storagePath?: string;
+  /** Public URL of the uploaded file (set after upload). */
+  publicUrl?: string;
+  /** captured_media row id (set after server insert). */
+  capturedMediaId?: string;
 }
 
 export interface AnsweredQuestion {
