@@ -207,7 +207,7 @@ export const planLimits: PlanLimit[] = [
     id: "starter",
     name: "Starter",
     priceMonthly: 19,
-    priceAnnualMonthly: annual(19),
+    priceAnnualMonthly: 15,
     tagline: "Look professional, instantly.",
     purpose: "Solo operators who want a branded recipient experience.",
     quotas: {
