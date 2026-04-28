@@ -174,6 +174,11 @@ export const submissionsService = {
       .update({ status: "submitted" })
       .eq("id", args.requestId);
 
+    // 4. Fire-and-forget AI summary (server reads from DB and persists results).
+    supabase.functions
+      .invoke("ai-summarize-submission", { body: { submissionId: subRow.id } })
+      .catch((e) => console.warn("summary trigger failed", e));
+
     return subRow;
   },
 };
