@@ -118,27 +118,40 @@ export default function RequestDetailPage() {
           </p>
         ) : (
           <ul className="mt-3 space-y-2">
-            {messages.map((m) => (
-              <li
-                key={m.id}
-                className="flex items-start justify-between rounded-md border bg-card p-3 text-sm"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium capitalize text-foreground">
-                    {m.kind} {m.channel === "sms" ? "SMS" : "email"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {m.toAddress ?? "—"} · {formatRelativeTime(m.sentAt)}
-                  </p>
-                  {m.body ? (
-                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{m.body}</p>
-                  ) : null}
-                </div>
-                <span className="ml-3 shrink-0 text-xs text-muted-foreground">
-                  {(m.metadata as { delivery?: string })?.delivery === "sent" ? "Delivered" : "Logged"}
-                </span>
-              </li>
-            ))}
+            {messages.map((m) => {
+              const inbound = m.direction === "inbound";
+              return (
+                <li
+                  key={m.id}
+                  className={`flex items-start justify-between rounded-md border p-3 text-sm ${
+                    inbound ? "border-primary/30 bg-primary/5" : "bg-card"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium capitalize text-foreground">
+                      {inbound ? "Reply" : m.kind}{" "}
+                      {m.channel === "sms" ? "SMS" : m.channel === "both" ? "email + SMS" : "email"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {inbound
+                        ? `From ${(m.metadata as { from_number?: string })?.from_number ?? m.toAddress ?? "—"}`
+                        : m.toAddress ?? "—"}{" "}
+                      · {formatRelativeTime(m.sentAt)}
+                    </p>
+                    {m.body ? (
+                      <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">{m.body}</p>
+                    ) : null}
+                  </div>
+                  <span className="ml-3 shrink-0 text-xs text-muted-foreground">
+                    {inbound
+                      ? "Inbound"
+                      : (m.metadata as { delivery?: string })?.delivery === "sent"
+                        ? "Delivered"
+                        : "Logged"}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
