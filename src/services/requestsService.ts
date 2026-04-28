@@ -142,4 +142,31 @@ export const requestsService = {
       .eq("id", id);
     if (error) throw error;
   },
+
+  async bulkUpdateStatus(ids: string[], status: RequestStatus) {
+    if (ids.length === 0) return;
+    const { error } = await supabase
+      .from("photo_brief_requests")
+      .update({ status })
+      .in("id", ids);
+    if (error) throw error;
+  },
+
+  async bulkAssign(ids: string[], assigneeId: string | null) {
+    if (ids.length === 0) return;
+    const { error } = await supabase
+      .from("photo_brief_requests")
+      .update({ assigned_to: assigneeId })
+      .in("id", ids);
+    if (error) throw error;
+  },
+
+  async bulkDelete(ids: string[]) {
+    if (ids.length === 0) return;
+    const { error } = await supabase
+      .from("photo_brief_requests")
+      .delete()
+      .in("id", ids);
+    if (error) throw error;
+  },
 };
