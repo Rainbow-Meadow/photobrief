@@ -47,7 +47,12 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b">
         <div className="flex h-12 items-center px-2">
-          <BrandMark markOnly={collapsed} size={collapsed ? 28 : 26} />
+          <BrandMark
+            variant={collapsed ? "mark" : "horizontal"}
+            tone="auto"
+            size={collapsed ? 26 : 26}
+            eager
+          />
         </div>
       </SidebarHeader>
 
