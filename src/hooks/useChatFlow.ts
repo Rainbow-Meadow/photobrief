@@ -16,12 +16,23 @@ interface UseChatFlowArgs {
   guide: PhotoGuide;
   businessName: string;
   introBody?: string;
+  /**
+   * Optional uploader. If provided, the chat flow uploads the captured
+   * blob to storage BEFORE running AI checks, so the AI gets a real
+   * public URL (Gemini cannot read `blob:` previews) and the
+   * captured_media row already exists for persistence.
+   */
+  uploadCapture?: (args: {
+    stepId: string;
+    blob: Blob;
+    ext: string;
+  }) => Promise<{ publicUrl: string; storagePath: string; capturedMediaId: string }>;
 }
 
 let idCounter = 0;
 const nextId = () => `m_${Date.now()}_${++idCounter}`;
 
-export function useChatFlow({ guide, businessName, introBody }: UseChatFlowArgs) {
+export function useChatFlow({ guide, businessName, introBody, uploadCapture }: UseChatFlowArgs) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     const intro: ChatMessage = {
       id: nextId(),
