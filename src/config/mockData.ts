@@ -1,21 +1,8 @@
-// Mock data for Phase 1 — replaced by Lovable Cloud queries in later phases.
-// Guides come from `config/guideTemplates.ts`. This file only seeds
-// fixtures for requests, submissions, and the demo workspace.
-import type { PhotoBriefRequest, Submission, TeamMember } from "@/types/photobrief";
+// Mock fixtures still used by submission/request UIs until later stages
+// replace them with live queries. The workspace + team-member mocks were
+// removed in Stage 1 (live data via useCurrentWorkspace + useTeamMembers).
+import type { PhotoBriefRequest, Submission } from "@/types/photobrief";
 import { guideTemplates } from "@/config/guideTemplates";
-
-export const mockWorkspace = {
-  id: "ws_demo",
-  name: "Bright Spark Plumbing",
-  industry: "plumbing",
-  plan: "pro" as const,
-};
-
-export const mockTeamMembers: TeamMember[] = [
-  { id: "u_pat", name: "Patrick Owens", initials: "PO" },
-  { id: "u_jen", name: "Jen Hughes", initials: "JH" },
-  { id: "u_marco", name: "Marco Diaz", initials: "MD" },
-];
 
 const guideById = (id: string) => guideTemplates.find((g) => g.id === id);
 

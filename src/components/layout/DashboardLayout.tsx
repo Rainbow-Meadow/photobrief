@@ -7,10 +7,12 @@ import { NotificationBell } from "@/components/layout/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 
 export function DashboardLayout() {
   const { workspace } = useCurrentWorkspace();
   return (
+    <RequireAuth>
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-gradient-subtle">
         <AppSidebar />
@@ -19,7 +21,7 @@ export function DashboardLayout() {
           <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur">
             <SidebarTrigger />
             <div className="hidden text-sm text-muted-foreground sm:block">
-              {workspace.name}
+              {workspace?.name ?? ""}
             </div>
             <div className="ml-auto flex items-center gap-2">
               <Button asChild size="sm" className="gap-1.5">
@@ -45,5 +47,7 @@ export function DashboardLayout() {
         </div>
       </div>
     </SidebarProvider>
+    </RequireAuth>
   );
 }
+

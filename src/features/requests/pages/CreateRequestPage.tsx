@@ -107,7 +107,7 @@ export default function CreateRequestPage() {
       const contact = draft.recipientContact?.trim() ?? "";
       const isEmail = contact.includes("@");
       const created = await requestsService.create({
-        workspaceId: workspace.id,
+        workspaceId: workspace?.id ?? "",
         guideId: draft.baseGuideId ?? null,
         recipientName: draft.recipientName || "Recipient",
         recipientEmail: isEmail ? contact : undefined,
@@ -135,7 +135,7 @@ export default function CreateRequestPage() {
         recipientEmail: isEmail ? contact : undefined,
       });
 
-      queryClient.invalidateQueries({ queryKey: ["requests", workspace.id] });
+      queryClient.invalidateQueries({ queryKey: ["requests", workspace?.id] });
       navigate(`/requests/${created.id}`);
     } catch (err: any) {
       console.error(err);

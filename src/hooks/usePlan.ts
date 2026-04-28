@@ -22,15 +22,16 @@ export interface UsePlan {
 
 export function usePlan(): UsePlan {
   const { workspace, loading } = useCurrentWorkspace();
+  const plan: Plan = workspace?.plan ?? "free";
   return useMemo(
     () => ({
-      plan: workspace.plan,
-      limit: getPlanLimit(workspace.plan),
+      plan,
+      limit: getPlanLimit(plan),
       loading,
       can: (feature, currentUsage) =>
-        canUseFeature(workspace.plan, feature, currentUsage),
+        canUseFeature(plan, feature, currentUsage),
       requiredPlanFor: (feature) => minPlanFor(feature),
     }),
-    [workspace.plan, loading],
+    [plan, loading],
   );
 }

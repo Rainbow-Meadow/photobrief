@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PublicRequestLayout } from "@/components/layout/PublicRequestLayout";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 
 import LandingPage from "@/pages/Landing";
 import AuthPage from "@/pages/Auth";
@@ -51,10 +52,10 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPasswordPage />} />
           </Route>
 
-          {/* Onboarding + invite acceptance (no sidebar) */}
+          {/* Onboarding + invite acceptance (no sidebar, but still auth-only) */}
           <Route element={<MarketingLayout />}>
-            <Route path="/onboarding" element={<OnboardingPage />} />
-            <Route path="/invite/:token" element={<AcceptInvitePage />} />
+            <Route path="/onboarding" element={<RequireAuth><OnboardingPage /></RequireAuth>} />
+            <Route path="/invite/:token" element={<RequireAuth><AcceptInvitePage /></RequireAuth>} />
           </Route>
 
           {/* Authenticated business app */}

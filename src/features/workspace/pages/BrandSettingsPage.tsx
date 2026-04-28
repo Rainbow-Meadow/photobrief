@@ -49,7 +49,7 @@ export default function BrandSettingsPage() {
 
   // Load existing brand_profile + workspace name
   useEffect(() => {
-    if (wsLoading || !workspace.id) return;
+    if (wsLoading || !workspace?.id) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -85,13 +85,13 @@ export default function BrandSettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [wsLoading, workspace.id]);
+  }, [wsLoading, workspace?.id]);
 
   const update = <K extends keyof BrandForm>(key: K, value: BrandForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
   const handleLogoUpload = async (file: File) => {
-    if (!workspace.id) return;
+    if (!workspace?.id) return;
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "Logo too large",
@@ -123,7 +123,7 @@ export default function BrandSettingsPage() {
   };
 
   const handleSave = async () => {
-    if (!workspace.id) return;
+    if (!workspace?.id) return;
     setSaving(true);
     try {
       // 1. Update workspace name (display name)

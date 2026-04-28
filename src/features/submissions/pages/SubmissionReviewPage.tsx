@@ -39,7 +39,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { useSubmission, useSubmissions } from "@/hooks/useSubmissions";
 import { submissionStatusOptions } from "@/config/statusOptions";
-import { mockTeamMembers } from "@/config/mockData";
+import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { formatRelativeTime } from "@/utils/format";
 import { usePlan } from "@/hooks/usePlan";
 import { getPlanLimit, minPlanFor } from "@/config/planLimits";
@@ -83,6 +83,7 @@ export default function SubmissionReviewPage() {
   const fallback = useSubmissions()[0];
   const initial = useSubmission(id) ?? fallback;
   const { can } = usePlan();
+  const teamMembers = useTeamMembers();
   const canPdf = can("pdf_export");
   const canReminders = can("reminders");
   const canAssign = can("team_members");
@@ -201,7 +202,7 @@ export default function SubmissionReviewPage() {
   }
 
   function handleAssign(memberId: string) {
-    const member = mockTeamMembers.find((m) => m.id === memberId);
+    const member = teamMembers.find((m) => m.id === memberId);
     if (!member) return;
     setSubmission((prev) => ({ ...prev, assigneeId: member.id, assigneeName: member.name }));
     toast.success(`Assigned to ${member.name}`);
@@ -308,7 +309,7 @@ export default function SubmissionReviewPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {mockTeamMembers.map((m) => (
+                  {teamMembers.map((m) => (
                     <DropdownMenuItem key={m.id} onClick={() => handleAssign(m.id)}>
                       {m.name}
                     </DropdownMenuItem>
