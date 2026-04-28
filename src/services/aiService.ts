@@ -118,12 +118,6 @@ export interface FollowupMessageOutput {
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-function pickSeverity(): AICheckSeverity {
-  const r = Math.random();
-  if (r < 0.65) return "pass";
-  if (r < 0.9) return "warn";
-  return "fail";
-}
 
 function worstOf(severities: AICheckSeverity[]): AICheckSeverity {
   if (severities.some((s) => s === "fail")) return "fail";
