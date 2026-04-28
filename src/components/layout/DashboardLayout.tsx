@@ -47,5 +47,7 @@ export function DashboardLayout() {
         </div>
       </div>
     </SidebarProvider>
+    </RequireAuth>
   );
 }
+
