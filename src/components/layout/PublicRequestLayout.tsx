@@ -18,17 +18,15 @@ export function PublicRequestLayout() {
         <div className="mx-auto flex h-14 w-full max-w-2xl items-center justify-between px-4">
           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
             {logoUrl ? (
-              <>
-                <img
-                  src={logoUrl}
-                  alt={businessName}
-                  className="h-7 w-7 rounded-md object-cover"
-                />
-                <span>{businessName}</span>
-              </>
+              <img
+                src={logoUrl}
+                alt={businessName}
+                className="h-7 w-7 rounded-md object-cover"
+              />
             ) : (
               <BrandMark variant="horizontal" tone="dark" size={28} eager />
             )}
+            {logoUrl ? <span>{businessName}</span> : null}
           </div>
           <span className="text-xs text-muted-foreground">Secure photo intake</span>
         </div>
