@@ -1,4 +1,4 @@
-import { useState } from "react";
+
 import { Camera, MessageCircleQuestion, Pencil, Save, Link as LinkIcon, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,6 @@ export function RequestDraftPreview({
   onSaveAsGuide,
   isSaving,
 }: RequestDraftPreviewProps) {
-  const [editingMessages, setEditingMessages] = useState(false);
   const set = <K extends keyof RequestDraft>(key: K, value: RequestDraft[K]) =>
     onChange({ ...draft, [key]: value });
 
@@ -175,8 +174,6 @@ export function RequestDraftPreview({
           variant="outline"
           className="gap-1.5"
           onClick={() => {
-            setEditingMessages(true);
-            // Scroll to top so the user sees they can edit
             document.getElementById("draft-preview-top")?.scrollIntoView({ behavior: "smooth" });
           }}
         >
