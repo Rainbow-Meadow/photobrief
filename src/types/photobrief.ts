@@ -17,16 +17,44 @@ export type RequestStatus =
 
 export type SubmissionStatus = "new" | "reviewed" | "needs_more" | "archived";
 
-export type ShotType = "wide" | "close_up" | "label" | "serial" | "video" | "document";
-
-export type OverlayType =
-  | "full_area"
+/**
+ * Capture type — mirrors DB `capture_type` enum.
+ * Workbook uses photo|label|document; legacy values kept for back-compat.
+ */
+export type ShotType =
+  | "photo"
+  | "label"
+  | "document"
+  | "video"
+  | "note"
+  | "measurement"
+  // legacy aliases used by the request builder UI
+  | "wide"
   | "close_up"
+  | "serial";
+
+/** Overlay type — mirrors DB `overlay_type` enum. */
+export type OverlayType =
+  | "wide_scene"
+  | "close_up"
+  | "damage_closeup"
+  | "document_label"
+  | "model_serial_plate"
+  | "receipt_order"
+  | "before_after_alignment"
+  | "square_product_crop"
+  | "vertical_story_crop"
+  | "scale_reference"
+  | "video_motion"
+  | "custom"
+  // legacy aliases
+  | "full_area"
   | "label"
   | "serial_plate"
   | "before_after"
   | "scale_required";
 
+/** AI check type — mirrors DB `ai_check_type` enum. */
 export type AICheckType =
   | "blur"
   | "low_light"
@@ -38,11 +66,15 @@ export type AICheckType =
   | "missing_scale"
   | "missing_required_item"
   | "label_detected"
-  | "serial_detected"
-  | "receipt_detected"
+  | "serial_model_detected"
+  | "receipt_order_detected"
   | "damage_visible"
   | "wide_shot_detected"
   | "close_up_detected"
+  | "unsafe_condition_flag"
+  // legacy aliases
+  | "serial_detected"
+  | "receipt_detected"
   | "unsafe_condition";
 
 export type AICheckSeverity = "pass" | "warn" | "fail";
@@ -52,7 +84,26 @@ export type ContextQuestionInputType =
   | "long_text"
   | "single_select"
   | "multi_select"
-  | "number";
+  | "number"
+  | "yes_no"
+  | "date";
+
+/** Workflow archetype — one of 14 capture archetypes from the Template Directory. */
+export type WorkflowType =
+  | "service_repair"
+  | "equipment_service"
+  | "quote_scope"
+  | "proof_claim"
+  | "property_intake"
+  | "condition_report"
+  | "label_proof"
+  | "listing"
+  | "marketing_capture"
+  | "before_after"
+  | "care_diagnostic"
+  | "care_intake"
+  | "vehicle_service"
+  | "vehicle_body";
 
 /** Plan tiers — mirrors the DB plan_tier enum and 01_Strategy/02_pricing_and_plan_limits.md. */
 export type Plan = "free" | "starter" | "pro" | "team" | "business";
