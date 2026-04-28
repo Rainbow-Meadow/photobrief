@@ -1,20 +1,39 @@
 import { cn } from "@/lib/utils";
-import { Camera } from "lucide-react";
+import wordmark from "@/assets/photobrief-logo.png";
+import mark from "@/assets/photobrief-mark.png";
 
 interface BrandMarkProps {
   className?: string;
-  showWordmark?: boolean;
+  /** Render only the camera mark (no wordmark). Useful for compact headers. */
+  markOnly?: boolean;
+  /** Visual height in px. Defaults to 28. */
+  size?: number;
+  /** Force a light variant by inverting the wordmark for dark backgrounds. */
+  invert?: boolean;
 }
 
-export function BrandMark({ className, showWordmark = true }: BrandMarkProps) {
+export function BrandMark({
+  className,
+  markOnly = false,
+  size = 28,
+  invert = false,
+}: BrandMarkProps) {
+  const src = markOnly ? mark : wordmark;
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <span className="flex h-8 w-8 items-center justify-center rounded-md bg-gradient-primary text-primary-foreground shadow-glow">
-        <Camera className="h-4 w-4" />
-      </span>
-      {showWordmark ? (
-        <span className="text-base font-semibold tracking-tight text-foreground">PhotoBrief</span>
-      ) : null}
-    </div>
+    <span
+      className={cn("inline-flex items-center", className)}
+      aria-label="PhotoBrief"
+    >
+      <img
+        src={src}
+        alt="PhotoBrief"
+        style={{ height: size, width: "auto" }}
+        className={cn(
+          "block select-none",
+          invert && "brightness-0 invert",
+        )}
+        draggable={false}
+      />
+    </span>
   );
 }

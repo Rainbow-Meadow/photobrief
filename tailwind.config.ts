@@ -72,12 +72,15 @@ export default {
       backgroundImage: {
         "gradient-primary": "var(--gradient-primary)",
         "gradient-subtle": "var(--gradient-subtle)",
+        "gradient-brand": "var(--gradient-brand)",
+        "gradient-radial-glow": "var(--gradient-radial-glow)",
       },
       boxShadow: {
         "elev-sm": "var(--shadow-sm)",
         "elev-md": "var(--shadow-md)",
         "elev-lg": "var(--shadow-lg)",
         glow: "var(--shadow-glow)",
+        brand: "var(--shadow-brand)",
       },
       borderRadius: {
         lg: "var(--radius)",
