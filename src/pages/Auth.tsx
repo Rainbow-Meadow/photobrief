@@ -215,6 +215,14 @@ export default function AuthPage() {
           </Button>
         </form>
 
+        {mode === "signin" && (
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            <NavLink to="/forgot-password" className="hover:text-foreground hover:underline">
+              Forgot your password?
+            </NavLink>
+          </p>
+        )}
+
         <p className="mt-6 text-center text-sm text-muted-foreground">
           {mode === "signup" ? "Already have an account?" : "New to PhotoBrief?"}{" "}
           <NavLink to={`/auth?mode=${otherMode}`} className="font-medium text-primary hover:underline">
