@@ -2,6 +2,8 @@ import { Outlet } from "react-router-dom";
 import { BrandMark } from "@/components/layout/BrandMark";
 import { useRecipientBranding } from "@/features/capture/RecipientBrandingContext";
 
+
+
 /**
  * PublicRequestLayout
  * Mobile-first layout for the recipient chat-first capture flow.
@@ -22,7 +24,7 @@ export function PublicRequestLayout() {
                 className="h-7 w-7 rounded-md object-cover"
               />
             ) : (
-              <span className="h-7 w-7 rounded-md bg-primary" aria-hidden />
+              <BrandMark variant="mark" tone="dark" size={28} eager />
             )}
             <span>{businessName}</span>
           </div>
@@ -38,7 +40,7 @@ export function PublicRequestLayout() {
 
       <footer className="border-t bg-background py-4">
         <div className="mx-auto flex w-full max-w-2xl items-center justify-center px-4">
-          <BrandMark />
+          <BrandMark variant="wordmark" tone="dark" size={18} className="opacity-60" />
         </div>
       </footer>
     </div>

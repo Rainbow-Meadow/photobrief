@@ -13,7 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { InlineAuthCard } from "@/features/auth/components/InlineAuthCard";
 import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
-import mark from "@/assets/photobrief-mark.png";
+import primaryMark from "@/assets/brand/photobrief-primary.png";
+import markLight from "@/assets/brand/photobrief-mark-light.png";
 
 const features = [
   {
@@ -76,6 +77,13 @@ export default function LandingPage() {
               "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
             backgroundSize: "28px 28px",
           }}
+        />
+        {/* Brand watermark — large, blurred, decorative */}
+        <img
+          src={primaryMark}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute -right-24 -top-16 hidden h-[520px] w-auto opacity-[0.08] blur-[2px] lg:block"
         />
 
         <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14 lg:px-8 lg:py-24">
@@ -213,10 +221,11 @@ export default function LandingPage() {
                 catches problems before you do.
               </p>
               <img
-                src={mark}
+                src={primaryMark}
                 alt=""
                 aria-hidden
-                className="mt-8 hidden h-32 w-auto opacity-90 lg:block"
+                loading="lazy"
+                className="mt-8 hidden h-40 w-auto drop-shadow-[0_18px_40px_hsl(var(--brand-navy)/0.25)] lg:block"
               />
             </div>
 
@@ -263,6 +272,13 @@ export default function LandingPage() {
             className="pointer-events-none absolute inset-0 bg-gradient-radial-glow"
           />
           <div className="relative">
+            <img
+              src={markLight}
+              alt=""
+              aria-hidden
+              loading="lazy"
+              className="mx-auto mb-5 h-12 w-auto opacity-90"
+            />
             <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
               Take the right photos, every time.
             </h2>
