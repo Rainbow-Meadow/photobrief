@@ -109,7 +109,7 @@ export function WorkspaceSwitcher({ collapsed }: Props) {
     try {
       const { data: ws, error } = await supabase
         .from("business_workspaces")
-        .insert({ name: newName.trim(), created_by: user.id })
+        .insert({ name: newName.trim(), owner_id: user.id })
         .select("id, name")
         .single();
       if (error || !ws) throw error ?? new Error("Could not create workspace");
