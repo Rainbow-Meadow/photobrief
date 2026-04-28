@@ -9,6 +9,10 @@ function formatQuota(q: Quota, singular: string, pluralSuffix = "s"): string {
   return `${q} ${singular}${q === 1 ? "" : pluralSuffix}`;
 }
 
+// NOTE: This page is being fully rewritten in the next phase with the new
+// PricingCardGrid + monthly/annual toggle + Founding Pro spotlight. Keeping
+// it building against the new spec for now.
+
 export default function PricingPage() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -38,14 +42,8 @@ export default function PricingPage() {
             <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
             <p className="mt-5 text-4xl font-semibold text-foreground">
-              {plan.id === "enterprise" ? (
-                <span>Custom</span>
-              ) : (
-                <>
-                  ${plan.priceMonthly}
-                  <span className="text-base font-normal text-muted-foreground">/mo</span>
-                </>
-              )}
+              ${plan.priceMonthly}
+              <span className="text-base font-normal text-muted-foreground">/mo</span>
             </p>
             <ul className="mt-6 flex-1 space-y-2.5 text-sm">
               {plan.features.map((f) => (
@@ -57,20 +55,15 @@ export default function PricingPage() {
             </ul>
             <div className="mt-4 space-y-1 text-xs text-muted-foreground">
               <p>{formatQuota(plan.quotas.requestsPerMonth, "request", "s / month")}</p>
-              <p>{formatQuota(plan.quotas.customGuides, "custom guide")}</p>
-              <p>{formatQuota(plan.quotas.teamSeats, "team seat")}</p>
+              <p>{formatQuota(plan.quotas.users, "user")}</p>
             </div>
             <Button
               asChild
               className="mt-6"
               variant={plan.highlight ? "default" : "outline"}
             >
-              <NavLink to={plan.id === "enterprise" ? "/auth?mode=signup" : "/auth?mode=signup"}>
-                {plan.id === "enterprise"
-                  ? "Talk to sales"
-                  : plan.priceMonthly === 0
-                    ? "Start free"
-                    : `Choose ${plan.name}`}
+              <NavLink to="/auth?mode=signup">
+                {plan.priceMonthly === 0 ? "Start free" : `Choose ${plan.name}`}
               </NavLink>
             </Button>
           </div>

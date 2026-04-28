@@ -23,18 +23,25 @@ function pct(used: number, cap: Quota): number {
 
 // Order shown in the comparison row at the bottom of the page.
 const featureRows: FeatureKey[] = [
-  "branding",
+  "branded_links",
+  "custom_messages",
   "custom_guides",
   "ai_request_builder",
   "ai_guide_generator",
+  "advanced_ai_checks",
+  "missing_shot_followup",
   "pdf_export",
   "reminders",
   "internal_notes",
-  "team_members",
+  "assignments",
+  "team_inbox",
+  "saved_templates",
+  "bulk_actions",
   "white_label",
+  "multi_workspace",
   "custom_domain",
   "api_webhooks",
-  "sso",
+  "priority_support",
 ];
 
 export default function BillingSettingsPage() {
@@ -100,14 +107,8 @@ export default function BillingSettingsPage() {
             ) : null}
             <h3 className="text-sm font-semibold text-foreground">{p.name}</h3>
             <p className="mt-1 text-2xl font-semibold text-foreground">
-              {p.id === "enterprise" ? (
-                <span>Custom</span>
-              ) : (
-                <>
-                  ${p.priceMonthly}
-                  <span className="text-sm font-normal text-muted-foreground">/mo</span>
-                </>
-              )}
+              ${p.priceMonthly}
+              <span className="text-sm font-normal text-muted-foreground">/mo</span>
             </p>
             <p className="mt-1 text-xs text-muted-foreground">{p.tagline}</p>
             <Button
@@ -116,11 +117,7 @@ export default function BillingSettingsPage() {
               className="mt-4 w-full"
               disabled={p.id === current.id}
             >
-              {p.id === current.id
-                ? "Current"
-                : p.id === "enterprise"
-                  ? "Talk to sales"
-                  : `Switch to ${p.name}`}
+              {p.id === current.id ? "Current" : `Switch to ${p.name}`}
             </Button>
           </div>
         ))}
