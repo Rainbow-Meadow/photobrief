@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
-import { FoundingCustomerBanner } from "@/components/marketing/FoundingCustomerBanner";
+
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -54,11 +54,7 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <section className="-mt-6 pb-4 sm:-mt-8">
-        <FoundingCustomerBanner />
-      </section>
-
-      <section className="px-4 pb-16 pt-8 sm:px-6 lg:px-8 lg:pb-20">
+      <section className="px-4 pb-16 pt-12 sm:px-6 lg:px-8 lg:pb-20">
         <PricingCardGrid />
       </section>
 
