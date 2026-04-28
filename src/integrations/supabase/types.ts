@@ -14,16 +14,857 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ai_check_results: {
+        Row: {
+          captured_media_id: string
+          check_type: Database["public"]["Enums"]["ai_check_type"]
+          created_at: string
+          id: string
+          message: string | null
+          passed: boolean
+          score: number | null
+          suggested_fix: string | null
+        }
+        Insert: {
+          captured_media_id: string
+          check_type: Database["public"]["Enums"]["ai_check_type"]
+          created_at?: string
+          id?: string
+          message?: string | null
+          passed: boolean
+          score?: number | null
+          suggested_fix?: string | null
+        }
+        Update: {
+          captured_media_id?: string
+          check_type?: Database["public"]["Enums"]["ai_check_type"]
+          created_at?: string
+          id?: string
+          message?: string | null
+          passed?: boolean
+          score?: number | null
+          suggested_fix?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_check_results_captured_media_id_fkey"
+            columns: ["captured_media_id"]
+            isOneToOne: false
+            referencedRelation: "captured_media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_profiles: {
+        Row: {
+          completion_message: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          intro_message: string | null
+          logo_url: string | null
+          primary_color: string | null
+          request_heading: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          completion_message?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          intro_message?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          request_heading?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          completion_message?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          intro_message?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          request_heading?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_workspaces: {
+        Row: {
+          created_at: string
+          id: string
+          industry: string | null
+          name: string
+          owner_id: string
+          plan_tier: Database["public"]["Enums"]["plan_tier"]
+          slug: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          industry?: string | null
+          name: string
+          owner_id: string
+          plan_tier?: Database["public"]["Enums"]["plan_tier"]
+          slug?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          industry?: string | null
+          name?: string
+          owner_id?: string
+          plan_tier?: Database["public"]["Enums"]["plan_tier"]
+          slug?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      captured_media: {
+        Row: {
+          ai_feedback: Json | null
+          confidence: number | null
+          created_at: string
+          extracted_text: string | null
+          file_url: string | null
+          id: string
+          note: string | null
+          status: string
+          step_id: string | null
+          submission_id: string
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_feedback?: Json | null
+          confidence?: number | null
+          created_at?: string
+          extracted_text?: string | null
+          file_url?: string | null
+          id?: string
+          note?: string | null
+          status?: string
+          step_id?: string | null
+          submission_id: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_feedback?: Json | null
+          confidence?: number | null
+          created_at?: string
+          extracted_text?: string | null
+          file_url?: string | null
+          id?: string
+          note?: string | null
+          status?: string
+          step_id?: string | null
+          submission_id?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "captured_media_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "guide_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "captured_media_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      context_questions: {
+        Row: {
+          conditional_logic: Json | null
+          created_at: string
+          guide_id: string
+          helper_text: string | null
+          id: string
+          input_type: string
+          label: string
+          options: Json | null
+          order_index: number
+          required: boolean
+          updated_at: string
+        }
+        Insert: {
+          conditional_logic?: Json | null
+          created_at?: string
+          guide_id: string
+          helper_text?: string | null
+          id?: string
+          input_type?: string
+          label: string
+          options?: Json | null
+          order_index: number
+          required?: boolean
+          updated_at?: string
+        }
+        Update: {
+          conditional_logic?: Json | null
+          created_at?: string
+          guide_id?: string
+          helper_text?: string | null
+          id?: string
+          input_type?: string
+          label?: string
+          options?: Json | null
+          order_index?: number
+          required?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_questions_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "photo_guides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      extracted_details: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          id: string
+          label: string
+          required_for_readiness: boolean
+          source_media_id: string | null
+          submission_id: string
+          type: string | null
+          value: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          label: string
+          required_for_readiness?: boolean
+          source_media_id?: string | null
+          submission_id: string
+          type?: string | null
+          value?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          label?: string
+          required_for_readiness?: boolean
+          source_media_id?: string | null
+          submission_id?: string
+          type?: string | null
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extracted_details_source_media_id_fkey"
+            columns: ["source_media_id"]
+            isOneToOne: false
+            referencedRelation: "captured_media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extracted_details_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guide_steps: {
+        Row: {
+          ai_checks: Database["public"]["Enums"]["ai_check_type"][]
+          allow_skip: boolean
+          capture_type: Database["public"]["Enums"]["capture_type"]
+          created_at: string
+          guide_id: string
+          id: string
+          instruction: string | null
+          order_index: number
+          overlay_type: Database["public"]["Enums"]["overlay_type"] | null
+          required: boolean
+          title: string
+          updated_at: string
+          why_it_matters: string | null
+        }
+        Insert: {
+          ai_checks?: Database["public"]["Enums"]["ai_check_type"][]
+          allow_skip?: boolean
+          capture_type?: Database["public"]["Enums"]["capture_type"]
+          created_at?: string
+          guide_id: string
+          id?: string
+          instruction?: string | null
+          order_index: number
+          overlay_type?: Database["public"]["Enums"]["overlay_type"] | null
+          required?: boolean
+          title: string
+          updated_at?: string
+          why_it_matters?: string | null
+        }
+        Update: {
+          ai_checks?: Database["public"]["Enums"]["ai_check_type"][]
+          allow_skip?: boolean
+          capture_type?: Database["public"]["Enums"]["capture_type"]
+          created_at?: string
+          guide_id?: string
+          id?: string
+          instruction?: string | null
+          order_index?: number
+          overlay_type?: Database["public"]["Enums"]["overlay_type"] | null
+          required?: boolean
+          title?: string
+          updated_at?: string
+          why_it_matters?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_steps_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "photo_guides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_notes: {
+        Row: {
+          created_at: string
+          id: string
+          note: string
+          submission_id: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note: string
+          submission_id: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string
+          submission_id?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_notes_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_notes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          read: boolean
+          title: string
+          type: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          read?: boolean
+          title: string
+          type: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      photo_brief_requests: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          custom_message: string | null
+          due_date: string | null
+          guide_id: string | null
+          id: string
+          recipient_email: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          status: Database["public"]["Enums"]["request_status"]
+          token: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          custom_message?: string | null
+          due_date?: string | null
+          guide_id?: string | null
+          id?: string
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          token?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          custom_message?: string | null
+          due_date?: string | null
+          guide_id?: string | null
+          id?: string
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          token?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_brief_requests_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "photo_guides"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_brief_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      photo_guides: {
+        Row: {
+          category: Database["public"]["Enums"]["topline_category"] | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          estimated_time_minutes: number | null
+          id: string
+          is_active: boolean
+          is_global_template: boolean
+          name: string
+          nested_category: string | null
+          output_type: Database["public"]["Enums"]["output_type"] | null
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["topline_category"] | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          estimated_time_minutes?: number | null
+          id?: string
+          is_active?: boolean
+          is_global_template?: boolean
+          name: string
+          nested_category?: string | null
+          output_type?: Database["public"]["Enums"]["output_type"] | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["topline_category"] | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          estimated_time_minutes?: number | null
+          id?: string
+          is_active?: boolean
+          is_global_template?: boolean
+          name?: string
+          nested_category?: string | null
+          output_type?: Database["public"]["Enums"]["output_type"] | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_guides_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          default_workspace_id: string | null
+          email: string | null
+          id: string
+          last_login_at: string | null
+          name: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          default_workspace_id?: string | null
+          email?: string | null
+          id: string
+          last_login_at?: string | null
+          name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          default_workspace_id?: string | null
+          email?: string | null
+          id?: string
+          last_login_at?: string | null
+          name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_default_workspace_fk"
+            columns: ["default_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submissions: {
+        Row: {
+          ai_summary: string | null
+          created_at: string
+          id: string
+          next_action: string | null
+          readiness_score: number | null
+          request_id: string
+          reviewed_at: string | null
+          status: Database["public"]["Enums"]["submission_status"]
+          submitted_at: string | null
+          submitter_contact: string | null
+          submitter_name: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          created_at?: string
+          id?: string
+          next_action?: string | null
+          readiness_score?: number | null
+          request_id: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["submission_status"]
+          submitted_at?: string | null
+          submitter_contact?: string | null
+          submitter_name?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_summary?: string | null
+          created_at?: string
+          id?: string
+          next_action?: string | null
+          readiness_score?: number | null
+          request_id?: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["submission_status"]
+          submitted_at?: string | null
+          submitter_contact?: string | null
+          submitter_name?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "photo_brief_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          plan_tier: Database["public"]["Enums"]["plan_tier"]
+          renewal_date: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plan_tier?: Database["public"]["Enums"]["plan_tier"]
+          renewal_date?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plan_tier?: Database["public"]["Enums"]["plan_tier"]
+          renewal_date?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          related_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          related_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          related_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_members: {
+        Row: {
+          created_at: string
+          id: string
+          invited_by: string | null
+          role: Database["public"]["Enums"]["member_role"]
+          status: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["member_role"]
+          status?: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["member_role"]
+          status?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_workspace_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["member_role"]
+          _workspace_id: string
+        }
+        Returns: boolean
+      }
+      is_workspace_member: { Args: { _workspace_id: string }; Returns: boolean }
+      request_id_for_token: { Args: never; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      ai_check_type:
+        | "blur"
+        | "low_light"
+        | "glare"
+        | "unreadable_text"
+        | "wrong_shot"
+        | "cropped_subject"
+        | "duplicate_image"
+        | "missing_scale"
+        | "missing_required_item"
+        | "label_detected"
+        | "serial_model_detected"
+        | "receipt_order_detected"
+        | "damage_visible"
+        | "wide_shot_detected"
+        | "close_up_detected"
+        | "unsafe_condition_flag"
+      capture_type:
+        | "photo"
+        | "video"
+        | "document"
+        | "label"
+        | "note"
+        | "measurement"
+      member_role: "owner" | "admin" | "member"
+      output_type:
+        | "service_intake_brief"
+        | "proof_packet"
+        | "claim_packet"
+        | "listing_draft"
+        | "social_post_draft"
+        | "condition_report"
+        | "custom_brief"
+      overlay_type:
+        | "wide_scene"
+        | "close_up"
+        | "damage_closeup"
+        | "document_label"
+        | "model_serial_plate"
+        | "receipt_order"
+        | "before_after_alignment"
+        | "square_product_crop"
+        | "vertical_story_crop"
+        | "scale_reference"
+        | "video_motion"
+        | "custom"
+      plan_tier: "free" | "starter" | "pro" | "team" | "business"
+      request_status:
+        | "draft"
+        | "sent"
+        | "opened"
+        | "in_progress"
+        | "needs_customer_action"
+        | "submitted"
+        | "ready_to_review"
+        | "reviewed"
+        | "archived"
+        | "expired"
+      submission_status: "new" | "reviewed" | "needs_more" | "archived"
+      topline_category:
+        | "service_quote_intake"
+        | "property_proof_records"
+        | "product_support_claims"
+        | "sales_marketing_content"
+        | "custom_business_intake"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +991,78 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      ai_check_type: [
+        "blur",
+        "low_light",
+        "glare",
+        "unreadable_text",
+        "wrong_shot",
+        "cropped_subject",
+        "duplicate_image",
+        "missing_scale",
+        "missing_required_item",
+        "label_detected",
+        "serial_model_detected",
+        "receipt_order_detected",
+        "damage_visible",
+        "wide_shot_detected",
+        "close_up_detected",
+        "unsafe_condition_flag",
+      ],
+      capture_type: [
+        "photo",
+        "video",
+        "document",
+        "label",
+        "note",
+        "measurement",
+      ],
+      member_role: ["owner", "admin", "member"],
+      output_type: [
+        "service_intake_brief",
+        "proof_packet",
+        "claim_packet",
+        "listing_draft",
+        "social_post_draft",
+        "condition_report",
+        "custom_brief",
+      ],
+      overlay_type: [
+        "wide_scene",
+        "close_up",
+        "damage_closeup",
+        "document_label",
+        "model_serial_plate",
+        "receipt_order",
+        "before_after_alignment",
+        "square_product_crop",
+        "vertical_story_crop",
+        "scale_reference",
+        "video_motion",
+        "custom",
+      ],
+      plan_tier: ["free", "starter", "pro", "team", "business"],
+      request_status: [
+        "draft",
+        "sent",
+        "opened",
+        "in_progress",
+        "needs_customer_action",
+        "submitted",
+        "ready_to_review",
+        "reviewed",
+        "archived",
+        "expired",
+      ],
+      submission_status: ["new", "reviewed", "needs_more", "archived"],
+      topline_category: [
+        "service_quote_intake",
+        "property_proof_records",
+        "product_support_claims",
+        "sales_marketing_content",
+        "custom_business_intake",
+      ],
+    },
   },
 } as const
