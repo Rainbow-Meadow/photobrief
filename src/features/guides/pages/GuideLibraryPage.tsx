@@ -8,6 +8,8 @@ import { curatedCategories } from "@/config/curatedCategories";
 import type { CuratedCategory, PhotoGuide } from "@/types/photobrief";
 import { GuideCard } from "@/features/guides/components/GuideCard";
 import { GuidePreviewDialog } from "@/features/guides/components/GuidePreviewDialog";
+import { UpgradePromptCard } from "@/components/shared/UpgradePromptCard";
+import { usePlan } from "@/hooks/usePlan";
 import { toast } from "sonner";
 
 const iconMap = { Wrench, Home, PackageCheck, Megaphone, Sparkles };
@@ -16,6 +18,8 @@ export default function GuideLibraryPage() {
   const launchGuides = useLaunchGuides();
   const internalGuides = useInternalGuides();
   const navigate = useNavigate();
+  const { can } = usePlan();
+  const canCustomGuides = can("custom_guides");
   const [previewGuide, setPreviewGuide] = useState<PhotoGuide | null>(null);
   const [showInternal, setShowInternal] = useState(false);
 
