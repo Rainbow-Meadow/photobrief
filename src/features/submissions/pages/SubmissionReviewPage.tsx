@@ -19,6 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { notificationService } from "@/services/notificationService";
 import { submissionsService } from "@/services/submissionsService";
 import { messagingService } from "@/services/messagingService";
+import { trackEvent } from "@/lib/analytics";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
@@ -292,6 +293,7 @@ export default function SubmissionReviewPage() {
     setOverlay((prev) => ({ ...prev, status: "reviewed" }));
     try {
       await submissionsService.updateStatus(submission.id, "reviewed");
+      trackEvent("submission_reviewed", { submission_id: submission.id });
       notificationService.notify({
         event: "reviewed",
         audience: "business",
