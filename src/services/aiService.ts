@@ -395,10 +395,56 @@ export const aiService = {
   async generateGuideFromPrompt(
     input: GenerateGuideInput,
   ): Promise<GenerateGuideOutput> {
-    await wait(900);
     const { prompt } = input;
-    const lowered = prompt.toLowerCase();
 
+    // Try the AI gateway first (Pro+ gated server-side).
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-generate-guide", {
+        body: { prompt, category: input.category },
+      });
+      if (error) throw error;
+      if (data?.draft) {
+        const d = data.draft;
+        const seedGuide = guideTemplates[0];
+        const finalDraft: RequestDraft = {
+          ...draftFromGuide(seedGuide),
+          source: "ai",
+          prompt,
+          title: d.title ?? titleFromPrompt(prompt, seedGuide.name),
+          introMessage: d.introMessage,
+          steps: (d.steps ?? []).map((s: any, i: number) => ({
+            id: `step_${Date.now()}_${i}`,
+            orderIndex: s.orderIndex ?? i,
+            title: s.title,
+            instructions: s.instructions ?? s.instruction ?? "",
+            shotType: (s.shotType ?? "wide") as any,
+            overlayType: "full_area" as any,
+            aiChecks: s.aiChecks ?? [],
+            required: s.required ?? true,
+          })),
+          questions: (d.questions ?? []).map((q: any, i: number) => ({
+            id: `q_${Date.now()}_${i}`,
+            orderIndex: q.orderIndex ?? i,
+            prompt: q.prompt,
+            inputType: q.inputType ?? "short_text",
+            options: q.options,
+            required: q.required ?? false,
+          })),
+        };
+        return {
+          draft: finalDraft,
+          assistantReply: data.assistantReply ?? `Drafted "${finalDraft.title}".`,
+          sourceGuideId: seedGuide.id,
+        };
+      }
+    } catch (e: any) {
+      // 402 = Pro plan required; surface a friendly message but still scaffold.
+      console.warn("ai-generate-guide failed, using template fallback", e?.message);
+    }
+
+    // Fallback: keyword-match a launch template (works on Free plan too).
+    await wait(400);
+    const lowered = prompt.toLowerCase();
     const KEYWORDS: { guideId: string; keywords: string[] }[] = [
       { guideId: "guide_leak", keywords: ["leak", "drip", "water damage", "pipe burst"] },
       { guideId: "guide_water_heater", keywords: ["water heater", "hot water", "boiler", "tankless"] },
@@ -407,7 +453,6 @@ export const aiService = {
       { guideId: "guide_appliance", keywords: ["appliance", "fridge", "washer", "dryer", "oven", "dishwasher"] },
       { guideId: "guide_pest", keywords: ["pest", "rodent", "raccoon", "wasp", "bug", "wildlife", "infestation"] },
     ];
-
     let best = { score: 0, guideId: guideTemplates[0].id };
     for (const k of KEYWORDS) {
       const score = k.keywords.reduce((acc, kw) => (lowered.includes(kw) ? acc + 1 : acc), 0);
@@ -415,14 +460,12 @@ export const aiService = {
     }
     const guide: PhotoGuide =
       guideTemplates.find((g) => g.id === best.guideId) ?? guideTemplates[0];
-
     const draft = draftFromGuide(guide);
     const title = titleFromPrompt(prompt, guide.name);
     const introMessage = `Hi! Thanks for reaching out about ${
       prompt.trim().toLowerCase().slice(0, 80) || guide.category.toLowerCase()
     }. I'll walk you through a few quick photos so we can help you faster.`;
     const questions = augmentQuestions(prompt, draft.questions);
-
     const finalDraft: RequestDraft = {
       ...draft,
       source: "ai",
@@ -431,13 +474,11 @@ export const aiService = {
       introMessage,
       questions,
     };
-
     const stepCount = finalDraft.steps.length;
     const qCount = finalDraft.questions.length;
     const assistantReply = `Got it. I drafted a request titled "${finalDraft.title}" with ${stepCount} photo step${
       stepCount === 1 ? "" : "s"
     }${qCount ? ` and ${qCount} short question${qCount === 1 ? "" : "s"}` : ""}. Take a look on the right — you can edit anything before sending.`;
-
     return { draft: finalDraft, assistantReply, sourceGuideId: guide.id };
   },
 
