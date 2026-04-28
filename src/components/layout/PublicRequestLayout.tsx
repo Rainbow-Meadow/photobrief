@@ -1,23 +1,32 @@
 import { Outlet } from "react-router-dom";
 import { BrandMark } from "@/components/layout/BrandMark";
+import { useRecipientBranding } from "@/features/capture/RecipientBrandingContext";
 
 /**
  * PublicRequestLayout
  * Mobile-first layout for the recipient chat-first capture flow.
- * No auth, no sidebar — just a branded shell with safe-area padding.
- * Branding (logo, color) will be injected per-request in later phases.
+ * Branding (business name, logo, color) is injected via RecipientBrandingProvider
+ * from the page route. No auth, no sidebar.
  */
 export function PublicRequestLayout() {
+  const { businessName, logoUrl } = useRecipientBranding();
   return (
     <div className="flex min-h-screen flex-col bg-gradient-subtle">
       <header className="border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-14 w-full max-w-2xl items-center justify-between px-4">
-          {/* Per-request branded mark goes here in Phase 3 */}
           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <span className="h-7 w-7 rounded-md bg-primary" aria-hidden />
-            <span>Bright Spark Plumbing</span>
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={businessName}
+                className="h-7 w-7 rounded-md object-cover"
+              />
+            ) : (
+              <span className="h-7 w-7 rounded-md bg-primary" aria-hidden />
+            )}
+            <span>{businessName}</span>
           </div>
-          <span className="text-xs text-muted-foreground">Powered by</span>
+          <span className="text-xs text-muted-foreground">Secure photo intake</span>
         </div>
       </header>
 
