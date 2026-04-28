@@ -42,7 +42,7 @@ export function useUsage() {
     refetch();
   }, [wsLoading, refetch]);
 
-  const limit = getPlanLimit(workspace.plan);
+  const limit = getPlanLimit(workspace?.plan ?? "free");
   const requestCap = limit.quotas.requestsPerMonth;
   const aiCap = limit.quotas.aiChecksPerMonth;
 
