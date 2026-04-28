@@ -45,12 +45,17 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b">
-        <div className="flex h-12 items-center px-2">
+      <SidebarHeader className="border-b overflow-hidden">
+        <div
+          className={cn(
+            "flex h-12 items-center",
+            collapsed ? "justify-center px-0" : "justify-start px-2",
+          )}
+        >
           <BrandMark
             variant={collapsed ? "mark" : "horizontal"}
             tone="auto"
-            size={collapsed ? 28 : 30}
+            size={collapsed ? 24 : 30}
             eager
           />
         </div>
