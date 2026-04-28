@@ -78,7 +78,12 @@ export const smsConfigService = {
     defaultChannel?: SmsDefaultChannel;
     enabled?: boolean;
   }) {
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      from_number?: string;
+      from_number_friendly?: string | null;
+      default_channel?: SmsDefaultChannel;
+      enabled?: boolean;
+    } = {};
     if (input.fromNumber !== undefined) patch.from_number = input.fromNumber;
     if (input.fromNumberFriendly !== undefined)
       patch.from_number_friendly = input.fromNumberFriendly;
