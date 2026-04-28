@@ -428,21 +428,17 @@ export const aiService = {
       console.warn("ai-generate-guide failed, using template fallback", e?.message);
     }
 
-    // Fallback: keyword-match a launch template (works on Free plan too).
+    // Fallback: score the prompt against every workbook guide using its
+    // name + nested category + workflow type as a keyword bag.
     await wait(400);
     const lowered = prompt.toLowerCase();
-    const KEYWORDS: { guideId: string; keywords: string[] }[] = [
-      { guideId: "guide_leak", keywords: ["leak", "drip", "water damage", "pipe burst"] },
-      { guideId: "guide_water_heater", keywords: ["water heater", "hot water", "boiler", "tankless"] },
-      { guideId: "guide_junk", keywords: ["junk", "haul", "removal", "trash", "debris", "cleanout"] },
-      { guideId: "guide_landscape", keywords: ["yard", "lawn", "landscape", "garden", "irrigation", "sprinkler"] },
-      { guideId: "guide_appliance", keywords: ["appliance", "fridge", "washer", "dryer", "oven", "dishwasher"] },
-      { guideId: "guide_pest", keywords: ["pest", "rodent", "raccoon", "wasp", "bug", "wildlife", "infestation"] },
-    ];
+    const tokens = lowered.split(/[^a-z0-9]+/).filter((t) => t.length >= 3);
     let best = { score: 0, guideId: guideTemplates[0].id };
-    for (const k of KEYWORDS) {
-      const score = k.keywords.reduce((acc, kw) => (lowered.includes(kw) ? acc + 1 : acc), 0);
-      if (score > best.score) best = { score, guideId: k.guideId };
+    for (const g of guideTemplates) {
+      const bag = `${g.name} ${g.nestedCategory ?? ""} ${g.workflowType ?? ""} ${g.category}`.toLowerCase();
+      let score = 0;
+      for (const t of tokens) if (bag.includes(t)) score += 1;
+      if (score > best.score) best = { score, guideId: g.id };
     }
     const guide: PhotoGuide =
       guideTemplates.find((g) => g.id === best.guideId) ?? guideTemplates[0];

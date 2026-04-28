@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, NavLink } from "react-router-dom";
-import { Plus, Wrench, Home, PackageCheck, Megaphone, Sparkles, EyeOff, Eye } from "lucide-react";
+import { Plus, Wrench, Home, PackageCheck, Megaphone, Heart, EyeOff, Eye } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { useLaunchGuides, useInternalGuides, useWorkspaceGuides } from "@/hooks/useGuides";
@@ -13,7 +13,7 @@ import { UpgradePromptCard } from "@/components/shared/UpgradePromptCard";
 import { usePlan } from "@/hooks/usePlan";
 import { toast } from "sonner";
 
-const iconMap = { Wrench, Home, PackageCheck, Megaphone, Sparkles };
+const iconMap = { Wrench, Home, PackageCheck, Megaphone, Heart };
 
 export default function GuideLibraryPage() {
   const launchGuides = useLaunchGuides();
