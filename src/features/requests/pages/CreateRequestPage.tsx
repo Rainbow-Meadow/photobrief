@@ -15,6 +15,7 @@ import { RequestDraftPreview } from "@/features/requests/components/RequestDraft
 import { draftFromGuide } from "@/types/requestDraft";
 import type { RequestDraft } from "@/types/requestDraft";
 import { aiService } from "@/services/aiService";
+import { notificationService } from "@/services/notificationService";
 import type { PhotoGuide } from "@/types/photobrief";
 import { UpgradePromptCard } from "@/components/shared/UpgradePromptCard";
 import { usePlan } from "@/hooks/usePlan";
