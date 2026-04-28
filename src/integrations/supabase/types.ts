@@ -854,6 +854,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "submissions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests_inbox_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "submissions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -1115,7 +1122,44 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      requests_inbox_view: {
+        Row: {
+          assigned_to: string | null
+          assignee_name: string | null
+          created_at: string | null
+          custom_message: string | null
+          due_date: string | null
+          guide_id: string | null
+          guide_name: string | null
+          id: string | null
+          last_activity_at: string | null
+          missing_items: Json | null
+          readiness_score: number | null
+          recipient_email: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          status: Database["public"]["Enums"]["request_status"] | null
+          token: string | null
+          updated_at: string | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_brief_requests_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "photo_guides"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_brief_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       current_period_usage: {
