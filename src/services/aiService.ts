@@ -239,7 +239,30 @@ export const aiService = {
   async generateSubmissionSummary(
     input: SubmissionSummaryInput,
   ): Promise<SubmissionSummaryOutput> {
-    await wait(700);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-summarize-submission", {
+        body: {
+          guideName: input.guideName,
+          recipientName: input.recipientName,
+          shots: input.shots.map((s) => ({
+            title: s.title,
+            missing: s.missing,
+            feedbackSeverity: s.feedback?.severity,
+            feedbackHeadline: s.feedback?.headline,
+          })),
+          customerAnswers: input.customerAnswers,
+        },
+      });
+      if (error) throw error;
+      if (data?.summary) {
+        return { summary: data.summary, highlights: data.highlights ?? [] };
+      }
+    } catch (e) {
+      console.warn("ai-summarize-submission failed, using fallback", e);
+    }
+
+    // Fallback heuristic.
+    await wait(300);
     const captured = input.shots.filter((s) => !s.missing);
     const total = input.shots.length;
     const fail = captured.filter((s) => s.feedback?.severity === "fail").length;
@@ -262,8 +285,7 @@ export const aiService = {
     const highlights: string[] = [];
     if (fail > 0) highlights.push(`${fail} shot${fail === 1 ? "" : "s"} failed AI checks`);
     if (warn > 0) highlights.push(`${warn} shot${warn === 1 ? "" : "s"} flagged with warnings`);
-    if (captured.length === total)
-      highlights.push("All requested shots captured");
+    if (captured.length === total) highlights.push("All requested shots captured");
     else highlights.push(`${total - captured.length} shot${total - captured.length === 1 ? "" : "s"} missing`);
     if (input.customerAnswers?.length)
       highlights.push(`${input.customerAnswers.length} context answer${input.customerAnswers.length === 1 ? "" : "s"} provided`);
