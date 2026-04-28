@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InlineAuthCard } from "@/features/auth/components/InlineAuthCard";
+import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
 import mark from "@/assets/photobrief-mark.png";
 
 const features = [
