@@ -8,7 +8,7 @@ import { StatsBand } from "@/components/marketing/StatsBand";
 import { IndustryGrid } from "@/components/marketing/IndustryGrid";
 import { TestimonialsRow } from "@/components/marketing/TestimonialsRow";
 import { FinalCtaCard } from "@/components/marketing/FinalCtaCard";
-import { FoundingCustomerBanner } from "@/components/marketing/FoundingCustomerBanner";
+import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
 
 export default function LandingPage() {
   return (
