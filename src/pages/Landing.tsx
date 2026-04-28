@@ -88,7 +88,7 @@ export default function LandingPage() {
 
         <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14 lg:px-8 lg:py-24">
           {/* Left: pitch */}
-          <div className="flex flex-col justify-center">
+          <div className="flex-col text-center flex items-center justify-center">
             <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur">
               <Sparkles className="h-3 w-3" /> AI-guided visual intake
             </span>
@@ -101,12 +101,12 @@ export default function LandingPage() {
               </span>
               .
             </h1>
-            <p className="mt-5 max-w-xl text-base text-white/75 sm:text-lg">
+            <p className="mt-5 max-w-xl text-base text-white/75 sm:text-lg text-center">
               PhotoBrief turns vague customer photos into business-ready briefs.
               Chat-guided capture, AI quality checks, and clean summaries — every time.
             </p>
 
-            <ul className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/85">
+            <ul className="mt-7 flex-wrap gap-x-6 gap-y-2 text-sm text-white/85 text-center flex items-center justify-center">
               {["No recipient account", "AI feedback loop", "Branded links", "Mobile-first"].map((x) => (
                 <li key={x} className="inline-flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4 text-primary-glow" /> {x}
