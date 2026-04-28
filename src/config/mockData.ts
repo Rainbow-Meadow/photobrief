@@ -1,5 +1,8 @@
 // Mock data for Phase 1 — replaced by Lovable Cloud queries in later phases.
-import type { PhotoBriefRequest, Submission, PhotoGuide } from "@/types/photobrief";
+// Guides come from `config/guideTemplates.ts`. This file only seeds
+// fixtures for requests, submissions, and the demo workspace.
+import type { PhotoBriefRequest, Submission } from "@/types/photobrief";
+import { guideTemplates } from "@/config/guideTemplates";
 
 export const mockWorkspace = {
   id: "ws_demo",
@@ -8,51 +11,14 @@ export const mockWorkspace = {
   plan: "pro" as const,
 };
 
-export const mockGuides: PhotoGuide[] = [
-  {
-    id: "guide_leak",
-    name: "Leak diagnosis intake",
-    category: "Plumbing",
-    description: "Capture the leak, surrounding area, and shut-off valve so we can quote accurately.",
-    isTemplate: true,
-    steps: [],
-    questions: [],
-  },
-  {
-    id: "guide_water_heater",
-    name: "Water heater replacement",
-    category: "Plumbing",
-    description: "Photos of the unit, model plate, venting, and surrounding clearance.",
-    isTemplate: true,
-    steps: [],
-    questions: [],
-  },
-  {
-    id: "guide_junk",
-    name: "Junk removal quote",
-    category: "Junk removal",
-    description: "Wide shots of the pile, access path, and any oversized items.",
-    isTemplate: true,
-    steps: [],
-    questions: [],
-  },
-  {
-    id: "guide_landscape",
-    name: "Landscaping site survey",
-    category: "Landscaping",
-    description: "Front yard, back yard, problem areas, and existing irrigation.",
-    isTemplate: true,
-    steps: [],
-    questions: [],
-  },
-];
+const guideById = (id: string) => guideTemplates.find((g) => g.id === id);
 
 export const mockRequests: PhotoBriefRequest[] = [
   {
     id: "req_1",
     workspaceId: "ws_demo",
     guideId: "guide_leak",
-    guideName: "Leak diagnosis intake",
+    guideName: guideById("guide_leak")?.name ?? "",
     recipientName: "Maria Alvarez",
     recipientContact: "maria@example.com",
     token: "abc123",
@@ -63,7 +29,7 @@ export const mockRequests: PhotoBriefRequest[] = [
     id: "req_2",
     workspaceId: "ws_demo",
     guideId: "guide_water_heater",
-    guideName: "Water heater replacement",
+    guideName: guideById("guide_water_heater")?.name ?? "",
     recipientName: "Devon Park",
     recipientContact: "555-0142",
     token: "def456",
@@ -74,7 +40,7 @@ export const mockRequests: PhotoBriefRequest[] = [
     id: "req_3",
     workspaceId: "ws_demo",
     guideId: "guide_junk",
-    guideName: "Junk removal quote",
+    guideName: guideById("guide_junk")?.name ?? "",
     recipientName: "Priya Shah",
     recipientContact: "priya@example.com",
     token: "ghi789",
@@ -85,7 +51,7 @@ export const mockRequests: PhotoBriefRequest[] = [
     id: "req_4",
     workspaceId: "ws_demo",
     guideId: "guide_landscape",
-    guideName: "Landscaping site survey",
+    guideName: guideById("guide_landscape")?.name ?? "",
     recipientName: "Jordan Lee",
     recipientContact: "jordan@example.com",
     token: "jkl012",
@@ -99,7 +65,7 @@ export const mockSubmissions: Submission[] = [
     id: "sub_1",
     requestId: "req_3",
     recipientName: "Priya Shah",
-    guideName: "Junk removal quote",
+    guideName: guideById("guide_junk")?.name ?? "",
     status: "new",
     readinessScore: 92,
     aiSummary:
@@ -111,7 +77,7 @@ export const mockSubmissions: Submission[] = [
     id: "sub_2",
     requestId: "req_old",
     recipientName: "Sam Rivera",
-    guideName: "Leak diagnosis intake",
+    guideName: guideById("guide_leak")?.name ?? "",
     status: "needs_more",
     readinessScore: 58,
     aiSummary:
@@ -123,7 +89,7 @@ export const mockSubmissions: Submission[] = [
     id: "sub_3",
     requestId: "req_old2",
     recipientName: "Casey Wong",
-    guideName: "Water heater replacement",
+    guideName: guideById("guide_water_heater")?.name ?? "",
     status: "reviewed",
     readinessScore: 100,
     aiSummary:
