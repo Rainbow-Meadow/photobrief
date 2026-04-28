@@ -127,7 +127,7 @@ export default function DashboardPage() {
               emptyLabel="Everyone's caught up."
               items={needsActionList}
               ctaLabel="View open"
-              ctaHref="/requests?status=needs_action"
+              ctaHref="/requests?status=needs_customer_action"
               showReminder
             />
           </div>
