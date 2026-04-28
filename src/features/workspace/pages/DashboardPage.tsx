@@ -29,7 +29,7 @@ export default function DashboardPage() {
 
   const metrics = useMemo(() => {
     const readyToReview = requests.filter((r) => r.status === "submitted").length;
-    const needsCustomer = requests.filter((r) => r.status === "needs_action" || r.status === "sent").length;
+    const needsCustomer = requests.filter((r) => r.status === "needs_customer_action" || r.status === "sent").length;
     const inProgress = requests.filter((r) => r.status === "in_progress").length;
 
     const monthStart = new Date();
@@ -52,7 +52,7 @@ export default function DashboardPage() {
     [requests],
   );
   const needsActionList = useMemo(
-    () => requests.filter((r) => r.status === "needs_action" || r.status === "sent").slice(0, 4),
+    () => requests.filter((r) => r.status === "needs_customer_action" || r.status === "sent").slice(0, 4),
     [requests],
   );
 
