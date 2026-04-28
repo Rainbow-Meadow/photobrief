@@ -118,4 +118,25 @@ export const aiChecks: Record<AICheckType, AICheckDefinition> = {
     defaultSeverity: "warn",
     failMessage: "This looks like a potential safety issue. Please be careful and step back if needed.",
   },
+  // Canonical workbook aliases
+  serial_model_detected: {
+    id: "serial_model_detected",
+    label: "Serial / model detected",
+    defaultSeverity: "pass",
+    failMessage: "",
+    passMessage: "Serial / model captured.",
+  },
+  receipt_order_detected: {
+    id: "receipt_order_detected",
+    label: "Receipt / order detected",
+    defaultSeverity: "pass",
+    failMessage: "",
+    passMessage: "Receipt / order captured.",
+  },
+  unsafe_condition_flag: {
+    id: "unsafe_condition_flag",
+    label: "Unsafe condition flag",
+    defaultSeverity: "warn",
+    failMessage: "This looks like a potential safety issue. Please be careful and step back if needed.",
+  },
 };
