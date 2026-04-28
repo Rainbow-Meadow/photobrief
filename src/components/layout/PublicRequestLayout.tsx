@@ -11,7 +11,7 @@ import { useRecipientBranding } from "@/features/capture/RecipientBrandingContex
  * from the page route. No auth, no sidebar.
  */
 export function PublicRequestLayout() {
-  const { businessName, logoUrl } = useRecipientBranding();
+  const { businessName, logoUrl, hidePhotobriefBranding } = useRecipientBranding();
   return (
     <div className="flex min-h-screen flex-col bg-gradient-subtle">
       <header className="border-b bg-background/80 backdrop-blur">
@@ -38,11 +38,13 @@ export function PublicRequestLayout() {
         </div>
       </main>
 
-      <footer className="border-t bg-background py-4">
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-center px-4">
-          <BrandMark variant="wordmark" tone="dark" size={18} className="opacity-60" />
-        </div>
-      </footer>
+      {!hidePhotobriefBranding ? (
+        <footer className="border-t bg-background py-4">
+          <div className="mx-auto flex w-full max-w-2xl items-center justify-center px-4">
+            <BrandMark variant="wordmark" tone="dark" size={18} className="opacity-60" />
+          </div>
+        </footer>
+      ) : null}
     </div>
   );
 }

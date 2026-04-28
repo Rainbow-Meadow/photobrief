@@ -16,6 +16,7 @@ export interface RecipientContext {
   introBody?: string;
   completionBody?: string;
   logoUrl?: string;
+  hidePhotobriefBranding?: boolean;
   guide: PhotoGuide;
 }
 
@@ -60,7 +61,7 @@ export async function loadRecipientContext(
       .maybeSingle(),
     client
       .from("brand_profiles")
-      .select("logo_url, primary_color, intro_message, completion_message")
+      .select("logo_url, primary_color, intro_message, completion_message, hide_photobrief_branding")
       .eq("workspace_id", req.workspace_id)
       .maybeSingle(),
     req.guide_id
@@ -78,6 +79,7 @@ export async function loadRecipientContext(
     businessName,
     brandColor: brand?.primary_color ?? undefined,
     logoUrl: brand?.logo_url ?? undefined,
+    hidePhotobriefBranding: brand?.hide_photobrief_branding ?? false,
     introBody:
       brand?.intro_message ??
       `Hi ${firstName}! ${businessName} here — I'll walk you through a few quick photos.`,

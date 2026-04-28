@@ -197,7 +197,12 @@ function RecipientChat({
 
   return (
     <RecipientBrandingProvider
-      value={{ businessName: ctx.businessName, brandColor: ctx.brandColor }}
+      value={{
+        businessName: ctx.businessName,
+        brandColor: ctx.brandColor,
+        logoUrl: ctx.logoUrl,
+        hidePhotobriefBranding: ctx.hidePhotobriefBranding,
+      }}
     >
       <div className="space-y-4">
         <div className="space-y-1">
