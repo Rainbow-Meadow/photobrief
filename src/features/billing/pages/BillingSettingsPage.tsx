@@ -174,24 +174,41 @@ export default function BillingSettingsPage() {
           compact
           heading="Change plan"
           subheading="Upgrade or downgrade any time. Annual saves 20%."
-          onSelectPlan={async (plan, interval) => {
-            setOpening("checkout");
-            const { data, error } = await supabase.functions.invoke("create-checkout", {
-              body: { workspace_id: workspace.id, plan, interval },
-            });
-            setOpening(null);
-            if (error || !data?.url) {
+          pendingPlan={checkout?.plan ?? null}
+          onSelectPlan={(plan, interval) => {
+            if (!isPaymentsConfigured()) {
               toast({
-                title: "Couldn't start checkout",
-                description: error?.message ?? "Please try again in a moment.",
+                title: "Payments not configured",
+                description: "VITE_PAYMENTS_CLIENT_TOKEN is missing. Reload the preview after enabling payments.",
                 variant: "destructive",
               });
               return;
             }
-            window.location.href = data.url;
+            setCheckout({ plan, interval });
           }}
         />
       </section>
+
+      {/* Embedded Checkout dialog --------------------------------------- */}
+      <Dialog open={!!checkout} onOpenChange={(open) => !open && setCheckout(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              Upgrade to{" "}
+              {checkout
+                ? planLimits.find((p) => p.id === checkout.plan)?.name
+                : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {checkout ? (
+            <StripeEmbeddedCheckout
+              workspaceId={workspace.id}
+              plan={checkout.plan}
+              interval={checkout.interval}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       {/* Comparison table ------------------------------------------------- */}
       <section className="rounded-2xl border bg-card p-5 shadow-elev-sm">
