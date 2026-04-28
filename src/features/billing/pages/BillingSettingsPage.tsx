@@ -1,4 +1,5 @@
-import { CheckCircle2, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   planLimits,
@@ -6,11 +7,14 @@ import {
   type FeatureKey,
   type Quota,
 } from "@/config/planLimits";
-import { workspaceService } from "@/services/workspaceService";
+import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
+import { useUsage } from "@/hooks/useUsage";
 import { Button } from "@/components/ui/button";
 import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
 import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
 import { FoundingProBadge } from "@/components/pricing/FoundingProBadge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 function formatQuota(q: Quota): string {
