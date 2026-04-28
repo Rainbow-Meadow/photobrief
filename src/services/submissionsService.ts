@@ -60,7 +60,7 @@ async function hydrate(
     aiSummary: row.ai_summary ?? "",
     suggestedNextAction: row.next_action ?? "",
     submittedAt: row.submitted_at ?? row.created_at,
-    missingItems: [],
+    missingItems: Array.isArray(row.missing_items) ? (row.missing_items as string[]) : [],
     shots,
     extractedDetails,
     internalNotes,
