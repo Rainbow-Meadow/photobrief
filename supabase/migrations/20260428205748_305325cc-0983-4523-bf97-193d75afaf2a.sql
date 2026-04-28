@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.request_id_for_token() TO authenticated, anon;
