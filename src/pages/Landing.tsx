@@ -272,6 +272,13 @@ export default function LandingPage() {
             className="pointer-events-none absolute inset-0 bg-gradient-radial-glow"
           />
           <div className="relative">
+            <img
+              src={markLight}
+              alt=""
+              aria-hidden
+              loading="lazy"
+              className="mx-auto mb-5 h-12 w-auto opacity-90"
+            />
             <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
               Take the right photos, every time.
             </h2>
