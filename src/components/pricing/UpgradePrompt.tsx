@@ -18,6 +18,7 @@ import {
   type FeatureKey,
 } from "@/config/planLimits";
 import { usePlan } from "@/hooks/usePlan";
+import { trackEvent } from "@/lib/analytics";
 
 interface Props {
   feature: FeatureKey;
@@ -129,7 +130,10 @@ export function UpgradePrompt({
             <NavLink to="/pricing">Compare plans</NavLink>
           </Button>
           <Button asChild>
-            <NavLink to={`/app/settings/billing?plan=${requiredPlan ?? "pro"}`}>
+            <NavLink
+              to={`/app/settings/billing?plan=${requiredPlan ?? "pro"}`}
+              onClick={() => trackEvent("plan_upgrade_clicked", { plan: requiredPlan ?? "pro", surface: "upgrade_prompt", feature })}
+            >
               Upgrade now <ArrowRight className="ml-1 h-4 w-4" />
             </NavLink>
           </Button>

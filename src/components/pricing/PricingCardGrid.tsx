@@ -8,6 +8,7 @@ import type { BillingInterval, Plan } from "@/types/photobrief";
 import { BillingIntervalToggle } from "./BillingIntervalToggle";
 import { FoundingProBadge } from "./FoundingProBadge";
 import { FoundingCustomerBanner } from "@/components/marketing/FoundingCustomerBanner";
+import { trackEvent } from "@/lib/analytics";
 
 interface Props {
   /** Where the per-card primary button should send the user. */
@@ -170,7 +171,10 @@ export function PricingCardGrid({
                 <Button
                   size="default"
                   disabled={isCurrent || pendingPlan === plan.id}
-                  onClick={() => onSelectPlan(plan.id, interval)}
+                  onClick={() => {
+                    trackEvent("plan_upgrade_clicked", { plan: plan.id, interval, surface: "billing" });
+                    onSelectPlan(plan.id, interval);
+                  }}
                   variant={showHighlight ? "default" : "outline"}
                   className={cn(
                     "mt-5 w-full justify-center",
@@ -196,12 +200,18 @@ export function PricingCardGrid({
                   )}
                 >
                   {plan.id === "business" ? (
-                    <a href={ctaTo(plan, ctaTarget)}>
+                    <a
+                      href={ctaTo(plan, ctaTarget)}
+                      onClick={() => trackEvent("plan_upgrade_clicked", { plan: plan.id, interval, surface: ctaTarget })}
+                    >
                       {ctaLabel(plan, currentPlan)}
                       <ArrowRight className="ml-1 h-4 w-4" />
                     </a>
                   ) : (
-                    <NavLink to={ctaTo(plan, ctaTarget)}>
+                    <NavLink
+                      to={ctaTo(plan, ctaTarget)}
+                      onClick={() => trackEvent("plan_upgrade_clicked", { plan: plan.id, interval, surface: ctaTarget })}
+                    >
                       {ctaLabel(plan, currentPlan)}
                       {!isCurrent && plan.id !== "free" ? <ArrowRight className="ml-1 h-4 w-4" /> : null}
                     </NavLink>

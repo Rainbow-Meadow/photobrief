@@ -1,8 +1,10 @@
 // Renders Stripe Embedded Checkout inline. The parent controls visibility
 // (typically inside a Dialog) — this component just mounts the iframe.
+import { useEffect } from "react";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { supabase } from "@/integrations/supabase/client";
+import { trackEvent } from "@/lib/analytics";
 import type { Plan, BillingInterval } from "@/types/photobrief";
 
 interface Props {
@@ -13,6 +15,10 @@ interface Props {
 }
 
 export function StripeEmbeddedCheckout({ workspaceId, plan, interval, returnUrl }: Props) {
+  useEffect(() => {
+    trackEvent("checkout_started", { plan, interval });
+  }, [plan, interval]);
+
   const fetchClientSecret = async (): Promise<string> => {
     const { data, error } = await supabase.functions.invoke("create-checkout", {
       body: {
