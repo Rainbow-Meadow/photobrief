@@ -1,7 +1,6 @@
-// Sends a recipient message (initial / reminder / followup / custom)
-// and persists it to request_messages. Email sending is best-effort:
-// if RESEND_API_KEY is configured the message is delivered via Resend,
-// otherwise the row is still logged so reminders show in the timeline.
+// Sends a recipient message (initial / reminder / followup / custom) by
+// invoking the shared `send-transactional-email` Edge Function (Lovable
+// Email infrastructure) and persists a record to `request_messages`.
 //
 // Body: { requestId, kind, subject?, body?, missingItems?, channel? }
 
@@ -13,7 +12,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const APP_URL = Deno.env.get("APP_PUBLIC_URL") ?? "https://photobrief.app";
+const APP_URL =
+  Deno.env.get("APP_PUBLIC_URL") ?? "https://photobrief.ai";
 
 interface Body {
   requestId: string;
@@ -25,7 +25,8 @@ interface Body {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response("ok", { headers: corsHeaders });
 
   try {
     const auth = req.headers.get("Authorization") ?? "";
@@ -48,16 +49,21 @@ Deno.serve(async (req) => {
 
     const payload = (await req.json()) as Body;
     if (!payload?.requestId || !payload?.kind) {
-      return new Response(JSON.stringify({ error: "Missing requestId or kind" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Missing requestId or kind" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // Load request via user RLS (also confirms membership)
     const { data: request, error: reqErr } = await userClient
       .from("photo_brief_requests")
-      .select("id, workspace_id, recipient_email, recipient_name, recipient_phone, token, custom_message")
+      .select(
+        "id, workspace_id, recipient_email, recipient_name, recipient_phone, token, custom_message",
+      )
       .eq("id", payload.requestId)
       .maybeSingle();
     if (reqErr || !request) {
@@ -67,7 +73,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Reminders gating: Pro+
+    // Reminders / follow-ups gating: Pro+
     if (payload.kind === "reminder" || payload.kind === "followup") {
       const { data: ws } = await admin
         .from("business_workspaces")
@@ -82,32 +88,57 @@ Deno.serve(async (req) => {
             feature: "reminders",
             requiredPlan: "pro",
           }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
     }
 
+    // Pull workspace + brand profile for branded copy.
+    const [{ data: ws }, { data: brand }] = await Promise.all([
+      admin
+        .from("business_workspaces")
+        .select("name")
+        .eq("id", request.workspace_id)
+        .maybeSingle(),
+      admin
+        .from("brand_profiles")
+        .select("intro_message")
+        .eq("workspace_id", request.workspace_id)
+        .maybeSingle(),
+    ]);
+
     const channel = payload.channel ?? "email";
     const link = `${APP_URL}/r/${request.token}`;
+    const businessName = ws?.name ?? "PhotoBrief";
     const firstName = (request.recipient_name ?? "there").split(" ")[0];
+    const introMessage =
+      request.custom_message?.trim() ||
+      brand?.intro_message?.trim() ||
+      undefined;
 
+    // Compose default subject + plain-text body for the message log + SMS path.
     let subject = payload.subject;
     let body = payload.body;
     if (!body) {
       switch (payload.kind) {
         case "initial":
-          subject ??= "Quick photo request";
-          body = `Hi ${firstName}, please tap the link to submit your photos: ${link}`;
+          subject ??= `${businessName}: a quick photo request`;
+          body = `Hi ${firstName}, ${businessName} needs a few quick photos. Open here: ${link}`;
           break;
         case "reminder":
-          subject ??= "Quick reminder";
-          body = `Hi ${firstName}, just a quick nudge — your photo request is still open: ${link}`;
+          subject ??= `Quick reminder from ${businessName}`;
+          body = `Hi ${firstName}, just a nudge — your photo request is still open: ${link}`;
           break;
         case "followup":
           subject ??= "We need a couple more photos";
-          body = `Hi ${firstName}, thanks for the photos so far. We need a few more to wrap up. ${
-            payload.missingItems?.length ? `Missing: ${payload.missingItems.join(", ")}. ` : ""
-          }Open here: ${link}`;
+          body = `Hi ${firstName}, thanks for the photos so far. We need a few more to wrap up.${
+            payload.missingItems?.length
+              ? ` Missing: ${payload.missingItems.join(", ")}.`
+              : ""
+          } Open here: ${link}`;
           break;
         default:
           subject ??= "Photo request update";
@@ -115,33 +146,40 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Best-effort email send via Resend (optional)
-    const resendKey = Deno.env.get("RESEND_API_KEY");
+    // Best-effort delivery via Lovable transactional email (initial only for
+    // now — reminders/follow-ups will get their own templates in a later stage).
+    const toEmail = request.recipient_email;
     let deliveryStatus: "sent" | "logged_only" | "skipped" = "logged_only";
     let deliveryError: string | undefined;
-    const toEmail = request.recipient_email;
-    if (channel === "email" && resendKey && toEmail) {
-      try {
-        const r = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${resendKey}`,
-            "Content-Type": "application/json",
+
+    if (channel === "email" && toEmail) {
+      if (payload.kind === "initial") {
+        const { error: sendErr } = await admin.functions.invoke(
+          "send-transactional-email",
+          {
+            body: {
+              templateName: "recipient-request-link",
+              recipientEmail: toEmail,
+              idempotencyKey: `recipient-link-${request.id}`,
+              templateData: {
+                recipientName: firstName,
+                businessName,
+                introMessage,
+                link,
+                estimatedMinutes: 2,
+              },
+            },
           },
-          body: JSON.stringify({
-            from: "PhotoBrief <onboarding@resend.dev>",
-            to: [toEmail],
-            subject,
-            text: body,
-          }),
-        });
-        if (r.ok) deliveryStatus = "sent";
-        else {
-          deliveryError = await r.text();
+        );
+        if (sendErr) {
+          deliveryError = sendErr.message;
           deliveryStatus = "logged_only";
+        } else {
+          deliveryStatus = "sent";
         }
-      } catch (e) {
-        deliveryError = e instanceof Error ? e.message : String(e);
+      } else {
+        // Reminders/followups: queue path will land in a later stage. Logged.
+        deliveryStatus = "logged_only";
       }
     } else if (channel === "email" && !toEmail) {
       deliveryStatus = "skipped";
@@ -159,7 +197,9 @@ Deno.serve(async (req) => {
       metadata: {
         delivery: deliveryStatus,
         ...(deliveryError ? { error: deliveryError } : {}),
-        ...(payload.missingItems ? { missingItems: payload.missingItems } : {}),
+        ...(payload.missingItems
+          ? { missingItems: payload.missingItems }
+          : {}),
       },
     });
     if (insErr) {
@@ -183,9 +223,12 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : String(e) }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });
