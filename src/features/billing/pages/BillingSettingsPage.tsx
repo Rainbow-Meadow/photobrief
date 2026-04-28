@@ -1,4 +1,4 @@
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ExternalLink } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   planLimits,
@@ -9,6 +9,8 @@ import {
 import { workspaceService } from "@/services/workspaceService";
 import { Button } from "@/components/ui/button";
 import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
+import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
+import { FoundingProBadge } from "@/components/pricing/FoundingProBadge";
 import { cn } from "@/lib/utils";
 
 function formatQuota(q: Quota): string {
@@ -21,7 +23,6 @@ function pct(used: number, cap: Quota): number {
   return Math.min(100, (used / cap) * 100);
 }
 
-// Order shown in the comparison row at the bottom of the page.
 const featureRows: FeatureKey[] = [
   "branded_links",
   "custom_messages",
@@ -52,86 +53,77 @@ export default function BillingSettingsPage() {
   const usage = { requests: 42, aiChecks: 312 };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader title="Billing" description="Plan, usage, and limits." />
 
-      <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Current plan
-        </p>
-        <h2 className="mt-1 text-xl font-semibold text-foreground">{current.name}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{current.tagline}</p>
+      {/* Current plan + usage --------------------------------------------- */}
+      <section className="overflow-hidden rounded-2xl border bg-gradient-to-br from-card to-muted/30 shadow-elev-sm">
+        <div className="grid gap-6 p-6 lg:grid-cols-[1.2fr_1fr] lg:gap-10">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Current plan
+              </p>
+              <FoundingProBadge variant="inline" />
+            </div>
+            <h2 className="mt-1 text-2xl font-semibold text-foreground">{current.name}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{current.tagline}</p>
 
-        <div className="mt-5 space-y-4">
-          <div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Requests this month</span>
-              <span className="font-medium text-foreground">
-                {usage.requests} / {formatQuota(current.quotas.requestsPerMonth)}
-              </span>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <Button>Manage subscription</Button>
+              <Button variant="outline" className="gap-1.5">
+                Open invoices <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
             </div>
-            <ReadinessProgress
-              value={pct(usage.requests, current.quotas.requestsPerMonth)}
-              className="mt-1.5"
-            />
           </div>
-          <div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">AI checks this month</span>
-              <span className="font-medium text-foreground">
-                {usage.aiChecks} / {formatQuota(current.quotas.aiChecksPerMonth)}
-              </span>
-            </div>
-            <ReadinessProgress
-              value={pct(usage.aiChecks, current.quotas.aiChecksPerMonth)}
-              className="mt-1.5"
+
+          <div className="space-y-4">
+            <UsageMeter
+              label="Requests this month"
+              used={usage.requests}
+              cap={current.quotas.requestsPerMonth}
+            />
+            <UsageMeter
+              label="AI checks this month"
+              used={usage.aiChecks}
+              cap={current.quotas.aiChecksPerMonth}
+            />
+            <UsageMeter
+              label="Saved templates"
+              used={1}
+              cap={current.quotas.savedTemplates}
             />
           </div>
         </div>
       </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {planLimits.map((p) => (
-          <div
-            key={p.id}
-            className={cn(
-              "flex flex-col rounded-lg border bg-card p-5 shadow-elev-sm",
-              p.id === current.id && "border-primary",
-              p.highlight && "ring-2 ring-primary/30",
-            )}
-          >
-            {p.highlight ? (
-              <span className="mb-2 inline-flex w-fit rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
-                Most popular
-              </span>
-            ) : null}
-            <h3 className="text-sm font-semibold text-foreground">{p.name}</h3>
-            <p className="mt-1 text-2xl font-semibold text-foreground">
-              ${p.priceMonthly}
-              <span className="text-sm font-normal text-muted-foreground">/mo</span>
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">{p.tagline}</p>
-            <Button
-              variant={p.id === current.id ? "outline" : p.highlight ? "default" : "outline"}
-              size="sm"
-              className="mt-4 w-full"
-              disabled={p.id === current.id}
-            >
-              {p.id === current.id ? "Current" : `Switch to ${p.name}`}
-            </Button>
-          </div>
-        ))}
-      </div>
+      {/* Plan switcher ---------------------------------------------------- */}
+      <section>
+        <PricingCardGrid
+          ctaTarget="billing"
+          currentPlan={workspace.plan}
+          compact
+          heading="Change plan"
+          subheading="Upgrade or downgrade any time. Annual saves 20%."
+        />
+      </section>
 
-      <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
+      {/* Comparison table ------------------------------------------------- */}
+      <section className="rounded-2xl border bg-card p-5 shadow-elev-sm">
         <h3 className="text-sm font-semibold text-foreground">Compare features</h3>
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[560px] text-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="py-2 pr-3 font-medium">Feature</th>
                 {planLimits.map((p) => (
-                  <th key={p.id} className="px-2 py-2 text-center font-medium">
+                  <th
+                    key={p.id}
+                    className={cn(
+                      "px-2 py-2 text-center font-medium",
+                      p.id === current.id && "text-primary",
+                    )}
+                  >
                     {p.name}
                   </th>
                 ))}
@@ -142,7 +134,13 @@ export default function BillingSettingsPage() {
                 <tr key={f}>
                   <td className="py-2 pr-3 text-foreground">{featureCatalog[f].label}</td>
                   {planLimits.map((p) => (
-                    <td key={p.id} className="px-2 py-2 text-center">
+                    <td
+                      key={p.id}
+                      className={cn(
+                        "px-2 py-2 text-center",
+                        p.id === current.id && "bg-primary/[0.04]",
+                      )}
+                    >
                       {p.capabilities[f] ? (
                         <CheckCircle2 className="mx-auto h-4 w-4 text-success" />
                       ) : (
@@ -156,6 +154,22 @@ export default function BillingSettingsPage() {
           </table>
         </div>
       </section>
+    </div>
+  );
+}
+
+function UsageMeter({ label, used, cap }: { label: string; used: number; cap: Quota }) {
+  const value = pct(used, cap);
+  const danger = value >= 90;
+  return (
+    <div>
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-muted-foreground">{label}</span>
+        <span className={cn("font-medium tabular-nums", danger ? "text-destructive" : "text-foreground")}>
+          {used} / {formatQuota(cap)}
+        </span>
+      </div>
+      <ReadinessProgress value={value} className="mt-1.5" />
     </div>
   );
 }
