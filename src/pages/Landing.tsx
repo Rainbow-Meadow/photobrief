@@ -95,7 +95,7 @@ export default function LandingPage() {
             <h1 className="mt-6 text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
               Send a link.
               <br />
-              Get a complete{" "}
+              Get a complete brief
               <span className="bg-gradient-to-r from-white to-primary-glow bg-clip-text text-transparent">
                 ​
               </span>
