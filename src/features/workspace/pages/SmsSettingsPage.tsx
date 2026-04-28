@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, MessageSquare, ShieldCheck, AlertCircle, Trash2 } from "lucide-react";
+import { Loader2, ShieldCheck, AlertCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -226,7 +226,6 @@ export default function SmsSettingsPage() {
       <PageHeader
         title="SMS"
         description="Connect your own Twilio account to send SMS reminders to recipients. PhotoBrief never charges for SMS — Twilio bills you directly."
-        icon={MessageSquare}
       />
 
       {!isConnected ? (
