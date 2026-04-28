@@ -84,41 +84,77 @@ function buildSummaryText(s: Submission): string {
 export default function SubmissionReviewPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const fallback = useSubmissions()[0];
-  const initial = useSubmission(id) ?? fallback;
+  const queryClient = useQueryClient();
+  const live = useSubmission(id);
+  const { workspace } = useCurrentWorkspace();
   const { can } = usePlan();
   const teamMembers = useTeamMembers();
   const canPdf = can("pdf_export");
   const canReminders = can("reminders");
   const canAssign = can("team_members");
 
-  // Phase 5 keeps mock data but lets the user mutate it locally so the screen
-  // feels alive (notes, status, assignee). A future phase swaps this for queries.
-  const [submission, setSubmission] = useState<Submission>(initial);
+  // Local optimistic overlay so the UI reacts immediately while writes
+  // round-trip. We invalidate the live query after each mutation.
+  const [overlay, setOverlay] = useState<Partial<Submission>>({});
+  const [extraActivity, setExtraActivity] = useState<ActivityEvent[]>([]);
+  const [extraNotes, setExtraNotes] = useState<InternalNote[]>([]);
   const [askOpen, setAskOpen] = useState(false);
+
+  // Reset overlays when the submission id changes.
+  useEffect(() => {
+    setOverlay({});
+    setExtraActivity([]);
+    setExtraNotes([]);
+  }, [id]);
+
+  if (!id) {
+    return (
+      <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
+        No submission selected.
+      </div>
+    );
+  }
+
+  if (!live) {
+    return (
+      <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
+        Loading submission…
+      </div>
+    );
+  }
+
+  const submission: Submission = {
+    ...live,
+    ...overlay,
+    internalNotes: [...(live.internalNotes ?? []), ...extraNotes],
+    activity: [...(live.activity ?? []), ...extraActivity],
+  };
 
   const status = submissionStatusOptions[submission.status];
 
-  const orderedShots = useMemo(
-    () => [...(submission.shots ?? [])].sort((a, b) => a.orderIndex - b.orderIndex),
-    [submission.shots],
+  const orderedShots = [...(submission.shots ?? [])].sort(
+    (a, b) => a.orderIndex - b.orderIndex,
   );
 
   function pushActivity(event: Omit<ActivityEvent, "id" | "at"> & { at?: string }) {
-    setSubmission((prev) => ({
+    setExtraActivity((prev) => [
       ...prev,
-      activity: [
-        ...(prev.activity ?? []),
-        {
-          id: `ev_${Date.now()}`,
-          at: event.at ?? new Date().toISOString(),
-          type: event.type,
-          label: event.label,
-          detail: event.detail,
-          actor: event.actor,
-        },
-      ],
-    }));
+      {
+        id: `ev_${Date.now()}`,
+        at: event.at ?? new Date().toISOString(),
+        type: event.type,
+        label: event.label,
+        detail: event.detail,
+        actor: event.actor,
+      },
+    ]);
+  }
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: ["submission", id] });
+    if (workspace?.id) {
+      queryClient.invalidateQueries({ queryKey: ["submissions", workspace.id] });
+    }
   }
 
   function handleCopySummary() {
@@ -129,29 +165,41 @@ export default function SubmissionReviewPage() {
     );
   }
 
-  function handleSendReminder() {
+  async function handleSendReminder() {
     if (!canReminders) {
       const plan = minPlanFor("reminders");
       toast.error(`Reminders are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`);
       return;
     }
-    notificationService.notify({
-      event: "reminder_sent",
-      audience: "recipient",
-      title: `Reminder sent to ${submission.recipientName}`,
-      body: `Nudge for ${submission.guideName}.`,
-      submissionId: submission.id,
-      recipientEmail: submission.recipientContact,
-      href: `/submissions/${submission.id}`,
-    });
-    pushActivity({
-      type: "reminder_sent",
-      label: `Reminder sent to ${submission.recipientName}`,
-      actor: "You",
-    });
+    const t = toast.loading(`Sending reminder to ${submission.recipientName}…`);
+    try {
+      await messagingService.send({
+        requestId: submission.requestId,
+        kind: "reminder",
+      });
+      toast.dismiss(t);
+      toast.success(`Reminder sent to ${submission.recipientName}`);
+      notificationService.notify({
+        event: "reminder_sent",
+        audience: "recipient",
+        title: `Reminder sent to ${submission.recipientName}`,
+        body: `Nudge for ${submission.guideName}.`,
+        submissionId: submission.id,
+        recipientEmail: submission.recipientContact,
+        href: `/submissions/${submission.id}`,
+      });
+      pushActivity({
+        type: "reminder_sent",
+        label: `Reminder sent to ${submission.recipientName}`,
+        actor: "You",
+      });
+    } catch (err: any) {
+      toast.dismiss(t);
+      toast.error(err?.message ?? "Could not send reminder");
+    }
   }
 
-  function handleAskForMore({
+  async function handleAskForMore({
     shotIds,
     missingItems,
     message,
@@ -161,6 +209,16 @@ export default function SubmissionReviewPage() {
     message: string;
   }) {
     const count = shotIds.length + missingItems.length;
+    try {
+      await messagingService.send({
+        requestId: submission.requestId,
+        kind: "followup",
+        body: message,
+        missingItems,
+      });
+    } catch (err) {
+      console.warn("followup send failed", err);
+    }
     notificationService.notify({
       event: "needs_customer_action",
       audience: "recipient",
@@ -176,7 +234,13 @@ export default function SubmissionReviewPage() {
       detail: message.slice(0, 140),
       actor: "You",
     });
-    setSubmission((prev) => ({ ...prev, status: "needs_more" }));
+    try {
+      await submissionsService.updateStatus(submission.id, "needs_more");
+      setOverlay((prev) => ({ ...prev, status: "needs_more" }));
+      invalidate();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not update status");
+    }
   }
 
   async function handleExportPdf() {
@@ -205,66 +269,92 @@ export default function SubmissionReviewPage() {
     }
   }
 
-  function handleAssign(memberId: string) {
+  async function handleAssign(memberId: string) {
     const member = teamMembers.find((m) => m.id === memberId);
     if (!member) return;
-    setSubmission((prev) => ({ ...prev, assigneeId: member.id, assigneeName: member.name }));
-    toast.success(`Assigned to ${member.name}`);
-    pushActivity({
-      type: "reviewer_note",
-      label: `Assigned to ${member.name}`,
-      actor: "You",
-    });
+    setOverlay((prev) => ({ ...prev, assigneeId: member.id, assigneeName: member.name }));
+    try {
+      await submissionsService.assignViaRequest(submission.requestId, member.id);
+      toast.success(`Assigned to ${member.name}`);
+      pushActivity({
+        type: "reviewer_note",
+        label: `Assigned to ${member.name}`,
+        actor: "You",
+      });
+      invalidate();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not assign");
+      setOverlay((prev) => ({ ...prev, assigneeId: undefined, assigneeName: undefined }));
+    }
   }
 
-  function handleMarkReviewed() {
-    setSubmission((prev) => ({ ...prev, status: "reviewed" }));
-    notificationService.notify({
-      event: "reviewed",
-      audience: "business",
-      title: `Marked "${submission.guideName}" reviewed`,
-      body: `${submission.recipientName}'s submission is closed out.`,
-      submissionId: submission.id,
-      href: `/submissions/${submission.id}`,
-    });
-    pushActivity({
-      type: "marked_reviewed",
-      label: "Marked reviewed",
-      actor: "You",
-    });
+  async function handleMarkReviewed() {
+    setOverlay((prev) => ({ ...prev, status: "reviewed" }));
+    try {
+      await submissionsService.updateStatus(submission.id, "reviewed");
+      notificationService.notify({
+        event: "reviewed",
+        audience: "business",
+        title: `Marked "${submission.guideName}" reviewed`,
+        body: `${submission.recipientName}'s submission is closed out.`,
+        submissionId: submission.id,
+        href: `/submissions/${submission.id}`,
+      });
+      pushActivity({ type: "marked_reviewed", label: "Marked reviewed", actor: "You" });
+      invalidate();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not update status");
+    }
   }
 
-  function handleArchive() {
-    setSubmission((prev) => ({ ...prev, status: "archived" }));
-    toast.success("Submission archived");
-    pushActivity({
-      type: "archived",
-      label: "Submission archived",
-      actor: "You",
-    });
+  async function handleArchive() {
+    setOverlay((prev) => ({ ...prev, status: "archived" }));
+    try {
+      await submissionsService.updateStatus(submission.id, "archived");
+      toast.success("Submission archived");
+      pushActivity({ type: "archived", label: "Submission archived", actor: "You" });
+      invalidate();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not archive");
+    }
   }
 
-  function handleAddNote(body: string) {
-    const note: InternalNote = {
-      id: `note_${Date.now()}`,
-      authorName: "You",
-      authorInitials: "YO",
-      body,
-      createdAt: new Date().toISOString(),
-    };
-    setSubmission((prev) => ({
-      ...prev,
-      internalNotes: [...(prev.internalNotes ?? []), note],
-    }));
-    pushActivity({
-      type: "reviewer_note",
-      label: "You added an internal note",
-      actor: "You",
-    });
+  async function handleAddNote(body: string) {
+    if (!workspace?.id) {
+      toast.error("Workspace not loaded yet");
+      return;
+    }
+    try {
+      const note = await submissionsService.addInternalNote({
+        submissionId: submission.id,
+        workspaceId: workspace.id,
+        body,
+      });
+      setExtraNotes((prev) => [...prev, note]);
+      pushActivity({
+        type: "reviewer_note",
+        label: "You added an internal note",
+        actor: "You",
+      });
+      invalidate();
+    } catch (err: any) {
+      const message = err?.message?.includes("PLAN_FEATURE_LOCKED")
+        ? "Internal notes are on the Pro plan."
+        : err?.message ?? "Could not add note";
+      toast.error(message);
+    }
   }
 
-  function handleStatusChange(next: SubmissionStatus) {
-    setSubmission((prev) => ({ ...prev, status: next }));
+  async function handleStatusChange(next: SubmissionStatus) {
+    const prev = submission.status;
+    setOverlay((p) => ({ ...p, status: next }));
+    try {
+      await submissionsService.updateStatus(submission.id, next);
+      invalidate();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not update status");
+      setOverlay((p) => ({ ...p, status: prev }));
+    }
   }
 
   return (
