@@ -220,21 +220,43 @@ Deno.serve(async (req) => {
 
     const includeEmail = channel === "email" || channel === "both";
     if (includeEmail && toEmail) {
-      if (payload.kind === "initial") {
-        const { error: sendErr } = await admin.functions.invoke(
-          "send-transactional-email",
-          {
-            body: {
-              templateName: "recipient-request-link",
-              recipientEmail: toEmail,
-              idempotencyKey: `recipient-link-${request.id}`,
-              templateData: {
+      const templateName =
+        payload.kind === "initial"
+          ? "recipient-request-link"
+          : payload.kind === "reminder" || payload.kind === "followup"
+          ? "recipient-reminder"
+          : null;
+
+      if (templateName) {
+        const idempotencyKey =
+          payload.kind === "initial"
+            ? `recipient-link-${request.id}`
+            : `recipient-${payload.kind}-${request.id}-${Date.now()}`;
+
+        const templateData =
+          templateName === "recipient-request-link"
+            ? {
                 recipientName: firstName,
                 businessName,
                 introMessage,
                 link,
                 estimatedMinutes: 2,
-              },
+              }
+            : {
+                recipientName: firstName,
+                businessName,
+                link,
+                estimatedMinutes: 2,
+              };
+
+        const { error: sendErr } = await admin.functions.invoke(
+          "send-transactional-email",
+          {
+            body: {
+              templateName,
+              recipientEmail: toEmail,
+              idempotencyKey,
+              templateData,
             },
           },
         );
@@ -247,7 +269,6 @@ Deno.serve(async (req) => {
           deliveryStatus = "sent";
         }
       } else {
-        // Reminders/followups: queue path will land in a later stage. Logged.
         deliveryStatus = "logged_only";
       }
     } else if (includeEmail && !toEmail) {
