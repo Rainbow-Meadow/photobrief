@@ -5,9 +5,10 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { mockWorkspace } from "@/config/mockData";
+import { workspaceService } from "@/services/workspaceService";
 
 export function DashboardLayout() {
+  const workspace = workspaceService.current();
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-gradient-subtle">
@@ -17,7 +18,7 @@ export function DashboardLayout() {
           <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur">
             <SidebarTrigger />
             <div className="hidden text-sm text-muted-foreground sm:block">
-              {mockWorkspace.name}
+              {workspace.name}
             </div>
             <div className="ml-auto flex items-center gap-2">
               <Button asChild size="sm" className="gap-1.5">

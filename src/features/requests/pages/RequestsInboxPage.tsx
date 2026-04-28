@@ -4,10 +4,12 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { mockRequests } from "@/config/mockData";
+import { useRequests } from "@/hooks/useRequests";
 import { requestStatusOptions } from "@/config/statusOptions";
+import { formatRelativeTime } from "@/utils/format";
 
 export default function RequestsInboxPage() {
+  const mockRequests = useRequests();
   return (
     <div className="space-y-6">
       <PageHeader
@@ -52,7 +54,7 @@ export default function RequestsInboxPage() {
                     <StatusBadge label={status.label} tone={status.tone} />
                   </td>
                   <td className="px-5 py-3 text-muted-foreground">
-                    {new Date(r.createdAt).toLocaleString()}
+                    {formatRelativeTime(r.createdAt)}
                   </td>
                   <td className="px-5 py-3 text-right">
                     <Button asChild variant="ghost" size="sm">

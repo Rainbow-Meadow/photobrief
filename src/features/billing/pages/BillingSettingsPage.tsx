@@ -1,12 +1,13 @@
 import { PageHeader } from "@/components/layout/PageHeader";
 import { planLimits } from "@/config/planLimits";
-import { mockWorkspace } from "@/config/mockData";
+import { workspaceService } from "@/services/workspaceService";
 import { Button } from "@/components/ui/button";
 import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
 import { cn } from "@/lib/utils";
 
 export default function BillingSettingsPage() {
-  const current = planLimits.find((p) => p.id === mockWorkspace.plan) ?? planLimits[0];
+  const workspace = workspaceService.current();
+  const current = planLimits.find((p) => p.id === workspace.plan) ?? planLimits[0];
   return (
     <div className="space-y-6">
       <PageHeader title="Billing" description="Plan, usage, and limits." />

@@ -2,9 +2,10 @@ import { NavLink } from "react-router-dom";
 import { Plus, BookOpen } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { mockGuides } from "@/config/mockData";
+import { useGuides } from "@/hooks/useGuides";
 
 export default function GuideLibraryPage() {
+  const guides = useGuides();
   return (
     <div className="space-y-6">
       <PageHeader
@@ -20,7 +21,7 @@ export default function GuideLibraryPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {mockGuides.map((g) => (
+        {guides.map((g) => (
           <NavLink
             key={g.id}
             to={`/guides/${g.id}`}

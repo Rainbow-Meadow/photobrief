@@ -6,10 +6,13 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
 import { ReadinessScoreBadge } from "@/components/shared/ReadinessScoreBadge";
 import { Button } from "@/components/ui/button";
-import { mockRequests, mockSubmissions } from "@/config/mockData";
+import { useRequests } from "@/hooks/useRequests";
+import { useSubmissions } from "@/hooks/useSubmissions";
 import { requestStatusOptions, submissionStatusOptions } from "@/config/statusOptions";
 
 export default function DashboardPage() {
+  const mockRequests = useRequests();
+  const mockSubmissions = useSubmissions();
   return (
     <div className="space-y-6">
       <PageHeader
