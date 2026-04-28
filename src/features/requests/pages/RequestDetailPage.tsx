@@ -57,7 +57,7 @@ export default function RequestDetailPage() {
   async function sendInitial() {
     setBusy("send");
     try {
-      await messagingService.send({ requestId: request.id, kind: "initial" });
+      await messagingService.send({ requestId: request.id, kind: "initial", channel });
       toast.success("Request sent");
       const updated = await messagingService.list(request.id);
       setMessages(updated);
@@ -75,7 +75,7 @@ export default function RequestDetailPage() {
     }
     setBusy("remind");
     try {
-      await messagingService.send({ requestId: request.id, kind: "reminder" });
+      await messagingService.send({ requestId: request.id, kind: "reminder", channel });
       toast.success("Reminder sent");
       const updated = await messagingService.list(request.id);
       setMessages(updated);
