@@ -205,7 +205,7 @@ export const aiService = {
     // submit if they choose.
     const checks = [
       {
-        type: "manual_review" as AICheckType,
+        type: "manual_review" as unknown as AICheckType,
         severity: "warn" as AICheckSeverity,
         message: "We couldn't check this photo — you can still submit it.",
         label: "Manual review",
