@@ -13,7 +13,7 @@ import { UpgradePromptCard } from "@/components/shared/UpgradePromptCard";
 import { usePlan } from "@/hooks/usePlan";
 import { toast } from "sonner";
 
-const iconMap = { Wrench, Home, PackageCheck, Megaphone, Sparkles };
+const iconMap = { Wrench, Home, PackageCheck, Megaphone, Heart };
 
 export default function GuideLibraryPage() {
   const launchGuides = useLaunchGuides();
