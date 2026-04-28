@@ -59,13 +59,10 @@ export function PricingCardGrid({
   const onDark = variant === "onDark";
 
   // Hide Free in-app once a user is paying — keep on landing.
-  const visiblePlans = planLimits
-    .filter((p) => {
-      if (currentPlan && currentPlan !== "free" && p.id === "free") return false;
-      return true;
-    })
-    // Highlighted plan first so it spans the full top row.
-    .sort((a, b) => Number(!!b.highlight) - Number(!!a.highlight));
+  const visiblePlans = planLimits.filter((p) => {
+    if (currentPlan && currentPlan !== "free" && p.id === "free") return false;
+    return true;
+  });
 
   return (
     <section className={cn("mx-auto max-w-7xl", className)}>
