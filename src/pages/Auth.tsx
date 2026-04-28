@@ -68,6 +68,25 @@ export default function AuthPage() {
     }
   };
 
+  const handleApple = async () => {
+    setSubmitting(true);
+    trackEvent(mode === "signup" ? "signup_started" : "login_started", { method: "apple" });
+    try {
+      const result = await lovable.auth.signInWithOAuth("apple", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) throw new Error(result.error.message ?? "Apple sign-in failed");
+      if (result.redirected) return;
+    } catch (err: any) {
+      toast({
+        title: "Apple sign-in failed",
+        description: err?.message ?? "Something went wrong.",
+        variant: "destructive",
+      });
+      setSubmitting(false);
+    }
+  };
+
   const handleGoogle = async () => {
     setSubmitting(true);
     trackEvent(mode === "signup" ? "signup_started" : "login_started", { method: "google" });
