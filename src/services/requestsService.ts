@@ -61,43 +61,35 @@ export interface CreateRequestInput {
 
 export const requestsService = {
   async list(workspaceId: string): Promise<PhotoBriefRequest[]> {
+    // Read from the denormalized inbox view: one query, includes guide name,
+    // assignee name, latest readiness score, missing items, and last activity.
     const { data, error } = await supabase
-      .from("photo_brief_requests")
-      .select("*, photo_guides(name)")
+      .from("requests_inbox_view")
+      .select("*")
       .eq("workspace_id", workspaceId)
-      .order("created_at", { ascending: false });
+      .order("last_activity_at", { ascending: false });
     if (error) throw error;
 
-    // Fetch readiness from latest submissions per request (single query).
-    const ids = (data ?? []).map((r) => r.id);
-    let subsByReq = new Map<string, { readiness: number | null; updated_at: string }>();
-    if (ids.length > 0) {
-      const { data: subs } = await supabase
-        .from("submissions")
-        .select("request_id, readiness_score, updated_at")
-        .in("request_id", ids);
-      for (const s of subs ?? []) {
-        const prev = subsByReq.get(s.request_id);
-        if (!prev || (s.updated_at ?? "") > prev.updated_at) {
-          subsByReq.set(s.request_id, {
-            readiness: s.readiness_score,
-            updated_at: s.updated_at ?? "",
-          });
-        }
-      }
-    }
-
-    return (data ?? []).map((row: any) => {
-      const sub = subsByReq.get(row.id);
-      return toDomain(
-        row,
-        row.photo_guides?.name ?? null,
-        null,
-        sub?.readiness ?? undefined,
-        undefined,
-        sub?.updated_at || row.updated_at,
-      );
-    });
+    return (data ?? []).map((row: any): PhotoBriefRequest => ({
+      id: row.id,
+      workspaceId: row.workspace_id,
+      guideId: row.guide_id ?? "",
+      guideName: row.guide_name ?? "",
+      recipientName: row.recipient_name ?? "",
+      recipientContact: row.recipient_email ?? row.recipient_phone ?? "",
+      token: row.token,
+      status: row.status,
+      createdAt: row.created_at,
+      readinessScore: row.readiness_score ?? undefined,
+      missingItems: Array.isArray(row.missing_items)
+        ? (row.missing_items as any[]).map((m) =>
+            typeof m === "string" ? m : (m?.label ?? m?.title ?? String(m)),
+          )
+        : undefined,
+      lastActivityAt: row.last_activity_at ?? row.updated_at,
+      assigneeId: row.assigned_to ?? undefined,
+      assigneeName: row.assignee_name ?? undefined,
+    }));
   },
 
   async getById(id: string): Promise<PhotoBriefRequest | null> {
