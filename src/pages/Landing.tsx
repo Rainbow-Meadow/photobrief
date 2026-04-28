@@ -239,6 +239,21 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* PRICING ------------------------------------------------------------- */}
+      <section
+        id="pricing"
+        className="relative overflow-hidden border-y bg-gradient-brand py-16 text-white sm:py-20"
+      >
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-radial-glow" />
+        <div className="relative px-4 sm:px-6 lg:px-8">
+          <PricingCardGrid
+            variant="onDark"
+            heading="Pricing built for small teams."
+            subheading="Start free. Upgrade when PhotoBrief is saving you real time. Annual saves 20%."
+          />
+        </div>
+      </section>
+
       {/* CTA BAND ------------------------------------------------------------ */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-brand px-6 py-12 text-center text-white shadow-brand sm:px-12 sm:py-14">
