@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { notificationService } from "@/services/notificationService";
+
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
 import { ReadinessScoreBadge } from "@/components/shared/ReadinessScoreBadge";
@@ -128,7 +130,15 @@ export default function SubmissionReviewPage() {
       toast.error(`Reminders are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`);
       return;
     }
-    toast.success(`Reminder sent to ${submission.recipientName} (mock)`);
+    notificationService.notify({
+      event: "reminder_sent",
+      audience: "recipient",
+      title: `Reminder sent to ${submission.recipientName}`,
+      body: `Nudge for ${submission.guideName}.`,
+      submissionId: submission.id,
+      recipientEmail: submission.recipientContact,
+      href: `/submissions/${submission.id}`,
+    });
     pushActivity({
       type: "reminder_sent",
       label: `Reminder sent to ${submission.recipientName}`,
@@ -145,10 +155,19 @@ export default function SubmissionReviewPage() {
     missingItems: string[];
     message: string;
   }) {
-    toast.success(`Asked ${submission.recipientName.split(" ")[0]} for ${shotIds.length + missingItems.length} more item(s)`);
+    const count = shotIds.length + missingItems.length;
+    notificationService.notify({
+      event: "needs_customer_action",
+      audience: "recipient",
+      title: `Asked ${submission.recipientName.split(" ")[0]} for ${count} more item${count === 1 ? "" : "s"}`,
+      body: message.slice(0, 140),
+      submissionId: submission.id,
+      recipientEmail: submission.recipientContact,
+      href: `/submissions/${submission.id}`,
+    });
     pushActivity({
       type: "more_photos_requested",
-      label: `Requested ${shotIds.length + missingItems.length} more item(s)`,
+      label: `Requested ${count} more item${count === 1 ? "" : "s"}`,
       detail: message.slice(0, 140),
       actor: "You",
     });
@@ -180,7 +199,14 @@ export default function SubmissionReviewPage() {
 
   function handleMarkReviewed() {
     setSubmission((prev) => ({ ...prev, status: "reviewed" }));
-    toast.success("Marked reviewed");
+    notificationService.notify({
+      event: "reviewed",
+      audience: "business",
+      title: `Marked "${submission.guideName}" reviewed`,
+      body: `${submission.recipientName}'s submission is closed out.`,
+      submissionId: submission.id,
+      href: `/submissions/${submission.id}`,
+    });
     pushActivity({
       type: "marked_reviewed",
       label: "Marked reviewed",
