@@ -43,10 +43,15 @@ export default function PublicRecipientPage() {
       value={{ businessName: ctx.businessName, brandColor: ctx.brandColor }}
     >
       <div className="space-y-4">
-        <ReadinessProgress
-          value={flow.progress.total === 0 ? 0 : (flow.progress.done / flow.progress.total) * 100}
-          label={`${flow.progress.done} of ${flow.progress.total} steps`}
-        />
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>{ctx.guide.name}</span>
+            <span>{flow.progress.done} of {flow.progress.total}</span>
+          </div>
+          <ReadinessProgress
+            value={flow.progress.total === 0 ? 0 : (flow.progress.done / flow.progress.total) * 100}
+          />
+        </div>
 
         <ChatThread autoScrollKey={flow.messages.length}>
           {flow.messages.map((msg) => {
