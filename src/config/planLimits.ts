@@ -288,7 +288,7 @@ export const planLimits: PlanLimit[] = [
     id: "team",
     name: "Team",
     priceMonthly: 99,
-    priceAnnualMonthly: annual(99),
+    priceAnnualMonthly: 80,
     tagline: "Run the whole operation.",
     purpose: "Teams that share an inbox and review submissions together.",
     quotas: {
