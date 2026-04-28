@@ -205,6 +205,8 @@ export default function GuideLibraryPage() {
         onUse={handleUse}
         onCustomize={handleCustomize}
       />
+
+      <AIGuideGeneratorDialog open={aiOpen} onOpenChange={setAiOpen} />
     </div>
   );
 }
