@@ -1,8 +1,9 @@
 import { Outlet, NavLink } from "react-router-dom";
-import { Bell, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { workspaceService } from "@/services/workspaceService";
@@ -27,9 +28,7 @@ export function DashboardLayout() {
                   New request
                 </NavLink>
               </Button>
-              <Button variant="ghost" size="icon" aria-label="Notifications">
-                <Bell className="h-4 w-4" />
-              </Button>
+              <NotificationBell />
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                   BS
