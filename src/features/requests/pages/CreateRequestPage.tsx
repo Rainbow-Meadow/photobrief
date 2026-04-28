@@ -170,7 +170,7 @@ export default function CreateRequestPage() {
 
       trackEvent("request_created", {
         request_id: created.id,
-        guide_id: draft?.guideId ?? null,
+        guide_id: draft?.baseGuideId ?? null,
         delivery,
         contact_type: isEmail ? "email" : "link",
       });
