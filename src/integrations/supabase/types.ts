@@ -504,6 +504,7 @@ export type Database = {
           due_date: string | null
           guide_id: string | null
           id: string
+          last_reminder_at: string | null
           recipient_email: string | null
           recipient_name: string | null
           recipient_phone: string | null
@@ -520,6 +521,7 @@ export type Database = {
           due_date?: string | null
           guide_id?: string | null
           id?: string
+          last_reminder_at?: string | null
           recipient_email?: string | null
           recipient_name?: string | null
           recipient_phone?: string | null
@@ -536,6 +538,7 @@ export type Database = {
           due_date?: string | null
           guide_id?: string | null
           id?: string
+          last_reminder_at?: string | null
           recipient_email?: string | null
           recipient_name?: string | null
           recipient_phone?: string | null
@@ -958,6 +961,7 @@ export type Database = {
         Args: { _event_type: string; _workspace_id: string }
         Returns: number
       }
+      flag_stale_requests: { Args: never; Returns: undefined }
       founding_pro_remaining: { Args: never; Returns: number }
       has_workspace_role: {
         Args: {
