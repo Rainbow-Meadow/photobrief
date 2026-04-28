@@ -127,6 +127,24 @@ export default function RequestDetailPage() {
             Send reminder
           </Button>
         </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">Send via:</span>
+          <ChannelPicker
+            value={channel}
+            onChange={setChannel}
+            smsAvailable={smsReady}
+            hasEmail={hasEmail}
+            hasPhone={hasPhone}
+          />
+          {!smsReady && (
+            <NavLink
+              to="/settings/sms"
+              className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+            >
+              Set up SMS
+            </NavLink>
+          )}
+        </div>
       </section>
 
       <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
