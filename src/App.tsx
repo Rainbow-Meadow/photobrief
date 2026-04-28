@@ -15,6 +15,7 @@ import AuthPage from "@/pages/Auth";
 import PricingPage from "@/pages/Pricing";
 import ForgotPasswordPage from "@/pages/ForgotPassword";
 import ResetPasswordPage from "@/pages/ResetPassword";
+import UnsubscribePage from "@/pages/Unsubscribe";
 import NotFound from "@/pages/NotFound";
 
 import OnboardingPage from "@/features/workspace/pages/OnboardingPage";
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/unsubscribe" element={<UnsubscribePage />} />
           </Route>
 
           {/* Onboarding + invite acceptance (no sidebar, but still auth-only).
