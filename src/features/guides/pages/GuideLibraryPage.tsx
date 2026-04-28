@@ -84,6 +84,33 @@ export default function GuideLibraryPage() {
 
       {!canCustomGuides ? <UpgradePromptCard feature="custom_guides" variant="inline" /> : null}
 
+      {workspaceGuides.length > 0 ? (
+        <section className="space-y-4">
+          <div className="flex items-start gap-3">
+            <span className="rounded-md bg-primary/10 p-2 text-primary">
+              <Plus className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Your guides</h2>
+              <p className="text-sm text-muted-foreground">
+                Custom guides built by your team.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {workspaceGuides.map((g) => (
+              <GuideCard
+                key={g.id}
+                guide={g}
+                onUse={handleUse}
+                onPreview={setPreviewGuide}
+                onCustomize={handleCustomize}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       {curatedCategories.map((cat) => {
         const guides = grouped.get(cat.id) ?? [];
         if (guides.length === 0) return null;
