@@ -59,13 +59,10 @@ export function PricingCardGrid({
   const onDark = variant === "onDark";
 
   // Hide Free in-app once a user is paying — keep on landing.
-  const visiblePlans = planLimits
-    .filter((p) => {
-      if (currentPlan && currentPlan !== "free" && p.id === "free") return false;
-      return true;
-    })
-    // Highlighted plan first so it spans the full top row.
-    .sort((a, b) => Number(!!b.highlight) - Number(!!a.highlight));
+  const visiblePlans = planLimits.filter((p) => {
+    if (currentPlan && currentPlan !== "free" && p.id === "free") return false;
+    return true;
+  });
 
   return (
     <section className={cn("mx-auto max-w-7xl", className)}>
@@ -100,12 +97,7 @@ export function PricingCardGrid({
         </div>
       ) : null}
 
-      <div
-        className={cn(
-          "mt-10 grid gap-5",
-          compact ? "md:grid-cols-2 lg:grid-cols-3" : "md:grid-cols-2 lg:grid-cols-3",
-        )}
-      >
+      <div className="mt-10 grid gap-5 sm:grid-cols-2">
         {visiblePlans.map((plan) => {
           const isCurrent = currentPlan === plan.id;
           const price =
@@ -123,8 +115,8 @@ export function PricingCardGrid({
                   : "bg-card shadow-elev-sm hover:shadow-elev-md",
                 showHighlight &&
                   (onDark
-                    ? "border-primary-glow/60 bg-white/[0.09] shadow-glow md:col-span-2 lg:col-span-3"
-                    : "border-primary/60 shadow-glow ring-1 ring-primary/30 md:col-span-2 lg:col-span-3"),
+                    ? "border-primary-glow/60 bg-white/[0.09] shadow-glow sm:col-span-2"
+                    : "border-primary/60 shadow-glow ring-1 ring-primary/30 sm:col-span-2"),
                 isCurrent && !onDark && "border-success/60 ring-1 ring-success/30",
               )}
             >
