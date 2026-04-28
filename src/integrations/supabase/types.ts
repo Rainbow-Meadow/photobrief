@@ -1431,6 +1431,7 @@ export type Database = {
       }
     }
     Functions: {
+      _notify_event: { Args: { _payload: Json }; Returns: undefined }
       current_period_usage: {
         Args: { _event_type: string; _workspace_id: string }
         Returns: number

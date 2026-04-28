@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public._notify_event(jsonb) FROM PUBLIC, anon, authenticated;

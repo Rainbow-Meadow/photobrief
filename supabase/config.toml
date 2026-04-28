@@ -17,6 +17,8 @@ project_id = "ymuhxcdjdlwfstekkzmp"
     verify_jwt = false
   [functions.handle-email-unsubscribe]
     verify_jwt = false
+  [functions.notify-event]
+    verify_jwt = false
   [functions.payments-webhook]
     verify_jwt = false
   [functions.preview-transactional-email]

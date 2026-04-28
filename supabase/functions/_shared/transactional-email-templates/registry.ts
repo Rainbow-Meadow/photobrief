@@ -10,7 +10,13 @@ export interface TemplateEntry {
 }
 
 import { template as recipientRequestLink } from './recipient-request-link.tsx'
+import { template as recipientReminder } from './recipient-reminder.tsx'
+import { template as submissionReceived } from './submission-received.tsx'
+import { template as workspaceWelcome } from './workspace-welcome.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'recipient-request-link': recipientRequestLink,
+  'recipient-reminder': recipientReminder,
+  'submission-received': submissionReceived,
+  'workspace-welcome': workspaceWelcome,
 }
