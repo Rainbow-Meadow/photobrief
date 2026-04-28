@@ -39,7 +39,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { useSubmission, useSubmissions } from "@/hooks/useSubmissions";
 import { submissionStatusOptions } from "@/config/statusOptions";
-import { mockTeamMembers } from "@/config/mockData";
+import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { formatRelativeTime } from "@/utils/format";
 import { usePlan } from "@/hooks/usePlan";
 import { getPlanLimit, minPlanFor } from "@/config/planLimits";
