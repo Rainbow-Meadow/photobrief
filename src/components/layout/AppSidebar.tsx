@@ -63,6 +63,11 @@ export function AppSidebar() {
             eager
           />
         </div>
+        {!collapsed ? (
+          <div className="px-2 pb-2">
+            <WorkspaceSwitcher />
+          </div>
+        ) : null}
       </SidebarHeader>
 
       <SidebarContent>
