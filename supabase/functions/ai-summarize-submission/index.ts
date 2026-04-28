@@ -1,13 +1,18 @@
 // ai-summarize-submission — generates the reviewer-facing AI summary,
 // readiness score (0-100, blended per 05_AI_System/03_readiness_scoring.md),
-// and the suggested next action for a submission.
+// suggested next action, missing items, and extracted details for a submission.
+//
+// Uses google/gemini-2.5-pro multimodal so the model can actually look at the
+// captured photos when summarising and pulling structured details.
 //
 // Two modes:
-//  1) { submissionId } — reads the submission from DB and persists results.
+//  1) { submissionId } — reads everything from DB and persists results.
 //  2) { guideName, recipientName, shots, customerAnswers? } — pure compute,
-//     used by client-side hooks that haven't synced to DB yet.
+//     used by client-side hooks during the recipient flow before the
+//     submission row exists.
 //
-// Output: { summary, highlights[], readinessScore, band, nextAction, missingItems[] }
+// Output: { summary, highlights[], readinessScore, band, nextAction,
+//           missingItems[], extractedDetails[] }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
@@ -21,11 +26,17 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const SYSTEM = `You are PhotoBrief's reviewer assistant. Given a submission's photos, AI checks, and recipient answers, produce a concise reviewer summary plus a suggested next action.
+const SYSTEM = `You are PhotoBrief's reviewer assistant. You receive a submission's
+photos, AI quality checks, and recipient answers. You produce a concise reviewer
+summary, suggested next action, the list of missing or unusable shots that block
+readiness, and any structured details you can extract from the photos
+(model numbers, serial numbers, dimensions, addresses, brand/make, dates, etc.).
 
-Tone: clear, professional, no fluff. The reader is a busy small-business owner deciding whether to act on this submission.
+Tone: clear, professional, no fluff. The reader is a busy small-business owner
+deciding whether to act on this submission. Look at the photos provided and only
+extract details you can actually see — never invent values.
 
-Always call the summarize_submission function.`;
+Always call the summarize_submission function exactly once.`;
 
 const TOOL = {
   type: "function",
@@ -39,16 +50,42 @@ const TOOL = {
         highlights: {
           type: "array",
           items: { type: "string" },
-          description: "2-4 bullet highlights.",
+          description: "2-4 short bullet highlights.",
         },
-        nextAction: { type: "string", description: "One short instruction (e.g. 'Mark as reviewed', 'Ask for more photos')." },
+        nextAction: {
+          type: "string",
+          description: "One short instruction (e.g. 'Mark as reviewed', 'Ask for more photos').",
+        },
         missingItems: {
           type: "array",
           items: { type: "string" },
-          description: "Titles of missing or unusable shots that block readiness.",
+          description:
+            "Titles of required shots that are missing OR present but unusable.",
+        },
+        extractedDetails: {
+          type: "array",
+          description:
+            "Structured details visible in the photos (model #, serial, dimensions, address, brand, date, etc.). Only include details you can directly observe.",
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string", description: "Human label, e.g. 'Model number'." },
+              value: { type: "string", description: "The observed value." },
+              type: {
+                type: "string",
+                description: "Optional category: model, serial, dimension, address, brand, date, other.",
+              },
+              confidence: {
+                type: "number",
+                description: "0-1 confidence based on legibility.",
+              },
+            },
+            required: ["label", "value"],
+            additionalProperties: false,
+          },
         },
       },
-      required: ["summary", "highlights", "nextAction"],
+      required: ["summary", "highlights", "nextAction", "missingItems"],
       additionalProperties: false,
     },
   },
@@ -59,6 +96,7 @@ interface ShotIn {
   missing?: boolean;
   feedbackSeverity?: "pass" | "warn" | "fail";
   feedbackHeadline?: string;
+  imageUrl?: string;
 }
 
 interface ComputeBody {
@@ -70,6 +108,13 @@ interface ComputeBody {
 
 interface PersistBody {
   submissionId: string;
+}
+
+interface ExtractedDetailOut {
+  label: string;
+  value: string;
+  type?: string;
+  confidence?: number;
 }
 
 Deno.serve(async (req) => {
@@ -87,7 +132,6 @@ Deno.serve(async (req) => {
   let persistTo: { submissionId: string; workspaceId: string } | null = null;
 
   if ("submissionId" in body && body.submissionId) {
-    // Mode 1: load from DB.
     const loaded = await loadSubmission(body.submissionId);
     if (!loaded) return json({ error: "Submission not found" }, 404);
     computeInput = loaded.computeInput;
@@ -99,7 +143,7 @@ Deno.serve(async (req) => {
   const { readinessScore, band, missingComputed } = computeReadiness(computeInput.shots);
 
   try {
-    const userPrompt = [
+    const userText = [
       `Guide: ${computeInput.guideName}`,
       `Recipient: ${computeInput.recipientName ?? "Unknown"}`,
       `Shots (${computeInput.shots.length}):`,
@@ -111,8 +155,21 @@ Deno.serve(async (req) => {
         : "Recipient answers: none",
       `Computed readiness score: ${readinessScore} (${band}).`,
       "",
-      "Call summarize_submission with a reviewer summary, 2-4 highlights, and the suggested next action.",
+      "Use the photos below to write the summary, list missing/unusable shots, and extract any visible structured details. Then call summarize_submission.",
     ].join("\n");
+
+    // Build multimodal user message — text + each image (cap at 8 images to
+    // keep token usage sane).
+    const imageShots = computeInput.shots
+      .filter((s) => !s.missing && s.imageUrl)
+      .slice(0, 8);
+    const userContent: any[] = [{ type: "text", text: userText }];
+    for (const s of imageShots) {
+      userContent.push({
+        type: "image_url",
+        image_url: { url: s.imageUrl },
+      });
+    }
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -121,10 +178,10 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: SYSTEM },
-          { role: "user", content: userPrompt },
+          { role: "user", content: userContent },
         ],
         tools: [TOOL],
         tool_choice: { type: "function", function: { name: "summarize_submission" } },
@@ -142,11 +199,19 @@ Deno.serve(async (req) => {
     const args = call ? JSON.parse(call.function.arguments) : null;
     if (!args) return json({ error: "AI returned no summary" }, 502);
 
+    const extractedDetails: ExtractedDetailOut[] = Array.isArray(args.extractedDetails)
+      ? args.extractedDetails
+      : [];
+    const missingItems: string[] = args.missingItems?.length
+      ? args.missingItems
+      : missingComputed;
+
     const result = {
       summary: args.summary,
       highlights: args.highlights ?? [],
       nextAction: args.nextAction,
-      missingItems: args.missingItems?.length ? args.missingItems : missingComputed,
+      missingItems,
+      extractedDetails,
       readinessScore,
       band,
     };
@@ -159,8 +224,23 @@ Deno.serve(async (req) => {
           ai_summary: result.summary,
           readiness_score: result.readinessScore,
           next_action: result.nextAction,
+          missing_items: result.missingItems,
         })
         .eq("id", persistTo.submissionId);
+
+      // Replace prior AI-extracted details for this submission.
+      await admin.from("extracted_details").delete().eq("submission_id", persistTo.submissionId);
+      if (extractedDetails.length > 0) {
+        await admin.from("extracted_details").insert(
+          extractedDetails.map((d) => ({
+            submission_id: persistTo!.submissionId,
+            label: d.label,
+            value: d.value,
+            type: d.type ?? null,
+            confidence: typeof d.confidence === "number" ? d.confidence : null,
+          })),
+        );
+      }
     }
 
     return json(result);
@@ -187,8 +267,8 @@ function computeReadiness(shots: ShotIn[]) {
 
   const quality = ((passes * 1 + warns * 0.6 + fails * 0.2) / total) * 45;
   const coverage = (captured.length / total) * 20;
-  const details = 15; // baseline; OCR fills this in over time
-  const answers = 15; // baseline
+  const details = 15;
+  const answers = 15;
   const freshness = 5;
   const readinessScore = Math.round(quality + coverage + details + answers + freshness);
   const band: "low" | "medium" | "high" = readinessScore >= 80 ? "high" : readinessScore >= 50 ? "medium" : "low";
@@ -201,33 +281,56 @@ async function loadSubmission(submissionId: string) {
   const { data: sub } = await admin
     .from("submissions")
     .select(
-      "id, workspace_id, submitter_name, photo_brief_requests!inner(guide_id, photo_guides(name))",
+      "id, workspace_id, submitter_name, request_id, photo_brief_requests!inner(guide_id, photo_guides(name))",
     )
     .eq("id", submissionId)
     .maybeSingle();
   if (!sub) return null;
 
-  const [{ data: media }, { data: details }] = await Promise.all([
+  const guideId = (sub as any).photo_brief_requests?.guide_id as string | null;
+
+  const [{ data: media }, { data: requiredSteps }] = await Promise.all([
     admin
       .from("captured_media")
-      .select("id, note, ai_feedback, status, step_id, guide_steps(title)")
+      .select("id, note, ai_feedback, status, step_id, file_url, guide_steps(title)")
       .eq("submission_id", submissionId),
-    admin.from("extracted_details").select("label, value, confidence").eq("submission_id", submissionId),
+    guideId
+      ? admin
+          .from("guide_steps")
+          .select("id, title, required")
+          .eq("guide_id", guideId)
+      : Promise.resolve({ data: [] as any[] }),
   ]);
 
-  const shots: ShotIn[] = (media ?? []).map((m: any) => ({
+  const SUPABASE_PROJECT_URL = SUPABASE_URL.replace(/\/$/, "");
+  const toPublicUrl = (filePath: string | null) => {
+    if (!filePath) return undefined;
+    if (filePath.startsWith("http")) return filePath;
+    return `${SUPABASE_PROJECT_URL}/storage/v1/object/public/submission-media/${filePath}`;
+  };
+
+  const capturedStepIds = new Set<string>(
+    (media ?? []).map((m: any) => m.step_id).filter(Boolean),
+  );
+
+  const capturedShots: ShotIn[] = (media ?? []).map((m: any) => ({
     title: m.guide_steps?.title ?? m.note ?? "Photo",
     missing: false,
     feedbackSeverity: m.ai_feedback?.severity ?? m.ai_feedback?.verdict,
     feedbackHeadline: m.ai_feedback?.headline,
+    imageUrl: toPublicUrl(m.file_url),
   }));
+
+  const missingShots: ShotIn[] = ((requiredSteps as any[]) ?? [])
+    .filter((s) => s.required && !capturedStepIds.has(s.id))
+    .map((s) => ({ title: s.title, missing: true }));
 
   return {
     workspaceId: (sub as any).workspace_id,
     computeInput: {
       guideName: (sub as any).photo_brief_requests?.photo_guides?.name ?? "Submission",
       recipientName: (sub as any).submitter_name ?? "Recipient",
-      shots,
+      shots: [...capturedShots, ...missingShots],
       customerAnswers: [],
     },
   };
