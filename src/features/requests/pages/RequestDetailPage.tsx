@@ -3,12 +3,13 @@ import { Copy, Send } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { mockRequests } from "@/config/mockData";
+import { useRequest, useRequests } from "@/hooks/useRequests";
 import { requestStatusOptions } from "@/config/statusOptions";
 
 export default function RequestDetailPage() {
   const { id } = useParams();
-  const request = mockRequests.find((r) => r.id === id) ?? mockRequests[0];
+  const fallback = useRequests()[0];
+  const request = useRequest(id) ?? fallback;
   const status = requestStatusOptions[request.status];
 
   return (
