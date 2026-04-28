@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { Zap, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { trackEvent } from "@/lib/analytics";
 
 export function FinalCtaCard() {
   return (
@@ -17,7 +18,10 @@ export function FinalCtaCard() {
         </p>
         <div className="mt-8 flex justify-center">
           <Button asChild size="lg" className="rounded-full px-7">
-            <NavLink to="/auth?mode=signup">
+            <NavLink
+              to="/auth?mode=signup"
+              onClick={() => trackEvent("cta_click", { location: "final_card", label: "create_account" })}
+            >
               Create Your Free Account <ArrowRight className="ml-1 h-4 w-4" />
             </NavLink>
           </Button>

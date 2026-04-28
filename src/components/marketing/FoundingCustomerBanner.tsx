@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useFoundingPro } from "@/hooks/useFoundingPro";
 import { FOUNDING_PRO } from "@/config/planLimits";
+import { trackEvent } from "@/lib/analytics";
 
 export function FoundingCustomerBanner() {
   const { available, loading } = useFoundingPro();
@@ -28,7 +29,10 @@ export function FoundingCustomerBanner() {
           asChild
           className="shrink-0 rounded-full bg-warning text-warning-foreground hover:bg-warning/90"
         >
-          <NavLink to={`/auth?mode=signup&plan=pro&coupon=${FOUNDING_PRO.couponCode}`}>
+          <NavLink
+            to={`/auth?mode=signup&plan=pro&coupon=${FOUNDING_PRO.couponCode}`}
+            onClick={() => trackEvent("cta_click", { location: "founding_banner", label: "claim_founding" })}
+          >
             Claim Founding Price <ArrowRight className="ml-1 h-4 w-4" />
           </NavLink>
         </Button>
