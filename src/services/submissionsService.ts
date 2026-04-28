@@ -121,7 +121,7 @@ export const submissionsService = {
   },
 
   async updateStatus(id: string, status: SubmissionStatus): Promise<void> {
-    const patch: Record<string, unknown> = { status };
+    const patch: { status: SubmissionStatus; reviewed_at?: string } = { status };
     if (status === "reviewed") patch.reviewed_at = new Date().toISOString();
     const { error } = await supabase.from("submissions").update(patch).eq("id", id);
     if (error) throw error;
