@@ -7,6 +7,7 @@ import { planLimits, type PlanLimit } from "@/config/planLimits";
 import type { BillingInterval, Plan } from "@/types/photobrief";
 import { BillingIntervalToggle } from "./BillingIntervalToggle";
 import { FoundingProBadge } from "./FoundingProBadge";
+import { FoundingCustomerBanner } from "@/components/marketing/FoundingCustomerBanner";
 
 interface Props {
   /** Where the per-card primary button should send the user. */
@@ -89,6 +90,12 @@ export function PricingCardGrid({
         <BillingIntervalToggle value={interval} onChange={setInterval} variant={variant} />
         <FoundingProBadge variant={onDark ? "onDark" : "default"} />
       </div>
+
+      {!onDark ? (
+        <div className="mt-8">
+          <FoundingCustomerBanner />
+        </div>
+      ) : null}
 
       <div
         className={cn(
