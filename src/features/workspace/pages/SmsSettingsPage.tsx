@@ -493,6 +493,58 @@ export default function SmsSettingsPage() {
             </CardContent>
           </Card>
 
+          {/* Inbound webhook */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Inbound replies & STOP handling</CardTitle>
+              <CardDescription>
+                Paste this URL into your Twilio number's "A MESSAGE COMES IN"
+                webhook so STOP/HELP and recipient replies flow into PhotoBrief.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {(() => {
+                const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+                const webhookUrl = `https://${projectId}.functions.supabase.co/twilio-inbound`;
+                return (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        readOnly
+                        value={webhookUrl}
+                        className="font-mono text-xs"
+                        onFocus={(e) => e.currentTarget.select()}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(webhookUrl);
+                          toast.success("Webhook URL copied");
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <ol className="ml-4 list-decimal space-y-1 text-sm text-muted-foreground">
+                      <li>
+                        In Twilio Console, open <strong>Phone Numbers → Manage → Active numbers</strong>
+                        {" "}and click your sending number.
+                      </li>
+                      <li>
+                        Under <strong>Messaging Configuration</strong>, set
+                        {" "}<strong>A MESSAGE COMES IN</strong> → <em>Webhook</em>,
+                        method <em>HTTP POST</em>, and paste the URL above.
+                      </li>
+                      <li>Save. Replies and STOP/HELP keywords will now appear in request timelines and the bell icon.</li>
+                    </ol>
+                  </>
+                );
+              })()}
+            </CardContent>
+          </Card>
+
           {/* Compliance */}
           <Card>
             <CardHeader>
