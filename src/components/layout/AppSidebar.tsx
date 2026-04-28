@@ -50,7 +50,7 @@ export function AppSidebar() {
           <BrandMark
             variant={collapsed ? "mark" : "horizontal"}
             tone="auto"
-            size={collapsed ? 26 : 26}
+            size={collapsed ? 28 : 30}
             eager
           />
         </div>

@@ -24,9 +24,9 @@ export function PublicRequestLayout() {
                 className="h-7 w-7 rounded-md object-cover"
               />
             ) : (
-              <BrandMark variant="mark" tone="dark" size={28} eager />
+              <BrandMark variant="horizontal" tone="dark" size={28} eager />
             )}
-            <span>{businessName}</span>
+            {logoUrl ? <span>{businessName}</span> : null}
           </div>
           <span className="text-xs text-muted-foreground">Secure photo intake</span>
         </div>
