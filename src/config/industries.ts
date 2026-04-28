@@ -11,20 +11,19 @@ export const industries: IndustryDefinition[] = [
   {
     id: "plumbing",
     label: "Plumbing",
-    starterGuideIds: [
-      "aa3864c3-9463-5920-b818-e4cef8855eed", // Leak diagnosis intake
-      "7dc3a33e-48ae-510b-b800-ffa361b54c8a", // Water heater intake
-    ],
+    // Plumbing Service Request Intake
+    starterGuideIds: ["e2b490f1-8a64-5f71-b975-594563f23b98"],
   },
   {
     id: "junk_removal",
     label: "Junk removal",
-    starterGuideIds: ["e843c450-9aa9-5691-818d-874a0bcaf88f"],
+    // Landscape Cleanup / Yard Work Quote (closest workbook match)
+    starterGuideIds: ["2f6e159f-c757-5923-878d-f5d293414061"],
   },
   {
     id: "landscaping",
     label: "Landscaping",
-    starterGuideIds: ["90a93b2a-17ad-5b40-ae30-342afa73ed30"],
+    starterGuideIds: ["2f6e159f-c757-5923-878d-f5d293414061"],
   },
   {
     id: "appliance_repair",
@@ -34,12 +33,13 @@ export const industries: IndustryDefinition[] = [
   {
     id: "pest_control",
     label: "Pest / wildlife removal",
-    starterGuideIds: ["88809a8e-bbb7-5ff6-b40a-6ef061483dda"],
+    starterGuideIds: ["c746edb8-6fbe-5ea5-b743-5791df1159a6"],
   },
   {
     id: "property_management",
     label: "Property management",
-    starterGuideIds: ["2fa5e136-2d63-556e-9117-f119644af754"],
+    // Move-In / Move-Out Condition Report
+    starterGuideIds: ["421836bd-dfcf-5a29-af4d-e7d2f31c7f77"],
   },
   { id: "resale", label: "Resale / product sellers", starterGuideIds: [] },
   { id: "other", label: "Other", starterGuideIds: [] },
