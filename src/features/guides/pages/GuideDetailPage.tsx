@@ -27,6 +27,7 @@ import { useGuideAsync } from "@/hooks/useGuides";
 import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
 import { guidesService } from "@/services/guidesService";
 import type { ContextQuestion, GuideStep, PhotoGuide } from "@/types/photobrief";
+import { trackEvent } from "@/lib/analytics";
 
 interface EditState {
   name: string;
@@ -62,6 +63,12 @@ export default function GuideDetailPage() {
   useEffect(() => {
     if (guide && editing) setDraft(fromGuide(guide));
   }, [guide, editing]);
+
+  useEffect(() => {
+    if (guide) {
+      trackEvent("guide_viewed", { guide_id: guide.id, guide_name: guide.name, source: "detail_page" });
+    }
+  }, [guide?.id]);
 
   const update = useMutation({
     mutationFn: async () => {

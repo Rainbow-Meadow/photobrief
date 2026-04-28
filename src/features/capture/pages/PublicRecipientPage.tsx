@@ -19,6 +19,7 @@ import {
 } from "@/features/capture/recipientContext";
 import { useChatFlow } from "@/hooks/useChatFlow";
 import { submissionsService } from "@/services/submissionsService";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * Public recipient page — chat-first capture flow.
@@ -140,8 +141,26 @@ function RecipientChat({
     uploadCapture,
   });
 
+  // Track step completions (progress.done increases) without leaking PII.
+  const lastDoneRef = useRef(0);
+  useEffect(() => {
+    if (flow.progress.done > lastDoneRef.current) {
+      trackEvent("step_completed", {
+        guide_id: ctx.guide.id,
+        step_index: flow.progress.done,
+        total_steps: flow.progress.total,
+      });
+      lastDoneRef.current = flow.progress.done;
+    }
+  }, [flow.progress.done, flow.progress.total, ctx.guide.id]);
+
   const handleSubmit = async () => {
     flow.submitAll();
+    trackEvent("submission_completed", {
+      guide_id: ctx.guide.id,
+      photos: flow.photos.length,
+      answers: Object.keys(flow.answers ?? {}).length,
+    });
     if (!ctx.requestId || !ctx.workspaceId || !token) {
       // Demo / no-token preview: just bounce to confirmation.
       setTimeout(() => navigate(`/r/${token ?? "demo"}/done`), 1200);

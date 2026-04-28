@@ -9,6 +9,7 @@ import { IndustryGrid } from "@/components/marketing/IndustryGrid";
 import { TestimonialsRow } from "@/components/marketing/TestimonialsRow";
 import { FinalCtaCard } from "@/components/marketing/FinalCtaCard";
 import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
+import { trackEvent } from "@/lib/analytics";
 
 export default function LandingPage() {
   return (
@@ -41,7 +42,10 @@ export default function LandingPage() {
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Button asChild size="lg" className="rounded-full px-6">
-                <NavLink to="/auth?mode=signup">
+                <NavLink
+                  to="/auth?mode=signup"
+                  onClick={() => trackEvent("cta_click", { location: "hero", label: "start_free" })}
+                >
                   Start Free — No Credit Card <ArrowRight className="ml-1 h-4 w-4" />
                 </NavLink>
               </Button>
@@ -51,7 +55,10 @@ export default function LandingPage() {
                 variant="ghost"
                 className="rounded-full px-5 text-foreground hover:bg-muted"
               >
-                <a href="#how-it-works">
+                <a
+                  href="#how-it-works"
+                  onClick={() => trackEvent("cta_click", { location: "hero", label: "watch_demo" })}
+                >
                   <PlayCircle className="mr-1 h-5 w-5" /> Watch 90-second demo
                 </a>
               </Button>

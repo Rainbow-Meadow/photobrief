@@ -12,6 +12,7 @@ import { GuidePreviewDialog } from "@/features/guides/components/GuidePreviewDia
 import { UpgradePromptCard } from "@/components/shared/UpgradePromptCard";
 import { usePlan } from "@/hooks/usePlan";
 import { toast } from "sonner";
+import { trackEvent } from "@/lib/analytics";
 
 const iconMap = { Wrench, Home, PackageCheck, Megaphone, Heart };
 
@@ -39,11 +40,13 @@ export default function GuideLibraryPage() {
 
   function handleUse(guide: PhotoGuide) {
     setPreviewGuide(null);
+    trackEvent("guide_used", { guide_id: guide.id, guide_name: guide.name, source: "library" });
     navigate(`/requests/new?guide=${guide.id}`);
     toast.success(`Starting a new request from "${guide.name}"`);
   }
   function handleCustomize(guide: PhotoGuide) {
     setPreviewGuide(null);
+    trackEvent("guide_viewed", { guide_id: guide.id, guide_name: guide.name, source: "library" });
     navigate(`/guides/${guide.id}`);
   }
 

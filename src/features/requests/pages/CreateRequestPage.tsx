@@ -24,6 +24,7 @@ import { usePlan } from "@/hooks/usePlan";
 import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
 import { useUsage } from "@/hooks/useUsage";
 import { useQueryClient } from "@tanstack/react-query";
+import { trackEvent } from "@/lib/analytics";
 
 let mid = 0;
 const newId = () => `chat_${Date.now()}_${++mid}`;
@@ -165,6 +166,16 @@ export default function CreateRequestPage() {
         toast.message("Request created", {
           description: "Copy the link and share it with your customer.",
         });
+      }
+
+      trackEvent("request_created", {
+        request_id: created.id,
+        guide_id: draft?.baseGuideId ?? null,
+        delivery,
+        contact_type: isEmail ? "email" : "link",
+      });
+      if (delivery === "sent") {
+        trackEvent("request_sent", { request_id: created.id, channel: "email" });
       }
 
       queryClient.invalidateQueries({ queryKey: ["requests", workspace?.id] });

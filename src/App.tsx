@@ -9,6 +9,7 @@ import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PublicRequestLayout } from "@/components/layout/PublicRequestLayout";
 import { RequireAuth } from "@/components/auth/RequireAuth";
+import { RouteTracker } from "@/components/analytics/RouteTracker";
 
 import LandingPage from "@/pages/Landing";
 import AuthPage from "@/pages/Auth";
@@ -43,6 +44,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+        <RouteTracker />
         <Routes>
           {/* Marketing + auth */}
           <Route element={<MarketingLayout />}>

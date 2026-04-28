@@ -32,7 +32,8 @@
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-GJCZPQ3WJ9');
+    // SPA: page_view is sent manually by RouteTracker on every route change
+    gtag('config', 'G-GJCZPQ3WJ9', { send_page_view: false });
   </script>
 </head>
 

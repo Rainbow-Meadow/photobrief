@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { trackEvent } from "@/lib/analytics";
 
 export default function AuthPage() {
   const [params] = useSearchParams();
@@ -35,6 +36,7 @@ export default function AuthPage() {
     setSubmitting(true);
     try {
       if (mode === "signup") {
+        trackEvent("signup_started", { method: "email" });
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -44,6 +46,7 @@ export default function AuthPage() {
           },
         });
         if (error) throw error;
+        trackEvent("signup_completed", { method: "email" });
         toast({
           title: "Check your inbox",
           description: "Confirm your email to finish creating your workspace.",
@@ -51,6 +54,7 @@ export default function AuthPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        trackEvent("login_completed", { method: "email" });
         // Redirect handled by effect
       }
     } catch (err: any) {
@@ -66,6 +70,7 @@ export default function AuthPage() {
 
   const handleGoogle = async () => {
     setSubmitting(true);
+    trackEvent(mode === "signup" ? "signup_started" : "login_started", { method: "google" });
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
