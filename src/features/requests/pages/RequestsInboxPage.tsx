@@ -18,7 +18,7 @@ import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
 import { requestStatusOptions } from "@/config/statusOptions";
 import { formatRelativeTime } from "@/utils/format";
 import { guideTemplates } from "@/config/guideTemplates";
-import { mockTeamMembers } from "@/config/mockData";
+import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { toast } from "sonner";
 import { notificationService } from "@/services/notificationService";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +33,7 @@ import type { RequestStatus } from "@/types/photobrief";
 export default function RequestsInboxPage() {
   const requests = useRequests();
   const { workspace } = useCurrentWorkspace();
+  const teamMembers = useTeamMembers();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const initialStatus = (searchParams.get("status") ?? "all") as RequestStatus | "all";
@@ -88,7 +89,7 @@ export default function RequestsInboxPage() {
         value={filters}
         onChange={setFilters}
         guides={guides}
-        assignees={mockTeamMembers}
+        assignees={teamMembers}
       />
 
       <div className="overflow-hidden rounded-lg border bg-card shadow-elev-sm">
