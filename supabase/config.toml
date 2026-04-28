@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.ai-analyze-media]
 verify_jwt = false
+
+[functions.ai-summarize-submission]
+verify_jwt = false
