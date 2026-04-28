@@ -174,15 +174,30 @@ export default function SubmissionReviewPage() {
     setSubmission((prev) => ({ ...prev, status: "needs_more" }));
   }
 
-  function handleExportPdf() {
+  async function handleExportPdf() {
     if (!canPdf) {
       const plan = minPlanFor("pdf_export");
       toast.error(`PDF export is on ${plan ? getPlanLimit(plan).name : "a higher plan"}`);
       return;
     }
-    toast.message("PDF export is coming soon", {
-      description: "We'll bundle the summary, photos, and answers into a sharable PDF.",
-    });
+    const t = toast.loading("Generating PDF…");
+    try {
+      const { pdfService } = await import("@/services/pdfService");
+      const result = await pdfService.exportSubmission(submission.id);
+      toast.dismiss(t);
+      toast.success("PDF ready", {
+        action: { label: "Open", onClick: () => window.open(result.url, "_blank") },
+      });
+      window.open(result.url, "_blank");
+    } catch (e) {
+      toast.dismiss(t);
+      const err = e as Error & { requiredPlan?: string };
+      if (err.requiredPlan) {
+        toast.error(`PDF export requires the ${err.requiredPlan} plan`);
+      } else {
+        toast.error(err.message ?? "Could not generate PDF");
+      }
+    }
   }
 
   function handleAssign(memberId: string) {
