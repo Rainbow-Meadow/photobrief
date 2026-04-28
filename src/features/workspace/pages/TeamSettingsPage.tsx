@@ -29,6 +29,7 @@ import {
 export default function TeamSettingsPage() {
   const { can, plan } = usePlan();
   const canTeam = can("team_members");
+  const canApi = can("api_webhooks");
   const { workspace } = useCurrentWorkspace();
   const wsId = workspace?.id;
 
@@ -193,7 +194,11 @@ export default function TeamSettingsPage() {
               </div>
             </section>
           )}
-          {wsId && <ApiKeysSection workspaceId={wsId} canManage={true} />}
+          {wsId && canApi ? (
+            <ApiKeysSection workspaceId={wsId} canManage={true} />
+          ) : (
+            <UpgradePromptCard feature="api_webhooks" />
+          )}
         </>
       )}
     </div>
