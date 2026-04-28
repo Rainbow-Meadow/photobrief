@@ -213,7 +213,17 @@ export default function BillingSettingsPage() {
   );
 }
 
-function UsageMeter({ label, used, cap }: { label: string; used: number; cap: Quota }) {
+function UsageMeter({
+  label,
+  used,
+  cap,
+  loading,
+}: {
+  label: string;
+  used: number;
+  cap: Quota;
+  loading?: boolean;
+}) {
   const value = pct(used, cap);
   const danger = value >= 90;
   return (
@@ -221,10 +231,10 @@ function UsageMeter({ label, used, cap }: { label: string; used: number; cap: Qu
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">{label}</span>
         <span className={cn("font-medium tabular-nums", danger ? "text-destructive" : "text-foreground")}>
-          {used} / {formatQuota(cap)}
+          {loading ? "…" : used} / {formatQuota(cap)}
         </span>
       </div>
-      <ReadinessProgress value={value} className="mt-1.5" />
+      <ReadinessProgress value={loading ? 0 : value} className="mt-1.5" />
     </div>
   );
 }
