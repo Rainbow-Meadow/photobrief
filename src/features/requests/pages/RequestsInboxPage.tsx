@@ -43,18 +43,19 @@ export default function RequestsInboxPage() {
 
   // Realtime: refetch when this workspace's requests/submissions change.
   useEffect(() => {
-    if (!workspace?.id) return;
+    const wsId = workspace?.id;
+    if (!wsId) return;
     const channel = supabase
-      .channel(`inbox-${workspace.id}`)
+      .channel(`inbox-${wsId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "photo_brief_requests", filter: `workspace_id=eq.${workspace.id}` },
-        () => queryClient.invalidateQueries({ queryKey: ["requests", workspace.id] }),
+        { event: "*", schema: "public", table: "photo_brief_requests", filter: `workspace_id=eq.${wsId}` },
+        () => queryClient.invalidateQueries({ queryKey: ["requests", wsId] }),
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "submissions", filter: `workspace_id=eq.${workspace.id}` },
-        () => queryClient.invalidateQueries({ queryKey: ["requests", workspace.id] }),
+        { event: "*", schema: "public", table: "submissions", filter: `workspace_id=eq.${wsId}` },
+        () => queryClient.invalidateQueries({ queryKey: ["requests", wsId] }),
       )
       .subscribe();
     return () => {
