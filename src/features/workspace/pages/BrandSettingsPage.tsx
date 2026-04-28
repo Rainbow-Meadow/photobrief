@@ -49,7 +49,7 @@ export default function BrandSettingsPage() {
 
   // Load existing brand_profile + workspace name
   useEffect(() => {
-    if (wsLoading || !workspace.id) return;
+    if (wsLoading || !workspace?.id) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -85,7 +85,7 @@ export default function BrandSettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [wsLoading, workspace.id]);
+  }, [wsLoading, workspace?.id]);
 
   const update = <K extends keyof BrandForm>(key: K, value: BrandForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
