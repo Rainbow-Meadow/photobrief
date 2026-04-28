@@ -12,6 +12,8 @@ import { PublicRequestLayout } from "@/components/layout/PublicRequestLayout";
 import LandingPage from "@/pages/Landing";
 import AuthPage from "@/pages/Auth";
 import PricingPage from "@/pages/Pricing";
+import ForgotPasswordPage from "@/pages/ForgotPassword";
+import ResetPasswordPage from "@/pages/ResetPassword";
 import NotFound from "@/pages/NotFound";
 
 import OnboardingPage from "@/features/workspace/pages/OnboardingPage";
