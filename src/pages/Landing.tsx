@@ -97,7 +97,7 @@ export default function LandingPage() {
               <br />
               Get a complete{" "}
               <span className="bg-gradient-to-r from-white to-primary-glow bg-clip-text text-transparent">
-                brief
+                ​
               </span>
               .
             </h1>
