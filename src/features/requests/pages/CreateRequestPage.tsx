@@ -118,12 +118,14 @@ export default function CreateRequestPage() {
               selectedGuideId={draft?.source === "template" ? draft.baseGuideId : undefined}
               onSelect={handleSelectTemplate}
             />
-          ) : (
+          ) : aiUnlocked ? (
             <AIRequestBuilderChat
               messages={chatMessages}
               isGenerating={isGenerating}
               onSubmit={handleAiPrompt}
             />
+          ) : (
+            <UpgradePromptCard feature="ai_request_builder" />
           )}
         </div>
 
