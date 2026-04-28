@@ -6,11 +6,14 @@
 export type RequestStatus =
   | "draft"
   | "sent"
+  | "opened"
   | "in_progress"
+  | "needs_customer_action"
   | "submitted"
-  | "needs_action"
+  | "ready_to_review"
   | "reviewed"
-  | "archived";
+  | "archived"
+  | "expired";
 
 export type SubmissionStatus = "new" | "reviewed" | "needs_more" | "archived";
 
