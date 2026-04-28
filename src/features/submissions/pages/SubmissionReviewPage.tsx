@@ -240,26 +240,52 @@ export default function SubmissionReviewPage() {
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAskOpen(true)}>
               <HelpCircle className="h-3.5 w-3.5" /> Ask for more photos
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={handleSendReminder}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleSendReminder}
+              title={canReminders ? undefined : "Available on a higher plan"}
+            >
               <Bell className="h-3.5 w-3.5" /> Send reminder
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExportPdf}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleExportPdf}
+              title={canPdf ? undefined : "Available on Pro"}
+            >
               <FileDown className="h-3.5 w-3.5" /> Export PDF
+              {!canPdf ? <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Pro</span> : null}
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5">
-                  <UserPlus2 className="h-3.5 w-3.5" /> Assign
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {mockTeamMembers.map((m) => (
-                  <DropdownMenuItem key={m.id} onClick={() => handleAssign(m.id)}>
-                    {m.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {canAssign ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <UserPlus2 className="h-3.5 w-3.5" /> Assign
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {mockTeamMembers.map((m) => (
+                    <DropdownMenuItem key={m.id} onClick={() => handleAssign(m.id)}>
+                      {m.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => toast.error("Assigning teammates requires the Business plan")}
+                title="Available on Business"
+              >
+                <UserPlus2 className="h-3.5 w-3.5" /> Assign
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Business</span>
+              </Button>
+            )}
             <Button size="sm" className="gap-1.5" onClick={handleMarkReviewed}>
               <CheckCircle2 className="h-3.5 w-3.5" /> Mark reviewed
             </Button>
