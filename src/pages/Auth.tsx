@@ -1,14 +1,85 @@
+import { useEffect, useState } from "react";
 import { useSearchParams, NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BrandMark } from "@/components/layout/BrandMark";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const { session, loading: authLoading } = useAuth();
   const mode = params.get("mode") === "signup" ? "signup" : "signin";
   const otherMode = mode === "signup" ? "signin" : "signup";
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  // Redirect once authenticated
+  useEffect(() => {
+    if (!authLoading && session) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [authLoading, session, navigate]);
+
+  const handleEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      if (mode === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/dashboard`,
+            data: { name },
+          },
+        });
+        if (error) throw error;
+        toast({
+          title: "Check your inbox",
+          description: "Confirm your email to finish creating your workspace.",
+        });
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        // Redirect handled by effect
+      }
+    } catch (err: any) {
+      toast({
+        title: mode === "signup" ? "Sign-up failed" : "Sign-in failed",
+        description: err?.message ?? "Something went wrong.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setSubmitting(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) throw new Error(result.error.message ?? "Google sign-in failed");
+      if (result.redirected) return;
+      // Tokens received — effect will redirect once session updates
+    } catch (err: any) {
+      toast({
+        title: "Google sign-in failed",
+        description: err?.message ?? "Something went wrong.",
+        variant: "destructive",
+      });
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="mx-auto flex min-h-[80vh] w-full max-w-md flex-col justify-center px-4 py-10">
@@ -21,27 +92,74 @@ export default function AuthPage() {
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {mode === "signup"
-            ? "Phase 1 placeholder — auth wiring lands in Phase 2."
-            : "Phase 1 placeholder — auth wiring lands in Phase 2."}
+            ? "Sign up to start sending photo briefs."
+            : "Sign in to your PhotoBrief workspace."}
         </p>
 
-        <form
-          className="mt-6 space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            navigate(mode === "signup" ? "/onboarding" : "/dashboard");
-          }}
+        <Button
+          type="button"
+          variant="outline"
+          className="mt-6 w-full"
+          onClick={handleGoogle}
+          disabled={submitting}
         >
+          <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47c-.28 1.5-1.13 2.77-2.4 3.62v3h3.88c2.27-2.09 3.54-5.17 3.54-8.86z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.71-4.95H1.29v3.09C3.26 21.3 7.31 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.29 14.3c-.24-.72-.38-1.49-.38-2.3s.14-1.58.38-2.3V6.61H1.29A11.99 11.99 0 0 0 0 12c0 1.94.46 3.78 1.29 5.39l4-3.09z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.61l4 3.09C6.23 6.86 8.88 4.75 12 4.75z"/>
+          </svg>
+          Continue with Google
+        </Button>
+
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs uppercase tracking-wide text-muted-foreground">or</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <form className="space-y-4" onSubmit={handleEmail}>
+          {mode === "signup" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Your name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Jane Smith"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="you@business.com" required />
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@business.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" placeholder="••••••••" required />
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
-          <Button type="submit" className="w-full">
-            {mode === "signup" ? "Create account" : "Sign in"}
+          <Button type="submit" className="w-full" disabled={submitting}>
+            {submitting
+              ? "Please wait..."
+              : mode === "signup"
+              ? "Create account"
+              : "Sign in"}
           </Button>
         </form>
 
