@@ -398,6 +398,24 @@ export type Database = {
           },
         ]
       }
+      founding_pro_cache: {
+        Row: {
+          id: boolean
+          refreshed_at: string
+          remaining: number
+        }
+        Insert: {
+          id?: boolean
+          refreshed_at?: string
+          remaining: number
+        }
+        Update: {
+          id?: boolean
+          refreshed_at?: string
+          remaining?: number
+        }
+        Relationships: []
+      }
       founding_pro_claims: {
         Row: {
           claimed_at: string
