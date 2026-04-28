@@ -28,19 +28,58 @@ export default function RequestDetailPage() {
 
   const [messages, setMessages] = useState<RequestMessage[]>([]);
   const [busy, setBusy] = useState<null | "send" | "remind">(null);
-  const [channel, setChannel] = useState<SendChannel>("email");
+  const [channel, setChannelState] = useState<SendChannel>("email");
+  const [channelHydrated, setChannelHydrated] = useState(false);
 
-  // Initialize channel from workspace default once we know SMS readiness +
-  // recipient's available contact fields.
-  useEffect(() => {
-    let next: SendChannel = smsReady ? defaultChannel : "email";
+  const channelStorageKey = request?.id
+    ? `pb:request-channel:${request.id}`
+    : null;
+
+  // Validate a channel against current SMS readiness + recipient contact fields.
+  function coerceChannel(candidate: SendChannel): SendChannel {
+    let next = candidate;
+    if ((next === "sms" || next === "both") && !smsReady) next = "email";
     if (next === "sms" && !hasPhone) next = hasEmail ? "email" : "sms";
     if (next === "both" && (!hasEmail || !hasPhone)) {
       next = hasEmail ? "email" : "sms";
     }
     if (next === "email" && !hasEmail && hasPhone && smsReady) next = "sms";
-    setChannel(next);
-  }, [smsReady, defaultChannel, hasEmail, hasPhone]);
+    return next;
+  }
+
+  // Hydrate from localStorage (per request) on mount / when request changes.
+  // Falls back to the workspace default if nothing stored or stored value
+  // is no longer viable for this recipient.
+  useEffect(() => {
+    if (!channelStorageKey) return;
+    setChannelHydrated(false);
+    let stored: SendChannel | null = null;
+    try {
+      const raw = localStorage.getItem(channelStorageKey);
+      if (raw === "email" || raw === "sms" || raw === "both") stored = raw;
+    } catch {
+      // ignore (e.g. private mode)
+    }
+    const fallback: SendChannel = smsReady ? defaultChannel : "email";
+    setChannelState(coerceChannel(stored ?? fallback));
+    setChannelHydrated(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelStorageKey, smsReady, defaultChannel, hasEmail, hasPhone]);
+
+  // Persist user choice (only after hydration so we don't overwrite with
+  // the default before we've read the stored value).
+  function setChannel(next: SendChannel) {
+    setChannelState(next);
+    if (channelStorageKey) {
+      try {
+        localStorage.setItem(channelStorageKey, next);
+      } catch {
+        // ignore quota / private-mode errors
+      }
+    }
+  }
+  // Avoid "unused" warnings if hydration flag is later wired to UI gating.
+  void channelHydrated;
 
   useEffect(() => {
     if (!request?.id) return;
