@@ -1,34 +1,128 @@
-// Guides service — single read path for guides.
-// Phase 1: returns from config/guideTemplates. Later phases swap in
-// Lovable Cloud queries while keeping the same signature so pages
-// don't need to change.
+// Guides service — reads workspace guides from Cloud and merges in the
+// curated launch templates (config/guideTemplates.ts) as global templates.
+//
+// Workspace guides are stored in `photo_guides` + `guide_steps` +
+// `context_questions`. Until DB-seeded global templates land in a future
+// migration, the launch-ready guides ship from the local config so the
+// product is usable from day one.
+
+import { supabase } from "@/integrations/supabase/client";
+import { getTokenClient } from "@/integrations/supabase/tokenClient";
 import { guideTemplates } from "@/config/guideTemplates";
 import type { CuratedCategory, PhotoGuide } from "@/types/photobrief";
 
+function rowToGuide(g: any, steps: any[], questions: any[]): PhotoGuide {
+  return {
+    id: g.id,
+    workspaceId: g.workspace_id ?? undefined,
+    name: g.name,
+    category: g.category ?? "Custom",
+    description: g.description ?? "",
+    isTemplate: g.is_global_template === true,
+    steps: (steps ?? [])
+      .filter((s) => s.guide_id === g.id)
+      .sort((a, b) => a.order_index - b.order_index)
+      .map((s) => ({
+        id: s.id,
+        orderIndex: s.order_index,
+        title: s.title,
+        instructions: s.instruction ?? "",
+        shotType: s.capture_type ?? "wide",
+        overlayType: s.overlay_type ?? "full_area",
+        aiChecks: s.ai_checks ?? [],
+        required: !!s.required,
+      })),
+    questions: (questions ?? [])
+      .filter((q) => q.guide_id === g.id)
+      .sort((a, b) => a.order_index - b.order_index)
+      .map((q) => ({
+        id: q.id,
+        orderIndex: q.order_index,
+        prompt: q.label,
+        inputType: q.input_type ?? "short_text",
+        options: q.options ?? undefined,
+        required: !!q.required,
+      })),
+  };
+}
+
+async function fetchWorkspaceGuides(workspaceId: string): Promise<PhotoGuide[]> {
+  const { data: guides, error } = await supabase
+    .from("photo_guides")
+    .select("*")
+    .eq("workspace_id", workspaceId)
+    .eq("is_active", true);
+  if (error) throw error;
+  if (!guides || guides.length === 0) return [];
+  const ids = guides.map((g) => g.id);
+  const [{ data: steps }, { data: questions }] = await Promise.all([
+    supabase.from("guide_steps").select("*").in("guide_id", ids),
+    supabase.from("context_questions").select("*").in("guide_id", ids),
+  ]);
+  return guides.map((g) => rowToGuide(g, steps ?? [], questions ?? []));
+}
+
 export const guidesService = {
-  /** All guides, including internal-only templates. Use sparingly. */
+  // Local launch-ready templates exposed everywhere (no auth required).
   list(): PhotoGuide[] {
     return guideTemplates;
   },
   getById(id: string): PhotoGuide | undefined {
     return guideTemplates.find((g) => g.id === id);
   },
-  /** Curated, launch-ready guides shown in the public library. */
   listLaunchReady(): PhotoGuide[] {
     return guideTemplates.filter((g) => g.launchReady === true && g.curatedCategory);
   },
-  /** Internal/admin templates that aren't yet curated. */
   listInternalTemplates(): PhotoGuide[] {
     return guideTemplates.filter((g) => !g.launchReady);
   },
-  /** All launch-ready guides in a single curated category. */
   listByCuratedCategory(category: CuratedCategory): PhotoGuide[] {
     return guideTemplates.filter(
       (g) => g.launchReady === true && g.curatedCategory === category,
     );
   },
-  /** Industry starter sets used during onboarding. */
   listByIndustry(starterIds: string[]): PhotoGuide[] {
     return guideTemplates.filter((g) => starterIds.includes(g.id));
+  },
+
+  // Live workspace guides (custom guides created in the builder).
+  async listForWorkspace(workspaceId: string): Promise<PhotoGuide[]> {
+    const custom = await fetchWorkspaceGuides(workspaceId);
+    // Custom guides first, then launch templates.
+    return [...custom, ...guideTemplates];
+  },
+
+  async getByIdAsync(id: string): Promise<PhotoGuide | null> {
+    const local = guideTemplates.find((g) => g.id === id);
+    if (local) return local;
+    const { data: g } = await supabase
+      .from("photo_guides")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (!g) return null;
+    const [{ data: steps }, { data: questions }] = await Promise.all([
+      supabase.from("guide_steps").select("*").eq("guide_id", id),
+      supabase.from("context_questions").select("*").eq("guide_id", id),
+    ]);
+    return rowToGuide(g, steps ?? [], questions ?? []);
+  },
+
+  /** Token-scoped guide read for the public recipient page. */
+  async getByIdViaToken(token: string, id: string): Promise<PhotoGuide | null> {
+    const local = guideTemplates.find((g) => g.id === id);
+    if (local) return local;
+    const client = getTokenClient(token);
+    const { data: g } = await client
+      .from("photo_guides")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (!g) return null;
+    const [{ data: steps }, { data: questions }] = await Promise.all([
+      client.from("guide_steps").select("*").eq("guide_id", id),
+      client.from("context_questions").select("*").eq("guide_id", id),
+    ]);
+    return rowToGuide(g, steps ?? [], questions ?? []);
   },
 };

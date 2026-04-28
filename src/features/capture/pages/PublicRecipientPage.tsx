@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { ChatThread } from "@/features/capture/components/ChatThread";
 import { ChatMessage } from "@/features/capture/components/ChatMessage";
 import { PhotoPromptCard } from "@/features/capture/components/PhotoPromptCard";
@@ -10,32 +11,100 @@ import { QuestionCard } from "@/features/capture/components/QuestionCard";
 import { ReviewSummaryCard } from "@/features/capture/components/ReviewSummaryCard";
 import { SubmitConfirmationCard } from "@/features/capture/components/SubmitConfirmationCard";
 import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
+import { RecipientBrandingProvider } from "@/features/capture/RecipientBrandingContext";
 import {
-  RecipientBrandingProvider,
-} from "@/features/capture/RecipientBrandingContext";
-import { getRecipientContext } from "@/features/capture/recipientContext";
+  loadRecipientContext,
+  type RecipientContext,
+} from "@/features/capture/recipientContext";
 import { useChatFlow } from "@/hooks/useChatFlow";
+import { submissionsService } from "@/services/submissionsService";
 
 /**
  * Public recipient page — chat-first capture flow.
- * Generic over any guide via getRecipientContext(token). The layout shows
- * branded business name; this page renders the ChatThread with all messages.
+ * Loads the request + guide + branding by token, runs the chat flow,
+ * and persists media + answers to Cloud on submit.
  */
 export default function PublicRecipientPage() {
   const { token } = useParams();
   const navigate = useNavigate();
-  const ctx = useMemo(() => getRecipientContext(token), [token]);
+  const [ctx, setCtx] = useState<RecipientContext | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+    loadRecipientContext(token)
+      .then((c) => {
+        if (!cancelled) setCtx(c);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e?.message ?? "Could not load this request");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  if (error) {
+    return (
+      <div className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
+        Sorry — that link doesn't look valid. {error}
+      </div>
+    );
+  }
+  if (!ctx) {
+    return (
+      <div className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
+        Loading…
+      </div>
+    );
+  }
+
+  return <RecipientChat ctx={ctx} token={token} navigate={navigate} />;
+}
+
+function RecipientChat({
+  ctx,
+  token,
+  navigate,
+}: {
+  ctx: RecipientContext;
+  token: string | undefined;
+  navigate: (to: string) => void;
+}) {
   const flow = useChatFlow({
     guide: ctx.guide,
     businessName: ctx.businessName,
     introBody: ctx.introBody,
   });
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     flow.submitAll();
-    // Also keep the legacy /done route reachable for sharing
-    setTimeout(() => navigate(`/r/${token ?? "demo"}/done`, { replace: false }), 1600);
+    if (!ctx.requestId || !ctx.workspaceId || !token) {
+      // Demo / no-token preview: just bounce to confirmation.
+      setTimeout(() => navigate(`/r/${token ?? "demo"}/done`), 1200);
+      return;
+    }
+    try {
+      const photos = await Promise.all(
+        flow.photos.map(async (p) => {
+          const blob = await fetch(p.previewUrl).then((r) => r.blob());
+          const ext = (blob.type.split("/")[1] ?? "jpg").replace("jpeg", "jpg");
+          return { stepId: p.stepId, blob, ext };
+        }),
+      );
+      await submissionsService.submitFromRecipient({
+        token,
+        requestId: ctx.requestId,
+        workspaceId: ctx.workspaceId,
+        recipientName: ctx.recipientName,
+        photos,
+        answers: flow.answers,
+      });
+      setTimeout(() => navigate(`/r/${token}/done`), 1200);
+    } catch (err) {
+      console.error("Submission failed", err);
+      toast.error("We couldn't send your photos — please try again.");
+    }
   };
 
   return (
@@ -46,10 +115,16 @@ export default function PublicRecipientPage() {
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{ctx.guide.name}</span>
-            <span>{flow.progress.done} of {flow.progress.total}</span>
+            <span>
+              {flow.progress.done} of {flow.progress.total}
+            </span>
           </div>
           <ReadinessProgress
-            value={flow.progress.total === 0 ? 0 : (flow.progress.done / flow.progress.total) * 100}
+            value={
+              flow.progress.total === 0
+                ? 0
+                : (flow.progress.done / flow.progress.total) * 100
+            }
           />
         </div>
 

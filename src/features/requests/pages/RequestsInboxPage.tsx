@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import { Plus, Send, Eye, Bell, MoreHorizontal } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ReadinessScoreBadge } from "@/components/shared/ReadinessScoreBadge";
@@ -13,12 +14,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useRequests } from "@/hooks/useRequests";
+import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
 import { requestStatusOptions } from "@/config/statusOptions";
 import { formatRelativeTime } from "@/utils/format";
 import { guideTemplates } from "@/config/guideTemplates";
 import { mockTeamMembers } from "@/config/mockData";
 import { toast } from "sonner";
 import { notificationService } from "@/services/notificationService";
+import { supabase } from "@/integrations/supabase/client";
 import {
   InboxFilters,
   applyInboxFilters,
@@ -29,12 +32,35 @@ import type { RequestStatus } from "@/types/photobrief";
 
 export default function RequestsInboxPage() {
   const requests = useRequests();
+  const { workspace } = useCurrentWorkspace();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const initialStatus = (searchParams.get("status") ?? "all") as RequestStatus | "all";
   const [filters, setFilters] = useState<InboxFilterState>({
     ...defaultInboxFilters,
     status: initialStatus,
   });
+
+  // Realtime: refetch when this workspace's requests/submissions change.
+  useEffect(() => {
+    if (!workspace?.id) return;
+    const channel = supabase
+      .channel(`inbox-${workspace.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "photo_brief_requests", filter: `workspace_id=eq.${workspace.id}` },
+        () => queryClient.invalidateQueries({ queryKey: ["requests", workspace.id] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "submissions", filter: `workspace_id=eq.${workspace.id}` },
+        () => queryClient.invalidateQueries({ queryKey: ["requests", workspace.id] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [workspace?.id, queryClient]);
 
   const filtered = useMemo(() => applyInboxFilters(requests, filters), [requests, filters]);
 

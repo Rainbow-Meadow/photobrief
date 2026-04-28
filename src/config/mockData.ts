@@ -78,7 +78,7 @@ export const mockRequests: PhotoBriefRequest[] = [
     recipientName: "Jordan Lee",
     recipientContact: "jordan@example.com",
     token: "jkl012",
-    status: "needs_action",
+    status: "needs_customer_action",
     createdAt: hoursAgo(72),
     readinessScore: 41,
     missingItems: ["Property line wide shot", "Slope reference"],

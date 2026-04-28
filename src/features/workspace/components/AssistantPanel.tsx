@@ -68,7 +68,7 @@ export function AssistantPanel({ open, onClose }: Props) {
         content: "Filtering the inbox to requests waiting on the customer.",
         actionLabel: "View filtered inbox",
         onAction: () => {
-          navigate("/requests?status=needs_action");
+          navigate("/requests?status=needs_customer_action");
           onClose();
         },
       };
