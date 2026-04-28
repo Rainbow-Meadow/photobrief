@@ -242,7 +242,7 @@ export const planLimits: PlanLimit[] = [
     id: "pro",
     name: "Pro",
     priceMonthly: 49,
-    priceAnnualMonthly: annual(49),
+    priceAnnualMonthly: 40,
     tagline: "Automate intake, end to end.",
     purpose: "Solo operators and small crews automating their request workflow.",
     highlight: true,
