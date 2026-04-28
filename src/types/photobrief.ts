@@ -1,3 +1,5 @@
+// ============= Full file contents =============
+
 // Shared PhotoBrief domain types — mirrors 03_Data_Model/01_entity_schema.md
 // and 08_Config_Blueprints/types_photobrief.example.ts.
 
@@ -49,7 +51,10 @@ export type ContextQuestionInputType =
   | "multi_select"
   | "number";
 
-export type Plan = "free" | "pro" | "business" | "enterprise";
+/** Plan tiers — mirrors the DB plan_tier enum and 01_Strategy/02_pricing_and_plan_limits.md. */
+export type Plan = "free" | "starter" | "pro" | "team" | "business";
+
+export type BillingInterval = "monthly" | "annual";
 
 export interface BusinessWorkspace {
   id: string;
@@ -86,11 +91,6 @@ export interface ContextQuestion {
   required: boolean;
 }
 
-/**
- * Curated categories shown in the public Guide Library.
- * Internal-only guides leave this undefined and stay hidden behind the
- * admin "Show internal templates" toggle.
- */
 export type CuratedCategory =
   | "service_quote"
   | "property_proof"
@@ -107,15 +107,10 @@ export interface PhotoGuide {
   isTemplate: boolean;
   steps: GuideStep[];
   questions: ContextQuestion[];
-  /** Curated section in the launch-ready library. Omit to keep internal-only. */
   curatedCategory?: CuratedCategory;
-  /** Short "best for" tagline shown on the guide card. */
   bestFor?: string;
-  /** Rough recipient time-to-complete in minutes. */
   estimatedMinutes?: number;
-  /** Minimum plan tier recommended for this guide. */
   recommendedPlan?: Plan;
-  /** True when this guide is part of the curated launch catalog. */
   launchReady?: boolean;
 }
 
@@ -135,13 +130,9 @@ export interface PhotoBriefRequest {
   token: string;
   status: RequestStatus;
   createdAt: string;
-  /** 0-100 — latest known readiness score for this request. Undefined when nothing has been submitted yet. */
   readinessScore?: number;
-  /** Short labels for items the recipient still owes (e.g. "Shut-off valve photo"). */
   missingItems?: string[];
-  /** ISO timestamp of the last meaningful event (recipient action, AI feedback, reviewer comment). */
   lastActivityAt?: string;
-  /** Optional assignee on the business side. */
   assigneeId?: string;
   assigneeName?: string;
 }
@@ -150,38 +141,28 @@ export type ShotFeedbackSeverity = "pass" | "warn" | "fail";
 
 export interface ShotAIFeedback {
   severity: ShotFeedbackSeverity;
-  /** Short headline like "Sharp & well lit" or "Label is unreadable". */
   headline: string;
-  /** One or two sentence explanation. */
   detail?: string;
-  /** AI checks that were evaluated for this shot. */
   checks?: { type: AICheckType; severity: ShotFeedbackSeverity; label: string }[];
 }
 
 export interface SubmissionShot {
   id: string;
-  /** Matches GuideStep.id when available, otherwise free-form. */
   stepId?: string;
   orderIndex: number;
   title: string;
-  /** Recipient-facing instruction copy (mirrors GuideStep.instructions). */
   instructions?: string;
   shotType: ShotType;
-  /** Image URL or data URL. May be undefined when missing. */
   imageUrl?: string;
-  /** True when the recipient never captured this shot. */
   missing?: boolean;
   capturedAt?: string;
   feedback?: ShotAIFeedback;
 }
 
 export interface ExtractedDetail {
-  /** e.g. "Model number", "Serial", "Capacity". */
   label: string;
   value: string;
-  /** Optional confidence 0-1 from the AI extractor. */
   confidence?: number;
-  /** Source step id for traceability. */
   sourceStepId?: string;
 }
 
@@ -228,10 +209,9 @@ export interface Submission {
   recipientName: string;
   recipientContact?: string;
   guideName: string;
-  /** Free-text request type label, falls back to guideName when omitted. */
   requestType?: string;
   status: SubmissionStatus;
-  readinessScore: number; // 0-100
+  readinessScore: number;
   aiSummary: string;
   suggestedNextAction: string;
   submittedAt: string;
@@ -244,4 +224,3 @@ export interface Submission {
   internalNotes?: InternalNote[];
   activity?: ActivityEvent[];
 }
-

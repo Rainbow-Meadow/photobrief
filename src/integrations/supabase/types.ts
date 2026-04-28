@@ -302,6 +302,24 @@ export type Database = {
           },
         ]
       }
+      founding_pro_claims: {
+        Row: {
+          claimed_at: string
+          claimed_by: string
+          workspace_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          claimed_by: string
+          workspace_id: string
+        }
+        Update: {
+          claimed_at?: string
+          claimed_by?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       guide_steps: {
         Row: {
           ai_checks: Database["public"]["Enums"]["ai_check_type"][]
@@ -669,35 +687,53 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          billing_interval: string
+          cancel_at_period_end: boolean
           created_at: string
+          current_period_end: string
+          current_period_start: string
           id: string
+          is_founding_pro: boolean
           plan_tier: Database["public"]["Enums"]["plan_tier"]
           renewal_date: string | null
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          trial_ends_at: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          billing_interval?: string
+          cancel_at_period_end?: boolean
           created_at?: string
+          current_period_end?: string
+          current_period_start?: string
           id?: string
+          is_founding_pro?: boolean
           plan_tier?: Database["public"]["Enums"]["plan_tier"]
           renewal_date?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          billing_interval?: string
+          cancel_at_period_end?: boolean
           created_at?: string
+          current_period_end?: string
+          current_period_start?: string
           id?: string
+          is_founding_pro?: boolean
           plan_tier?: Database["public"]["Enums"]["plan_tier"]
           renewal_date?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           workspace_id?: string
         }
@@ -716,6 +752,7 @@ export type Database = {
           created_at: string
           event_type: string
           id: string
+          metadata: Json
           related_id: string | null
           workspace_id: string
         }
@@ -723,6 +760,7 @@ export type Database = {
           created_at?: string
           event_type: string
           id?: string
+          metadata?: Json
           related_id?: string | null
           workspace_id: string
         }
@@ -730,6 +768,7 @@ export type Database = {
           created_at?: string
           event_type?: string
           id?: string
+          metadata?: Json
           related_id?: string | null
           workspace_id?: string
         }
@@ -789,6 +828,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_period_usage: {
+        Args: { _event_type: string; _workspace_id: string }
+        Returns: number
+      }
+      founding_pro_remaining: { Args: never; Returns: number }
       has_workspace_role: {
         Args: {
           _role: Database["public"]["Enums"]["member_role"]
@@ -797,6 +841,10 @@ export type Database = {
         Returns: boolean
       }
       is_workspace_member: { Args: { _workspace_id: string }; Returns: boolean }
+      plan_request_cap: {
+        Args: { _plan: Database["public"]["Enums"]["plan_tier"] }
+        Returns: number
+      }
       request_id_for_token: { Args: never; Returns: string }
     }
     Enums: {
