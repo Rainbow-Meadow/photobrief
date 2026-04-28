@@ -16,12 +16,16 @@ import { draftFromGuide } from "@/types/requestDraft";
 import type { RequestDraft } from "@/types/requestDraft";
 import { requestBuilderAi } from "@/services/requestBuilderAi";
 import type { PhotoGuide } from "@/types/photobrief";
+import { UpgradePromptCard } from "@/components/shared/UpgradePromptCard";
+import { usePlan } from "@/hooks/usePlan";
 
 let mid = 0;
 const newId = () => `chat_${Date.now()}_${++mid}`;
 
 export default function CreateRequestPage() {
   const navigate = useNavigate();
+  const { can } = usePlan();
+  const aiUnlocked = can("ai_request_builder");
   const [mode, setMode] = useState<BuilderMode>("template");
   const [draft, setDraft] = useState<RequestDraft | null>(null);
   const [chatMessages, setChatMessages] = useState<AiBuilderMessage[]>([]);
@@ -71,8 +75,18 @@ export default function CreateRequestPage() {
     }
   };
 
+  // Mock current usage — wired to real counts in a later phase.
+  const requestsUsedThisMonth = 42;
+
   const handleCreate = () => {
     if (!draft) return;
+    if (!can("request_limit", requestsUsedThisMonth)) {
+      toast.error("You've hit this month's request limit", {
+        description: "Upgrade to send more briefs this month.",
+        action: { label: "See plans", onClick: () => navigate("/settings/billing") },
+      });
+      return;
+    }
     // Phase 3: mock — show toast with copyable link, then go to inbox.
     const token = `tok_${Math.random().toString(36).slice(2, 8)}`;
     const link = `${window.location.origin}/r/${token}`;
@@ -91,6 +105,13 @@ export default function CreateRequestPage() {
 
   const handleSaveAsGuide = () => {
     if (!draft) return;
+    if (!can("custom_guides")) {
+      toast.error("Custom guides are on Pro", {
+        description: "Upgrade to save your own capture guides.",
+        action: { label: "See plans", onClick: () => navigate("/settings/billing") },
+      });
+      return;
+    }
     // Phase 3: mock — guides list is config-driven. Persistence lands in Phase 2.5/4.
     toast.success(`Saved "${draft.title}" as a guide`, {
       description: "Available in your Guide Library next session (mock).",
@@ -114,12 +135,14 @@ export default function CreateRequestPage() {
               selectedGuideId={draft?.source === "template" ? draft.baseGuideId : undefined}
               onSelect={handleSelectTemplate}
             />
-          ) : (
+          ) : aiUnlocked ? (
             <AIRequestBuilderChat
               messages={chatMessages}
               isGenerating={isGenerating}
               onSubmit={handleAiPrompt}
             />
+          ) : (
+            <UpgradePromptCard feature="ai_request_builder" />
           )}
         </div>
 

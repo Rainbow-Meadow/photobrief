@@ -377,7 +377,7 @@ export const guideTemplates: PhotoGuide[] = [
     curatedCategory: "property_proof",
     bestFor: "Adjusters collecting structured loss documentation.",
     estimatedMinutes: 6,
-    recommendedPlan: "team",
+    recommendedPlan: "business",
     launchReady: true,
     steps: [
       {

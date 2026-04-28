@@ -8,6 +8,8 @@ import { curatedCategories } from "@/config/curatedCategories";
 import type { CuratedCategory, PhotoGuide } from "@/types/photobrief";
 import { GuideCard } from "@/features/guides/components/GuideCard";
 import { GuidePreviewDialog } from "@/features/guides/components/GuidePreviewDialog";
+import { UpgradePromptCard } from "@/components/shared/UpgradePromptCard";
+import { usePlan } from "@/hooks/usePlan";
 import { toast } from "sonner";
 
 const iconMap = { Wrench, Home, PackageCheck, Megaphone, Sparkles };
@@ -16,6 +18,8 @@ export default function GuideLibraryPage() {
   const launchGuides = useLaunchGuides();
   const internalGuides = useInternalGuides();
   const navigate = useNavigate();
+  const { can } = usePlan();
+  const canCustomGuides = can("custom_guides");
   const [previewGuide, setPreviewGuide] = useState<PhotoGuide | null>(null);
   const [showInternal, setShowInternal] = useState(false);
 
@@ -56,14 +60,26 @@ export default function GuideLibraryPage() {
               {showInternal ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
               {showInternal ? "Hide internal templates" : "Show internal templates"}
             </Button>
-            <Button asChild className="gap-1.5">
-              <NavLink to="/guides/new">
+            {canCustomGuides ? (
+              <Button asChild className="gap-1.5">
+                <NavLink to="/guides/new">
+                  <Plus className="h-4 w-4" /> New guide
+                </NavLink>
+              </Button>
+            ) : (
+              <Button
+                className="gap-1.5"
+                onClick={() => toast.error("Custom guides are on Pro", { description: "Upgrade to build your own." })}
+              >
                 <Plus className="h-4 w-4" /> New guide
-              </NavLink>
-            </Button>
+                <span className="ml-1 text-[10px] uppercase tracking-wide opacity-80">Pro</span>
+              </Button>
+            )}
           </div>
         }
       />
+
+      {!canCustomGuides ? <UpgradePromptCard feature="custom_guides" variant="inline" /> : null}
 
       {curatedCategories.map((cat) => {
         const guides = grouped.get(cat.id) ?? [];

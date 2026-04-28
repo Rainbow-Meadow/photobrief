@@ -39,6 +39,8 @@ import { useSubmission, useSubmissions } from "@/hooks/useSubmissions";
 import { submissionStatusOptions } from "@/config/statusOptions";
 import { mockTeamMembers } from "@/config/mockData";
 import { formatRelativeTime } from "@/utils/format";
+import { usePlan } from "@/hooks/usePlan";
+import { getPlanLimit, minPlanFor } from "@/config/planLimits";
 import type {
   ActivityEvent,
   InternalNote,
@@ -78,6 +80,10 @@ export default function SubmissionReviewPage() {
   const navigate = useNavigate();
   const fallback = useSubmissions()[0];
   const initial = useSubmission(id) ?? fallback;
+  const { can } = usePlan();
+  const canPdf = can("pdf_export");
+  const canReminders = can("reminders");
+  const canAssign = can("team_members");
 
   // Phase 5 keeps mock data but lets the user mutate it locally so the screen
   // feels alive (notes, status, assignee). A future phase swaps this for queries.
@@ -117,6 +123,11 @@ export default function SubmissionReviewPage() {
   }
 
   function handleSendReminder() {
+    if (!canReminders) {
+      const plan = minPlanFor("reminders");
+      toast.error(`Reminders are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`);
+      return;
+    }
     toast.success(`Reminder sent to ${submission.recipientName} (mock)`);
     pushActivity({
       type: "reminder_sent",
@@ -145,6 +156,11 @@ export default function SubmissionReviewPage() {
   }
 
   function handleExportPdf() {
+    if (!canPdf) {
+      const plan = minPlanFor("pdf_export");
+      toast.error(`PDF export is on ${plan ? getPlanLimit(plan).name : "a higher plan"}`);
+      return;
+    }
     toast.message("PDF export is coming soon", {
       description: "We'll bundle the summary, photos, and answers into a sharable PDF.",
     });
@@ -224,26 +240,52 @@ export default function SubmissionReviewPage() {
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAskOpen(true)}>
               <HelpCircle className="h-3.5 w-3.5" /> Ask for more photos
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={handleSendReminder}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleSendReminder}
+              title={canReminders ? undefined : "Available on a higher plan"}
+            >
               <Bell className="h-3.5 w-3.5" /> Send reminder
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExportPdf}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleExportPdf}
+              title={canPdf ? undefined : "Available on Pro"}
+            >
               <FileDown className="h-3.5 w-3.5" /> Export PDF
+              {!canPdf ? <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Pro</span> : null}
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5">
-                  <UserPlus2 className="h-3.5 w-3.5" /> Assign
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {mockTeamMembers.map((m) => (
-                  <DropdownMenuItem key={m.id} onClick={() => handleAssign(m.id)}>
-                    {m.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {canAssign ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <UserPlus2 className="h-3.5 w-3.5" /> Assign
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {mockTeamMembers.map((m) => (
+                    <DropdownMenuItem key={m.id} onClick={() => handleAssign(m.id)}>
+                      {m.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => toast.error("Assigning teammates requires the Business plan")}
+                title="Available on Business"
+              >
+                <UserPlus2 className="h-3.5 w-3.5" /> Assign
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Business</span>
+              </Button>
+            )}
             <Button size="sm" className="gap-1.5" onClick={handleMarkReviewed}>
               <CheckCircle2 className="h-3.5 w-3.5" /> Mark reviewed
             </Button>

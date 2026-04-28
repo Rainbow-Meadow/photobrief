@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { UpgradePromptCard } from "@/components/shared/UpgradePromptCard";
 import { formatRelativeTime } from "@/utils/format";
+import { usePlan } from "@/hooks/usePlan";
 import type { InternalNote } from "@/types/photobrief";
 
 interface Props {
@@ -10,7 +12,14 @@ interface Props {
 }
 
 export function InternalNotesPanel({ notes, onAdd }: Props) {
+  const { can } = usePlan();
+  const unlocked = can("internal_notes");
   const [draft, setDraft] = useState("");
+
+  if (!unlocked) {
+    return <UpgradePromptCard feature="internal_notes" />;
+  }
+
   return (
     <div className="space-y-3">
       {notes.length === 0 ? (

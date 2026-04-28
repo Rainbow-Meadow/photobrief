@@ -1,8 +1,13 @@
 import { NavLink } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
-import { planLimits } from "@/config/planLimits";
+import { planLimits, type Quota } from "@/config/planLimits";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+function formatQuota(q: Quota, singular: string, pluralSuffix = "s"): string {
+  if (q === "unlimited") return `Unlimited ${singular}${pluralSuffix}`;
+  return `${q} ${singular}${q === 1 ? "" : pluralSuffix}`;
+}
 
 export default function PricingPage() {
   return (
@@ -16,25 +21,31 @@ export default function PricingPage() {
         </p>
       </div>
 
-      <div className="mt-12 grid gap-6 lg:grid-cols-3">
+      <div className="mt-12 grid gap-6 lg:grid-cols-4">
         {planLimits.map((plan) => (
           <div
             key={plan.id}
             className={cn(
               "flex flex-col rounded-xl border bg-card p-6 shadow-elev-sm",
-              plan.highlight && "border-primary shadow-glow",
+              plan.highlight && "border-primary shadow-glow ring-2 ring-primary/30 lg:scale-[1.03]",
             )}
           >
             {plan.highlight ? (
-              <span className="mb-2 inline-flex w-fit rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
+              <span className="mb-2 inline-flex w-fit rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-foreground">
                 Most popular
               </span>
             ) : null}
             <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
             <p className="mt-5 text-4xl font-semibold text-foreground">
-              ${plan.priceMonthly}
-              <span className="text-base font-normal text-muted-foreground">/mo</span>
+              {plan.id === "enterprise" ? (
+                <span>Custom</span>
+              ) : (
+                <>
+                  ${plan.priceMonthly}
+                  <span className="text-base font-normal text-muted-foreground">/mo</span>
+                </>
+              )}
             </p>
             <ul className="mt-6 flex-1 space-y-2.5 text-sm">
               {plan.features.map((f) => (
@@ -45,25 +56,21 @@ export default function PricingPage() {
               ))}
             </ul>
             <div className="mt-4 space-y-1 text-xs text-muted-foreground">
-              <p>
-                {plan.requestsPerMonth === "unlimited"
-                  ? "Unlimited requests"
-                  : `${plan.requestsPerMonth} requests / month`}
-              </p>
-              <p>
-                {plan.customGuides === "unlimited"
-                  ? "Unlimited custom guides"
-                  : `${plan.customGuides} custom guides`}
-              </p>
-              <p>{plan.teamSeats} team seat{plan.teamSeats > 1 ? "s" : ""}</p>
+              <p>{formatQuota(plan.quotas.requestsPerMonth, "request", "s / month")}</p>
+              <p>{formatQuota(plan.quotas.customGuides, "custom guide")}</p>
+              <p>{formatQuota(plan.quotas.teamSeats, "team seat")}</p>
             </div>
             <Button
               asChild
               className="mt-6"
               variant={plan.highlight ? "default" : "outline"}
             >
-              <NavLink to="/auth?mode=signup">
-                {plan.priceMonthly === 0 ? "Start free" : `Choose ${plan.name}`}
+              <NavLink to={plan.id === "enterprise" ? "/auth?mode=signup" : "/auth?mode=signup"}>
+                {plan.id === "enterprise"
+                  ? "Talk to sales"
+                  : plan.priceMonthly === 0
+                    ? "Start free"
+                    : `Choose ${plan.name}`}
               </NavLink>
             </Button>
           </div>
