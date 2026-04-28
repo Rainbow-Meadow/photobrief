@@ -418,6 +418,42 @@ export type Database = {
           },
         ]
       }
+      message_templates: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          name: string
+          subject: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          name: string
+          subject?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          subject?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -468,6 +504,7 @@ export type Database = {
           due_date: string | null
           guide_id: string | null
           id: string
+          last_reminder_at: string | null
           recipient_email: string | null
           recipient_name: string | null
           recipient_phone: string | null
@@ -484,6 +521,7 @@ export type Database = {
           due_date?: string | null
           guide_id?: string | null
           id?: string
+          last_reminder_at?: string | null
           recipient_email?: string | null
           recipient_name?: string | null
           recipient_phone?: string | null
@@ -500,6 +538,7 @@ export type Database = {
           due_date?: string | null
           guide_id?: string | null
           id?: string
+          last_reminder_at?: string | null
           recipient_email?: string | null
           recipient_name?: string | null
           recipient_phone?: string | null
@@ -621,6 +660,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      request_messages: {
+        Row: {
+          body: string | null
+          channel: string
+          created_at: string
+          id: string
+          kind: string
+          metadata: Json
+          request_id: string
+          sent_at: string
+          sent_by: string | null
+          subject: string | null
+          to_address: string | null
+          workspace_id: string
+        }
+        Insert: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          kind: string
+          metadata?: Json
+          request_id: string
+          sent_at?: string
+          sent_by?: string | null
+          subject?: string | null
+          to_address?: string | null
+          workspace_id: string
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          metadata?: Json
+          request_id?: string
+          sent_at?: string
+          sent_by?: string | null
+          subject?: string | null
+          to_address?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
       }
       submissions: {
         Row: {
@@ -788,6 +872,45 @@ export type Database = {
           },
         ]
       }
+      workspace_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          role: Database["public"]["Enums"]["member_role"]
+          status: string
+          token: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["member_role"]
+          status?: string
+          token?: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["member_role"]
+          status?: string
+          token?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       workspace_members: {
         Row: {
           created_at: string
@@ -838,6 +961,7 @@ export type Database = {
         Args: { _event_type: string; _workspace_id: string }
         Returns: number
       }
+      flag_stale_requests: { Args: never; Returns: undefined }
       founding_pro_remaining: { Args: never; Returns: number }
       has_workspace_role: {
         Args: {
@@ -858,7 +982,12 @@ export type Database = {
         Args: { _plan: Database["public"]["Enums"]["plan_tier"] }
         Returns: number
       }
+      plan_user_cap: {
+        Args: { _plan: Database["public"]["Enums"]["plan_tier"] }
+        Returns: number
+      }
       request_id_for_token: { Args: never; Returns: string }
+      run_data_retention: { Args: never; Returns: undefined }
     }
     Enums: {
       ai_check_type:

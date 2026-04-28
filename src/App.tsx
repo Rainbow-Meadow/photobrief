@@ -28,6 +28,7 @@ import GuideBuilderPage from "@/features/guides/pages/GuideBuilderPage";
 import GuideDetailPage from "@/features/guides/pages/GuideDetailPage";
 import PublicRecipientPage from "@/features/capture/pages/PublicRecipientPage";
 import RecipientConfirmationPage from "@/features/capture/pages/RecipientConfirmationPage";
+import AcceptInvitePage from "@/features/workspace/pages/AcceptInvitePage";
 
 const queryClient = new QueryClient();
 
@@ -46,9 +47,10 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
           </Route>
 
-          {/* Onboarding (no sidebar) */}
+          {/* Onboarding + invite acceptance (no sidebar) */}
           <Route element={<MarketingLayout />}>
             <Route path="/onboarding" element={<OnboardingPage />} />
+            <Route path="/invite/:token" element={<AcceptInvitePage />} />
           </Route>
 
           {/* Authenticated business app */}
