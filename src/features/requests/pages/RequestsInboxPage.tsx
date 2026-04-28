@@ -54,7 +54,7 @@ export default function RequestsInboxPage() {
                     <StatusBadge label={status.label} tone={status.tone} />
                   </td>
                   <td className="px-5 py-3 text-muted-foreground">
-                    {new Date(r.createdAt).toLocaleString()}
+                    {formatRelativeTime(r.createdAt)}
                   </td>
                   <td className="px-5 py-3 text-right">
                     <Button asChild variant="ghost" size="sm">
