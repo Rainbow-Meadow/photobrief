@@ -116,7 +116,7 @@ export function useChatFlow({ guide, businessName, introBody, uploadCapture }: U
 
   /** Recipient submitted a photo for the current step. */
   const submitPhoto = useCallback(
-    async (previewUrl: string) => {
+    async (previewUrl: string, file?: File | null) => {
       const step = guide.steps[stepIndex];
       if (!step) return;
 
@@ -130,9 +130,32 @@ export function useChatFlow({ guide, businessName, introBody, uploadCapture }: U
       };
       append({ id: nextId(), kind: "user_photo", photo });
 
+      // 1. Upload to storage first if we have a real file + uploader.
+      //    This gives the AI a public URL it can actually fetch and
+      //    creates the captured_media row that AI results persist to.
+      let mediaUrlForAi: string | undefined;
+      if (uploadCapture && file) {
+        try {
+          const ext =
+            (file.type.split("/")[1] ?? "jpg").replace("jpeg", "jpg") || "jpg";
+          const up = await uploadCapture({ stepId: step.id, blob: file, ext });
+          photo.publicUrl = up.publicUrl;
+          photo.storagePath = up.storagePath;
+          photo.capturedMediaId = up.capturedMediaId;
+          mediaUrlForAi = up.publicUrl;
+        } catch (e) {
+          console.warn("upload failed before AI check", e);
+        }
+      } else if (/^https?:\/\//.test(previewUrl)) {
+        // Simulated placeholder URL — already public.
+        mediaUrlForAi = previewUrl;
+      }
+
+      // 2. Run AI checks.
       const { checks, verdict } = await aiService.analyzeCapturedMedia({
         step,
-        mediaUrl: previewUrl,
+        mediaUrl: mediaUrlForAi,
+        capturedMediaId: photo.capturedMediaId,
       });
       photo.checks = checks.map((c) => ({ id: c.type, severity: c.severity, message: c.message }));
       append({ id: nextId(), kind: "ai_feedback", photo, verdict: verdict as AICheckSeverity });
@@ -146,7 +169,7 @@ export function useChatFlow({ guide, businessName, introBody, uploadCapture }: U
         append({ id: nextId(), kind: "retake_decision", photo, step });
       }
     },
-    [stepIndex, guide.steps, append, markCaptureCardPending, advanceAfterStep],
+    [stepIndex, guide.steps, append, markCaptureCardPending, advanceAfterStep, uploadCapture],
   );
 
   /** Recipient chose "Retake" — re-show capture card for same step. */
