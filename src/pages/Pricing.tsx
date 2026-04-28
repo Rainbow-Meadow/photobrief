@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
-import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
+import { FoundingCustomerBanner } from "@/components/marketing/FoundingCustomerBanner";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -35,29 +36,35 @@ const faqs = [
 export default function PricingPage() {
   return (
     <>
-      <section className="relative overflow-hidden bg-gradient-brand text-white">
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-radial-glow" />
-        <div className="relative mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 sm:py-20 lg:px-8">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur">
-            <Sparkles className="h-3 w-3" /> Simple, transparent pricing
-          </span>
-          <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl">
-            Pick the plan that fits your week — not your year.
+      <section className="relative overflow-hidden bg-gradient-subtle">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(60%_50%_at_50%_0%,hsl(var(--primary)/0.10),transparent_70%)]"
+        />
+        <div className="relative mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 sm:py-20 lg:px-8">
+          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+            Simple, transparent pricing
           </h1>
-          <p className="mt-4 text-base text-white/75 sm:text-lg">
-            Start free. Upgrade once PhotoBrief is saving you real time.
-            Every paid plan is 20% cheaper when paid annually.
+          <p className="mt-4 text-base text-muted-foreground sm:text-lg">
+            Start free. Automate intake with Pro. Coordinate your team with Business. Scale with Enterprise.
+          </p>
+          <p className="mt-2 text-sm text-primary">
+            All paid plans include a 14-day free trial. No credit card required.
           </p>
         </div>
       </section>
 
-      <section className="px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+      <section className="-mt-6 pb-4 sm:-mt-8">
+        <FoundingCustomerBanner />
+      </section>
+
+      <section className="px-4 pb-16 pt-8 sm:px-6 lg:px-8 lg:pb-20">
         <PricingCardGrid />
       </section>
 
       <section className="border-t bg-muted/30">
         <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-          <h2 className="text-center text-3xl font-semibold tracking-tight text-foreground">
+          <h2 className="text-center text-3xl font-bold tracking-tight text-foreground">
             Questions, answered.
           </h2>
           <Accordion type="single" collapsible className="mt-8">
@@ -77,7 +84,7 @@ export default function PricingPage() {
             <p className="max-w-md text-sm text-muted-foreground">
               If PhotoBrief isn't a fit in your first month, email us and we'll refund you.
             </p>
-            <Button asChild className="mt-2">
+            <Button asChild className="mt-2 rounded-full px-6">
               <NavLink to="/auth?mode=signup">
                 Start free <ArrowRight className="ml-1 h-4 w-4" />
               </NavLink>
