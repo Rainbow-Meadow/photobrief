@@ -195,39 +195,31 @@ export const aiService = {
           };
         }
       } catch (e) {
-        console.warn("ai-analyze-media failed, falling back to heuristic", e);
+        console.warn("ai-analyze-media failed", e);
       }
     }
 
-    // Fallback heuristic (used for blob previews, offline, or AI errors).
-    await wait(900);
-    const checks = step.aiChecks.map((checkId) => {
-      const def = aiChecks[checkId];
-      const isDetector = def.defaultSeverity === "pass";
-      const severity: AICheckSeverity = isDetector
-        ? Math.random() < 0.85
-          ? "pass"
-          : "warn"
-        : pickSeverity();
-      const message =
-        severity === "pass" ? def.passMessage ?? `${def.label} ✓` : def.failMessage;
-      return { type: checkId, severity, message, label: def.label };
-    });
-
-    const verdict = worstOf(checks.map((c) => c.severity));
+    // Honest fallback. We never fabricate a `pass` from random numbers —
+    // if we can't reach the AI (no usable URL, network error, gateway
+    // down) we emit a single neutral `warn` so the recipient can still
+    // submit if they choose.
+    const checks = [
+      {
+        type: "manual_review" as AICheckType,
+        severity: "warn" as AICheckSeverity,
+        message: "We couldn't check this photo — you can still submit it.",
+        label: "Manual review",
+      },
+    ];
     const feedback: ShotAIFeedback = {
-      severity: verdict,
-      headline: feedbackHeadline(verdict, step.title),
-      detail:
-        verdict === "pass"
-          ? "Looks great — moving on."
-          : checks.find((c) => c.severity !== "pass")?.message,
+      severity: "warn",
+      headline: "We couldn't check this photo",
+      detail: "You can submit it as-is or retake.",
       checks: checks.map((c) => ({ type: c.type, severity: c.severity, label: c.label })),
     };
-
     return {
       checks: checks.map(({ type, severity, message }) => ({ type, severity, message })),
-      verdict,
+      verdict: "warn",
       feedback,
     };
   },
