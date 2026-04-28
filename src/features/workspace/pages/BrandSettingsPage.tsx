@@ -91,7 +91,7 @@ export default function BrandSettingsPage() {
     setForm((f) => ({ ...f, [key]: value }));
 
   const handleLogoUpload = async (file: File) => {
-    if (!workspace.id) return;
+    if (!workspace?.id) return;
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "Logo too large",
@@ -123,7 +123,7 @@ export default function BrandSettingsPage() {
   };
 
   const handleSave = async () => {
-    if (!workspace.id) return;
+    if (!workspace?.id) return;
     setSaving(true);
     try {
       // 1. Update workspace name (display name)
