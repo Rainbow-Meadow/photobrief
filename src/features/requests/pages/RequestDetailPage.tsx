@@ -21,9 +21,26 @@ export default function RequestDetailPage() {
   const status = requestStatusOptions[request.status];
   const { can } = usePlan();
   const canRemind = can("reminders");
+  const { smsReady, defaultChannel } = useSmsConfig();
+
+  const hasEmail = !!request?.recipientEmail;
+  const hasPhone = !!request?.recipientPhone;
 
   const [messages, setMessages] = useState<RequestMessage[]>([]);
   const [busy, setBusy] = useState<null | "send" | "remind">(null);
+  const [channel, setChannel] = useState<SendChannel>("email");
+
+  // Initialize channel from workspace default once we know SMS readiness +
+  // recipient's available contact fields.
+  useEffect(() => {
+    let next: SendChannel = smsReady ? defaultChannel : "email";
+    if (next === "sms" && !hasPhone) next = hasEmail ? "email" : "sms";
+    if (next === "both" && (!hasEmail || !hasPhone)) {
+      next = hasEmail ? "email" : "sms";
+    }
+    if (next === "email" && !hasEmail && hasPhone && smsReady) next = "sms";
+    setChannel(next);
+  }, [smsReady, defaultChannel, hasEmail, hasPhone]);
 
   useEffect(() => {
     if (!request?.id) return;
