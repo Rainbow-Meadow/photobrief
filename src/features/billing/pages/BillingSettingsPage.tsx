@@ -1,4 +1,5 @@
-import { CheckCircle2, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   planLimits,
@@ -6,11 +7,14 @@ import {
   type FeatureKey,
   type Quota,
 } from "@/config/planLimits";
-import { workspaceService } from "@/services/workspaceService";
+import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
+import { useUsage } from "@/hooks/useUsage";
 import { Button } from "@/components/ui/button";
 import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
 import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
 import { FoundingProBadge } from "@/components/pricing/FoundingProBadge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 function formatQuota(q: Quota): string {
@@ -46,11 +50,27 @@ const featureRows: FeatureKey[] = [
 ];
 
 export default function BillingSettingsPage() {
-  const workspace = workspaceService.current();
+  const { workspace, loading: wsLoading } = useCurrentWorkspace();
+  const { usage, loading: usageLoading } = useUsage();
   const current = planLimits.find((p) => p.id === workspace.plan) ?? planLimits[0];
+  const [opening, setOpening] = useState<"checkout" | "portal" | null>(null);
 
-  // Mock usage — wired to real counts in a later phase.
-  const usage = { requests: 42, aiChecks: 312 };
+  const openPortal = async () => {
+    setOpening("portal");
+    const { data, error } = await supabase.functions.invoke("customer-portal", {
+      body: { workspace_id: workspace.id },
+    });
+    setOpening(null);
+    if (error || !data?.url) {
+      toast({
+        title: "Couldn't open billing portal",
+        description: error?.message ?? "Please try again in a moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+    window.location.href = data.url;
+  };
 
   return (
     <div className="space-y-8">
@@ -64,14 +84,36 @@ export default function BillingSettingsPage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Current plan
               </p>
-              <FoundingProBadge variant="inline" />
+              {workspace.isFoundingPro ? (
+                <FoundingProBadge variant="inline" />
+              ) : null}
             </div>
-            <h2 className="mt-1 text-2xl font-semibold text-foreground">{current.name}</h2>
+            <h2 className="mt-1 text-2xl font-semibold text-foreground">
+              {wsLoading ? "Loading…" : current.name}
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">{current.tagline}</p>
+            {workspace.cancelAtPeriodEnd ? (
+              <p className="mt-2 text-xs font-medium text-warning">
+                Cancels at end of current period
+                {workspace.currentPeriodEnd
+                  ? ` (${new Date(workspace.currentPeriodEnd).toLocaleDateString()})`
+                  : ""}
+              </p>
+            ) : null}
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <Button>Manage subscription</Button>
-              <Button variant="outline" className="gap-1.5">
+              <Button onClick={openPortal} disabled={opening === "portal" || !workspace.stripeCustomerId}>
+                {opening === "portal" ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : null}
+                Manage subscription
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-1.5"
+                onClick={openPortal}
+                disabled={opening === "portal" || !workspace.stripeCustomerId}
+              >
                 Open invoices <ExternalLink className="h-3.5 w-3.5" />
               </Button>
             </div>
@@ -82,16 +124,13 @@ export default function BillingSettingsPage() {
               label="Requests this month"
               used={usage.requests}
               cap={current.quotas.requestsPerMonth}
+              loading={usageLoading}
             />
             <UsageMeter
               label="AI checks this month"
               used={usage.aiChecks}
               cap={current.quotas.aiChecksPerMonth}
-            />
-            <UsageMeter
-              label="Saved templates"
-              used={1}
-              cap={current.quotas.savedTemplates}
+              loading={usageLoading}
             />
           </div>
         </div>
@@ -105,6 +144,22 @@ export default function BillingSettingsPage() {
           compact
           heading="Change plan"
           subheading="Upgrade or downgrade any time. Annual saves 20%."
+          onSelectPlan={async (plan, interval) => {
+            setOpening("checkout");
+            const { data, error } = await supabase.functions.invoke("create-checkout", {
+              body: { workspace_id: workspace.id, plan, interval },
+            });
+            setOpening(null);
+            if (error || !data?.url) {
+              toast({
+                title: "Couldn't start checkout",
+                description: error?.message ?? "Please try again in a moment.",
+                variant: "destructive",
+              });
+              return;
+            }
+            window.location.href = data.url;
+          }}
         />
       </section>
 
@@ -158,7 +213,17 @@ export default function BillingSettingsPage() {
   );
 }
 
-function UsageMeter({ label, used, cap }: { label: string; used: number; cap: Quota }) {
+function UsageMeter({
+  label,
+  used,
+  cap,
+  loading,
+}: {
+  label: string;
+  used: number;
+  cap: Quota;
+  loading?: boolean;
+}) {
   const value = pct(used, cap);
   const danger = value >= 90;
   return (
@@ -166,10 +231,10 @@ function UsageMeter({ label, used, cap }: { label: string; used: number; cap: Qu
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">{label}</span>
         <span className={cn("font-medium tabular-nums", danger ? "text-destructive" : "text-foreground")}>
-          {used} / {formatQuota(cap)}
+          {loading ? "…" : used} / {formatQuota(cap)}
         </span>
       </div>
-      <ReadinessProgress value={value} className="mt-1.5" />
+      <ReadinessProgress value={loading ? 0 : value} className="mt-1.5" />
     </div>
   );
 }
