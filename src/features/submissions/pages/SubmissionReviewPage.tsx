@@ -39,6 +39,8 @@ import { useSubmission, useSubmissions } from "@/hooks/useSubmissions";
 import { submissionStatusOptions } from "@/config/statusOptions";
 import { mockTeamMembers } from "@/config/mockData";
 import { formatRelativeTime } from "@/utils/format";
+import { usePlan } from "@/hooks/usePlan";
+import { getPlanLimit, minPlanFor } from "@/config/planLimits";
 import type {
   ActivityEvent,
   InternalNote,
@@ -78,6 +80,10 @@ export default function SubmissionReviewPage() {
   const navigate = useNavigate();
   const fallback = useSubmissions()[0];
   const initial = useSubmission(id) ?? fallback;
+  const { can } = usePlan();
+  const canPdf = can("pdf_export");
+  const canReminders = can("reminders");
+  const canAssign = can("team_members");
 
   // Phase 5 keeps mock data but lets the user mutate it locally so the screen
   // feels alive (notes, status, assignee). A future phase swaps this for queries.
@@ -117,6 +123,11 @@ export default function SubmissionReviewPage() {
   }
 
   function handleSendReminder() {
+    if (!canReminders) {
+      const plan = minPlanFor("reminders");
+      toast.error(`Reminders are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`);
+      return;
+    }
     toast.success(`Reminder sent to ${submission.recipientName} (mock)`);
     pushActivity({
       type: "reminder_sent",
@@ -145,6 +156,11 @@ export default function SubmissionReviewPage() {
   }
 
   function handleExportPdf() {
+    if (!canPdf) {
+      const plan = minPlanFor("pdf_export");
+      toast.error(`PDF export is on ${plan ? getPlanLimit(plan).name : "a higher plan"}`);
+      return;
+    }
     toast.message("PDF export is coming soon", {
       description: "We'll bundle the summary, photos, and answers into a sharable PDF.",
     });
