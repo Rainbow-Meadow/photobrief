@@ -145,12 +145,16 @@ export interface ContextQuestion {
   required: boolean;
 }
 
+/**
+ * Curated topline category — mirrors DB `topline_category` enum.
+ * These are the 5 buckets shown in the public Guide Library.
+ */
 export type CuratedCategory =
-  | "service_quote"
-  | "property_proof"
-  | "product_support"
-  | "sales_listing"
-  | "custom_intake";
+  | "field_service_quote_intake"
+  | "property_realestate_claims"
+  | "commerce_warranty_resale"
+  | "care_health_living_systems"
+  | "marketing_content_capture";
 
 export interface PhotoGuide {
   id: string;
@@ -162,6 +166,10 @@ export interface PhotoGuide {
   steps: GuideStep[];
   questions: ContextQuestion[];
   curatedCategory?: CuratedCategory;
+  /** Workbook nested category, e.g. "Plumbing", "Pet Services". */
+  nestedCategory?: string;
+  /** One of 14 capture archetypes. */
+  workflowType?: WorkflowType;
   bestFor?: string;
   estimatedMinutes?: number;
   recommendedPlan?: Plan;
