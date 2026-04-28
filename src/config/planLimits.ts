@@ -207,7 +207,7 @@ export const planLimits: PlanLimit[] = [
     id: "starter",
     name: "Starter",
     priceMonthly: 19,
-    priceAnnualMonthly: annual(19),
+    priceAnnualMonthly: 15,
     tagline: "Look professional, instantly.",
     purpose: "Solo operators who want a branded recipient experience.",
     quotas: {
@@ -242,7 +242,7 @@ export const planLimits: PlanLimit[] = [
     id: "pro",
     name: "Pro",
     priceMonthly: 49,
-    priceAnnualMonthly: annual(49),
+    priceAnnualMonthly: 40,
     tagline: "Automate intake, end to end.",
     purpose: "Solo operators and small crews automating their request workflow.",
     highlight: true,
@@ -288,7 +288,7 @@ export const planLimits: PlanLimit[] = [
     id: "team",
     name: "Team",
     priceMonthly: 99,
-    priceAnnualMonthly: annual(99),
+    priceAnnualMonthly: 80,
     tagline: "Run the whole operation.",
     purpose: "Teams that share an inbox and review submissions together.",
     quotas: {
@@ -336,7 +336,7 @@ export const planLimits: PlanLimit[] = [
     id: "business",
     name: "Business",
     priceMonthly: 199,
-    priceAnnualMonthly: annual(199),
+    priceAnnualMonthly: 150,
     tagline: "Scale and integrate.",
     purpose: "Multi-location operators who need white-label and integrations.",
     quotas: {

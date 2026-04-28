@@ -170,7 +170,7 @@ export function PricingCardGrid({
                 {plan.priceMonthly === 0
                   ? "Forever free"
                   : interval === "annual"
-                    ? `Billed $${annualTotal}/yr · save 20%`
+                    ? `Billed $${annualTotal}/yr · save ${Math.round((1 - plan.priceAnnualMonthly / plan.priceMonthly) * 100)}%`
                     : "Billed monthly"}
               </p>
 
