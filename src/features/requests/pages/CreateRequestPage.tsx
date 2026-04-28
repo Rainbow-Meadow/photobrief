@@ -1,19 +1,157 @@
-import { Sparkles } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { EmptyState } from "@/components/shared/EmptyState";
+import {
+  RequestBuilderModeTabs,
+  type BuilderMode,
+} from "@/features/requests/components/RequestBuilderModeTabs";
+import { TemplatePicker } from "@/features/requests/components/TemplatePicker";
+import {
+  AIRequestBuilderChat,
+  type AiBuilderMessage,
+} from "@/features/requests/components/AIRequestBuilderChat";
+import { RequestDraftPreview } from "@/features/requests/components/RequestDraftPreview";
+import { draftFromGuide } from "@/types/requestDraft";
+import type { RequestDraft } from "@/types/requestDraft";
+import { requestBuilderAi } from "@/services/requestBuilderAi";
+import type { PhotoGuide } from "@/types/photobrief";
+
+let mid = 0;
+const newId = () => `chat_${Date.now()}_${++mid}`;
 
 export default function CreateRequestPage() {
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<BuilderMode>("template");
+  const [draft, setDraft] = useState<RequestDraft | null>(null);
+  const [chatMessages, setChatMessages] = useState<AiBuilderMessage[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleSelectTemplate = (guide: PhotoGuide) => {
+    setDraft(draftFromGuide(guide));
+    toast.success(`Loaded template: ${guide.name}`);
+  };
+
+  const handleAiPrompt = async (prompt: string) => {
+    const userMsg: AiBuilderMessage = { id: newId(), from: "user", text: prompt };
+    const pendingMsg: AiBuilderMessage = {
+      id: newId(),
+      from: "assistant",
+      text: "",
+      pending: true,
+    };
+    setChatMessages((m) => [...m, userMsg, pendingMsg]);
+    setIsGenerating(true);
+
+    try {
+      const generated = await requestBuilderAi.generateRequestDraft(prompt);
+      setDraft(generated);
+      const reply = await requestBuilderAi.assistantReply(prompt, generated);
+      setChatMessages((m) =>
+        m.map((msg) =>
+          msg.id === pendingMsg.id ? { ...msg, pending: false, text: reply } : msg,
+        ),
+      );
+    } catch (err) {
+      console.error(err);
+      setChatMessages((m) =>
+        m.map((msg) =>
+          msg.id === pendingMsg.id
+            ? {
+                ...msg,
+                pending: false,
+                text: "Sorry — something went wrong drafting that. Try again?",
+              }
+            : msg,
+        ),
+      );
+      toast.error("Could not generate draft");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCreate = () => {
+    if (!draft) return;
+    // Phase 3: mock — show toast with copyable link, then go to inbox.
+    const token = `tok_${Math.random().toString(36).slice(2, 8)}`;
+    const link = `${window.location.origin}/r/${token}`;
+    toast.success("Request link created", {
+      description: link,
+      action: {
+        label: "Copy",
+        onClick: () => {
+          navigator.clipboard.writeText(link).catch(() => undefined);
+          toast.success("Link copied");
+        },
+      },
+    });
+    navigate("/requests");
+  };
+
+  const handleSaveAsGuide = () => {
+    if (!draft) return;
+    // Phase 3: mock — guides list is config-driven. Persistence lands in Phase 2.5/4.
+    toast.success(`Saved "${draft.title}" as a guide`, {
+      description: "Available in your Guide Library next session (mock).",
+    });
+  };
+
   return (
     <div className="space-y-6">
+      <div id="draft-preview-top" />
       <PageHeader
         title="New request"
-        description="Phase 7 will turn this into a chat-first AI request builder. Phase 1 placeholder."
+        description="Choose a template or describe what you need — I'll draft a request you can edit."
       />
-      <EmptyState
-        icon={Sparkles}
-        title="AI request builder coming soon"
-        description="In Phase 7 you'll describe what photos you need and AI will draft the request, steps, questions, and intro message — editable before you send."
-      />
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+        {/* Left — builder input */}
+        <div className="space-y-4">
+          <RequestBuilderModeTabs mode={mode} onChange={setMode} />
+          {mode === "template" ? (
+            <TemplatePicker
+              selectedGuideId={draft?.source === "template" ? draft.baseGuideId : undefined}
+              onSelect={handleSelectTemplate}
+            />
+          ) : (
+            <AIRequestBuilderChat
+              messages={chatMessages}
+              isGenerating={isGenerating}
+              onSubmit={handleAiPrompt}
+            />
+          )}
+        </div>
+
+        {/* Right — editable draft preview */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground">Draft preview</h2>
+            {draft && (
+              <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
+                {draft.source === "ai" ? "AI draft" : "From template"}
+              </span>
+            )}
+          </div>
+          {draft ? (
+            <RequestDraftPreview
+              draft={draft}
+              onChange={setDraft}
+              onCreate={handleCreate}
+              onSaveAsGuide={handleSaveAsGuide}
+            />
+          ) : (
+            <div className="rounded-xl border border-dashed bg-card/50 p-8 text-center">
+              <p className="text-sm font-medium text-foreground">No draft yet</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {mode === "template"
+                  ? "Pick a template on the left to see the editable preview."
+                  : "Describe what you need on the left to generate a draft."}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
