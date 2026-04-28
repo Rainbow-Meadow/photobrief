@@ -336,7 +336,7 @@ export const planLimits: PlanLimit[] = [
     id: "business",
     name: "Business",
     priceMonthly: 199,
-    priceAnnualMonthly: annual(199),
+    priceAnnualMonthly: 150,
     tagline: "Scale and integrate.",
     purpose: "Multi-location operators who need white-label and integrations.",
     quotas: {
