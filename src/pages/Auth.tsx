@@ -121,6 +121,33 @@ export default function AuthPage() {
             : "Sign in to your PhotoBrief workspace."}
         </p>
 
+        {mode === "signin" && (
+          <div className="mt-6 rounded-lg border border-primary/30 bg-primary/5 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+              Demo account
+            </p>
+            <dl className="mt-2 space-y-1 text-sm text-foreground">
+              <div className="flex items-center justify-between gap-2">
+                <dt className="text-muted-foreground">Email</dt>
+                <dd className="font-mono text-xs">{DEMO_EMAIL}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <dt className="text-muted-foreground">Password</dt>
+                <dd className="font-mono text-xs">{DEMO_PASSWORD}</dd>
+              </div>
+            </dl>
+            <Button
+              type="button"
+              size="sm"
+              className="mt-3 w-full"
+              onClick={handleDemoSignIn}
+              disabled={submitting}
+            >
+              Sign in as demo
+            </Button>
+          </div>
+        )}
+
         <Button
           type="button"
           variant="outline"
