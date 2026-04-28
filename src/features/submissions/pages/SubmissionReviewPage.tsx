@@ -92,7 +92,8 @@ export default function SubmissionReviewPage() {
   const teamMembers = useTeamMembers();
   const canPdf = can("pdf_export");
   const canReminders = can("reminders");
-  const canAssign = can("team_members");
+  const canAssign = can("assignments");
+  const canAskForMore = can("missing_shot_followup");
 
   // Local optimistic overlay so the UI reacts immediately while writes
   // round-trip. We invalidate the live query after each mutation.
@@ -375,8 +376,26 @@ export default function SubmissionReviewPage() {
             <Button variant="outline" size="sm" className="gap-1.5" onClick={handleCopySummary}>
               <Copy className="h-3.5 w-3.5" /> Copy summary
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAskOpen(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                if (!canAskForMore) {
+                  const plan = minPlanFor("missing_shot_followup");
+                  toast.error(
+                    `Missing-shot follow-up is on ${plan ? getPlanLimit(plan).name : "a higher plan"}`,
+                  );
+                  return;
+                }
+                setAskOpen(true);
+              }}
+              title={canAskForMore ? undefined : "Available on Pro and above"}
+            >
               <HelpCircle className="h-3.5 w-3.5" /> Ask for more photos
+              {!canAskForMore ? (
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Pro</span>
+              ) : null}
             </Button>
             <Button
               variant="outline"
@@ -417,11 +436,16 @@ export default function SubmissionReviewPage() {
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
-                onClick={() => toast.error("Assigning teammates requires the Business plan")}
-                title="Available on Business"
+                onClick={() => {
+                  const plan = minPlanFor("assignments");
+                  toast.error(
+                    `Assignments are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`,
+                  );
+                }}
+                title="Available on Pro and above"
               >
                 <UserPlus2 className="h-3.5 w-3.5" /> Assign
-                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Business</span>
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Pro</span>
               </Button>
             )}
             <Button size="sm" className="gap-1.5" onClick={handleMarkReviewed}>

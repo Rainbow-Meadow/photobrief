@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, NavLink } from "react-router-dom";
-import { Plus, Wrench, Home, PackageCheck, Megaphone, Heart, EyeOff, Eye } from "lucide-react";
+import { Plus, Wrench, Home, PackageCheck, Megaphone, Heart, EyeOff, Eye, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { useLaunchGuides, useInternalGuides, useWorkspaceGuides } from "@/hooks/useGuides";
@@ -9,6 +9,7 @@ import { curatedCategories } from "@/config/curatedCategories";
 import type { CuratedCategory, PhotoGuide } from "@/types/photobrief";
 import { GuideCard } from "@/features/guides/components/GuideCard";
 import { GuidePreviewDialog } from "@/features/guides/components/GuidePreviewDialog";
+import { AIGuideGeneratorDialog } from "@/features/ai/components/AIGuideGeneratorDialog";
 import { UpgradePromptCard } from "@/components/shared/UpgradePromptCard";
 import { usePlan } from "@/hooks/usePlan";
 import { toast } from "sonner";
@@ -24,8 +25,10 @@ export default function GuideLibraryPage() {
   const navigate = useNavigate();
   const { can } = usePlan();
   const canCustomGuides = can("custom_guides");
+  const canAiGuides = can("ai_guide_generator");
   const [previewGuide, setPreviewGuide] = useState<PhotoGuide | null>(null);
   const [showInternal, setShowInternal] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
 
   const grouped = useMemo(() => {
     const map = new Map<CuratedCategory, PhotoGuide[]>();
@@ -65,6 +68,25 @@ export default function GuideLibraryPage() {
             >
               {showInternal ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
               {showInternal ? "Hide internal templates" : "Show internal templates"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                if (!canAiGuides) {
+                  toast.error("AI Guide Generator is on Pro", {
+                    description: "Upgrade to draft guides with AI.",
+                  });
+                  return;
+                }
+                setAiOpen(true);
+              }}
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Draft with AI
+              {!canAiGuides ? (
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Pro</span>
+              ) : null}
             </Button>
             {canCustomGuides ? (
               <Button asChild className="gap-1.5">
@@ -183,6 +205,8 @@ export default function GuideLibraryPage() {
         onUse={handleUse}
         onCustomize={handleCustomize}
       />
+
+      <AIGuideGeneratorDialog open={aiOpen} onOpenChange={setAiOpen} />
     </div>
   );
 }

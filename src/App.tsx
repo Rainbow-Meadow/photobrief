@@ -23,6 +23,7 @@ import OnboardingPage from "@/features/workspace/pages/OnboardingPage";
 import DashboardPage from "@/features/workspace/pages/DashboardPage";
 import BrandSettingsPage from "@/features/workspace/pages/BrandSettingsPage";
 import TeamSettingsPage from "@/features/workspace/pages/TeamSettingsPage";
+import MessageTemplatesPage from "@/features/workspace/pages/MessageTemplatesPage";
 import BillingSettingsPage from "@/features/billing/pages/BillingSettingsPage";
 import RequestsInboxPage from "@/features/requests/pages/RequestsInboxPage";
 import CreateRequestPage from "@/features/requests/pages/CreateRequestPage";
@@ -89,6 +90,7 @@ const App = () => (
             <Route path="/guides/:id" element={<GuideDetailPage />} />
             <Route path="/settings/brand" element={<BrandSettingsPage />} />
             <Route path="/settings/team" element={<TeamSettingsPage />} />
+            <Route path="/settings/templates" element={<MessageTemplatesPage />} />
             <Route path="/settings/billing" element={<BillingSettingsPage />} />
           </Route>
 

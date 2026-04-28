@@ -21,6 +21,9 @@ import { guideTemplates } from "@/config/guideTemplates";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { toast } from "sonner";
 import { notificationService } from "@/services/notificationService";
+import { messagingService } from "@/services/messagingService";
+import { usePlan } from "@/hooks/usePlan";
+import { getPlanLimit, minPlanFor } from "@/config/planLimits";
 import { supabase } from "@/integrations/supabase/client";
 import {
   InboxFilters,
@@ -35,6 +38,8 @@ export default function RequestsInboxPage() {
   const { workspace } = useCurrentWorkspace();
   const teamMembers = useTeamMembers();
   const queryClient = useQueryClient();
+  const { can } = usePlan();
+  const canRemind = can("reminders");
   const [searchParams] = useSearchParams();
   const initialStatus = (searchParams.get("status") ?? "all") as RequestStatus | "all";
   const [filters, setFilters] = useState<InboxFilterState>({
@@ -183,19 +188,38 @@ export default function RequestsInboxPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={() =>
-                                  notificationService.notify({
-                                    event: "reminder_sent",
-                                    audience: "recipient",
-                                    title: `Reminder sent to ${r.recipientName}`,
-                                    body: r.guideName,
-                                    requestId: r.id,
-                                    recipientEmail: r.recipientContact,
-                                    href: `/requests/${r.id}`,
-                                  })
-                                }
+                                onClick={async () => {
+                                  if (!canRemind) {
+                                    const plan = minPlanFor("reminders");
+                                    toast.error(
+                                      `Reminders are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`,
+                                    );
+                                    return;
+                                  }
+                                  const t = toast.loading(`Sending reminder to ${r.recipientName}…`);
+                                  try {
+                                    await messagingService.send({ requestId: r.id, kind: "reminder" });
+                                    toast.dismiss(t);
+                                    toast.success(`Reminder sent to ${r.recipientName}`);
+                                    notificationService.notify({
+                                      event: "reminder_sent",
+                                      audience: "recipient",
+                                      title: `Reminder sent to ${r.recipientName}`,
+                                      body: r.guideName,
+                                      requestId: r.id,
+                                      recipientEmail: r.recipientContact,
+                                      href: `/requests/${r.id}`,
+                                    });
+                                  } catch (err: any) {
+                                    toast.dismiss(t);
+                                    toast.error(err?.message ?? "Could not send reminder");
+                                  }
+                                }}
                               >
                                 <Bell className="mr-2 h-3.5 w-3.5" /> Send reminder
+                                {!canRemind ? (
+                                  <span className="ml-auto text-[10px] uppercase tracking-wide text-primary">Pro</span>
+                                ) : null}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => {
