@@ -21,12 +21,14 @@ export default function AuthPage() {
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Redirect once authenticated
+  // Redirect once authenticated — honor ?next= so RequireAuth round-trips work.
   useEffect(() => {
     if (!authLoading && session) {
-      navigate("/dashboard", { replace: true });
+      const next = params.get("next");
+      const target = next ? decodeURIComponent(next) : "/dashboard";
+      navigate(target, { replace: true });
     }
-  }, [authLoading, session, navigate]);
+  }, [authLoading, session, navigate, params]);
 
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
