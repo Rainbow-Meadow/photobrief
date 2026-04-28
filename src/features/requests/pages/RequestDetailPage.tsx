@@ -10,6 +10,8 @@ import { useRequest, useRequests } from "@/hooks/useRequests";
 import { requestStatusOptions } from "@/config/statusOptions";
 import { messagingService, type RequestMessage } from "@/services/messagingService";
 import { usePlan } from "@/hooks/usePlan";
+import { useSmsConfig } from "@/hooks/useSmsConfig";
+import { ChannelPicker, type SendChannel } from "@/components/messaging/ChannelPicker";
 import { formatRelativeTime } from "@/utils/format";
 
 export default function RequestDetailPage() {
