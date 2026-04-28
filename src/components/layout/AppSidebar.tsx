@@ -6,6 +6,7 @@ import {
   CreditCard,
   Settings,
   Sparkles,
+  FileText,
 } from "lucide-react";
 
 import {
@@ -34,6 +35,7 @@ const mainItems = [
 const settingsItems = [
   { title: "Brand", url: "/settings/brand", icon: Sparkles },
   { title: "Team", url: "/settings/team", icon: Settings },
+  { title: "Templates", url: "/settings/templates", icon: FileText },
   { title: "Billing", url: "/settings/billing", icon: CreditCard },
 ];
 
