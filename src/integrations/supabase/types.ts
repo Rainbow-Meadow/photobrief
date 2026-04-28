@@ -801,6 +801,7 @@ export type Database = {
           ai_summary: string | null
           created_at: string
           id: string
+          missing_items: Json
           next_action: string | null
           readiness_score: number | null
           request_id: string
@@ -816,6 +817,7 @@ export type Database = {
           ai_summary?: string | null
           created_at?: string
           id?: string
+          missing_items?: Json
           next_action?: string | null
           readiness_score?: number | null
           request_id: string
@@ -831,6 +833,7 @@ export type Database = {
           ai_summary?: string | null
           created_at?: string
           id?: string
+          missing_items?: Json
           next_action?: string | null
           readiness_score?: number | null
           request_id?: string
