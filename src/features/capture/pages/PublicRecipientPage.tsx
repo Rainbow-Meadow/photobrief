@@ -117,7 +117,7 @@ function RecipientChat({
         .from("captured_media")
         .insert({
           submission_id: submissionId,
-          step_id: stepId || null,
+          step_id: /^[0-9a-f-]{36}$/i.test(stepId) ? stepId : null,
           file_url: path,
           status: "analyzing",
         })
