@@ -81,6 +81,31 @@ export default function AuthPage() {
     }
   };
 
+  const DEMO_EMAIL = "demo@photobrief.app";
+  const DEMO_PASSWORD = "DemoPass1234!";
+
+  const handleDemoSignIn = async () => {
+    setSubmitting(true);
+    try {
+      // Ensure the demo user exists (idempotent), then sign in.
+      await supabase.functions.invoke("ensure-demo-user");
+      setEmail(DEMO_EMAIL);
+      setPassword(DEMO_PASSWORD);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: DEMO_EMAIL,
+        password: DEMO_PASSWORD,
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      toast({
+        title: "Demo sign-in failed",
+        description: err?.message ?? "Something went wrong.",
+        variant: "destructive",
+      });
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="mx-auto flex min-h-[80vh] w-full max-w-md flex-col justify-center px-4 py-10">
       <div className="mb-8 flex justify-center animate-fade-in">
