@@ -20,6 +20,8 @@ import {
 import { usePlan } from "@/hooks/usePlan";
 import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
 import { ApiKeysSection } from "@/features/workspace/components/ApiKeysSection";
+import { WebhookSubscriptionsSection } from "@/features/workspace/components/WebhookSubscriptionsSection";
+import { CustomDomainSection } from "@/features/workspace/components/CustomDomainSection";
 import {
   teamService,
   type WorkspaceInvite,
@@ -30,6 +32,7 @@ export default function TeamSettingsPage() {
   const { can, plan } = usePlan();
   const canTeam = can("team_members");
   const canApi = can("api_webhooks");
+  const canDomain = can("custom_domain");
   const { workspace } = useCurrentWorkspace();
   const wsId = workspace?.id;
 
@@ -194,8 +197,16 @@ export default function TeamSettingsPage() {
               </div>
             </section>
           )}
+          {wsId && canDomain ? (
+            <CustomDomainSection workspaceId={wsId} />
+          ) : (
+            <UpgradePromptCard feature="custom_domain" />
+          )}
           {wsId && canApi ? (
-            <ApiKeysSection workspaceId={wsId} canManage={true} />
+            <>
+              <ApiKeysSection workspaceId={wsId} canManage={true} />
+              <WebhookSubscriptionsSection workspaceId={wsId} />
+            </>
           ) : (
             <UpgradePromptCard feature="api_webhooks" />
           )}
