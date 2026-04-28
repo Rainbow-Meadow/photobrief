@@ -18,6 +18,7 @@ import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
 import { usePlan } from "@/hooks/usePlan";
 import { draftFromGuide } from "@/types/requestDraft";
 import type { ContextQuestion, GuideStep } from "@/types/photobrief";
+import { trackEvent } from "@/lib/analytics";
 
 interface BuilderState {
   name: string;
@@ -84,6 +85,7 @@ export default function GuideBuilderPage() {
     },
     onSuccess: (guide) => {
       qc.invalidateQueries({ queryKey: ["workspace-guides"] });
+      trackEvent("guide_created", { guide_id: guide.id, steps: guide.steps?.length ?? 0, questions: guide.questions?.length ?? 0 });
       toast.success("Guide saved", { description: `"${guide.name}" is ready to use.` });
       navigate(`/guides/${guide.id}`);
     },
