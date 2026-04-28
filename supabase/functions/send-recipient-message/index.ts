@@ -21,7 +21,7 @@ interface Body {
   subject?: string;
   body?: string;
   missingItems?: string[];
-  channel?: "email" | "sms";
+  channel?: "email" | "sms" | "both";
 }
 
 Deno.serve(async (req) => {
@@ -110,7 +110,25 @@ Deno.serve(async (req) => {
         .maybeSingle(),
     ]);
 
-    const channel = payload.channel ?? "email";
+    // Resolve channel: explicit payload wins; otherwise use the workspace's
+    // SMS default if SMS is enabled & verified, else fall back to email.
+    let channel: "email" | "sms" | "both" = payload.channel ?? "email";
+    if (!payload.channel) {
+      const { data: smsCfg } = await admin
+        .from("workspace_sms_config")
+        .select("default_channel, enabled, verified_at, from_number")
+        .eq("workspace_id", request.workspace_id)
+        .maybeSingle();
+      const smsReady =
+        smsCfg?.enabled && smsCfg.verified_at && smsCfg.from_number;
+      if (smsReady && smsCfg.default_channel) {
+        channel = smsCfg.default_channel as "email" | "sms" | "both";
+      }
+      // Down-grade if a channel can't actually be used for this recipient.
+      if (channel === "sms" && !request.recipient_phone) channel = "email";
+      if (channel === "both" && !request.recipient_phone) channel = "email";
+      if (channel === "both" && !request.recipient_email) channel = "sms";
+    }
     const link = `${APP_URL}/r/${request.token}`;
     const businessName = ws?.name ?? "PhotoBrief";
     const firstName = (request.recipient_name ?? "there").split(" ")[0];
@@ -152,22 +170,21 @@ Deno.serve(async (req) => {
     let deliveryStatus: "sent" | "logged_only" | "skipped" = "logged_only";
     let deliveryError: string | undefined;
 
-    if (channel === "sms") {
+    if (channel === "sms" || channel === "both") {
       // Route SMS through the BYO Twilio send-sms function. It logs to
-      // sms_send_log AND inserts a request_messages row, so we return early
-      // and skip the email-side insert below.
+      // sms_send_log AND inserts a request_messages row.
       if (!request.recipient_phone) {
-        return new Response(
-          JSON.stringify({ error: "Recipient has no phone number" }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-      const { data: smsResult, error: smsErr } = await admin.functions.invoke(
-        "send-sms",
-        {
+        if (channel === "sms") {
+          return new Response(
+            JSON.stringify({ error: "Recipient has no phone number" }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
+        }
+      } else {
+        const { error: smsErr } = await admin.functions.invoke("send-sms", {
           body: {
             workspaceId: request.workspace_id,
             requestId: request.id,
@@ -176,25 +193,33 @@ Deno.serve(async (req) => {
             kind: payload.kind,
           },
           headers: { Authorization: auth },
-        },
-      );
-      if (smsErr) {
-        const ctx = (smsErr as { context?: { error?: string } }).context;
-        return new Response(
-          JSON.stringify({ error: ctx?.error ?? smsErr.message }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
+        });
+        if (smsErr) {
+          const ctx = (smsErr as { context?: { error?: string } }).context;
+          if (channel === "sms") {
+            return new Response(
+              JSON.stringify({ error: ctx?.error ?? smsErr.message }),
+              {
+                status: 400,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              },
+            );
+          }
+          // For "both", swallow SMS error and continue with email.
+          deliveryError = `SMS failed: ${ctx?.error ?? smsErr.message}`;
+        } else if (channel === "sms") {
+          return new Response(
+            JSON.stringify({ ok: true, delivery: "sent" }),
+            {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
+        }
       }
-      return new Response(
-        JSON.stringify({ ok: true, delivery: "sent", smsResult }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
     }
 
-    if (channel === "email" && toEmail) {
+    const includeEmail = channel === "email" || channel === "both";
+    if (includeEmail && toEmail) {
       if (payload.kind === "initial") {
         const { error: sendErr } = await admin.functions.invoke(
           "send-transactional-email",
@@ -214,7 +239,9 @@ Deno.serve(async (req) => {
           },
         );
         if (sendErr) {
-          deliveryError = sendErr.message;
+          deliveryError = deliveryError
+            ? `${deliveryError}; email failed: ${sendErr.message}`
+            : sendErr.message;
           deliveryStatus = "logged_only";
         } else {
           deliveryStatus = "sent";
@@ -223,7 +250,7 @@ Deno.serve(async (req) => {
         // Reminders/followups: queue path will land in a later stage. Logged.
         deliveryStatus = "logged_only";
       }
-    } else if (channel === "email" && !toEmail) {
+    } else if (includeEmail && !toEmail) {
       deliveryStatus = "skipped";
     }
 

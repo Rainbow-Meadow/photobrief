@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.ai-summarize-submission]
 verify_jwt = false
+
+[functions.twilio-inbound]
+verify_jwt = false

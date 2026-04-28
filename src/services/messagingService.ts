@@ -1,13 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type RequestMessageKind = "initial" | "reminder" | "followup" | "custom";
+export type RequestMessageChannel = "email" | "sms" | "both";
+export type RequestMessageDirection = "outbound" | "inbound";
 
 export interface RequestMessage {
   id: string;
   requestId: string;
   workspaceId: string;
   kind: RequestMessageKind;
-  channel: "email" | "sms";
+  channel: RequestMessageChannel;
+  direction: RequestMessageDirection;
   toAddress: string | null;
   subject: string | null;
   body: string | null;
@@ -29,7 +32,8 @@ export const messagingService = {
       requestId: r.request_id,
       workspaceId: r.workspace_id,
       kind: r.kind as RequestMessageKind,
-      channel: (r.channel ?? "email") as "email" | "sms",
+      channel: (r.channel ?? "email") as RequestMessageChannel,
+      direction: (r.direction ?? "outbound") as RequestMessageDirection,
       toAddress: r.to_address,
       subject: r.subject,
       body: r.body,
@@ -45,7 +49,7 @@ export const messagingService = {
     subject?: string;
     body?: string;
     missingItems?: string[];
-    channel?: "email" | "sms";
+    channel?: "email" | "sms" | "both";
   }) {
     const { data, error } = await supabase.functions.invoke("send-recipient-message", {
       body: input,
