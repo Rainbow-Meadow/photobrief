@@ -19,6 +19,7 @@ import {
 
 import { usePlan } from "@/hooks/usePlan";
 import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
+import { ApiKeysSection } from "@/features/workspace/components/ApiKeysSection";
 import {
   teamService,
   type WorkspaceInvite,
