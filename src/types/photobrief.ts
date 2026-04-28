@@ -124,14 +124,102 @@ export interface PhotoBriefRequest {
   assigneeName?: string;
 }
 
+export type ShotFeedbackSeverity = "pass" | "warn" | "fail";
+
+export interface ShotAIFeedback {
+  severity: ShotFeedbackSeverity;
+  /** Short headline like "Sharp & well lit" or "Label is unreadable". */
+  headline: string;
+  /** One or two sentence explanation. */
+  detail?: string;
+  /** AI checks that were evaluated for this shot. */
+  checks?: { type: AICheckType; severity: ShotFeedbackSeverity; label: string }[];
+}
+
+export interface SubmissionShot {
+  id: string;
+  /** Matches GuideStep.id when available, otherwise free-form. */
+  stepId?: string;
+  orderIndex: number;
+  title: string;
+  /** Recipient-facing instruction copy (mirrors GuideStep.instructions). */
+  instructions?: string;
+  shotType: ShotType;
+  /** Image URL or data URL. May be undefined when missing. */
+  imageUrl?: string;
+  /** True when the recipient never captured this shot. */
+  missing?: boolean;
+  capturedAt?: string;
+  feedback?: ShotAIFeedback;
+}
+
+export interface ExtractedDetail {
+  /** e.g. "Model number", "Serial", "Capacity". */
+  label: string;
+  value: string;
+  /** Optional confidence 0-1 from the AI extractor. */
+  confidence?: number;
+  /** Source step id for traceability. */
+  sourceStepId?: string;
+}
+
+export interface CustomerAnswer {
+  questionId?: string;
+  prompt: string;
+  answer: string;
+}
+
+export interface InternalNote {
+  id: string;
+  authorName: string;
+  authorInitials: string;
+  body: string;
+  createdAt: string;
+}
+
+export type ActivityEventType =
+  | "request_sent"
+  | "recipient_opened"
+  | "shot_uploaded"
+  | "shot_retaken"
+  | "answers_submitted"
+  | "submission_received"
+  | "ai_review_completed"
+  | "reviewer_note"
+  | "reminder_sent"
+  | "more_photos_requested"
+  | "marked_reviewed"
+  | "archived";
+
+export interface ActivityEvent {
+  id: string;
+  type: ActivityEventType;
+  label: string;
+  detail?: string;
+  actor?: string;
+  at: string;
+}
+
 export interface Submission {
   id: string;
   requestId: string;
   recipientName: string;
+  recipientContact?: string;
   guideName: string;
+  /** Free-text request type label, falls back to guideName when omitted. */
+  requestType?: string;
   status: SubmissionStatus;
   readinessScore: number; // 0-100
   aiSummary: string;
   suggestedNextAction: string;
   submittedAt: string;
+  assigneeId?: string;
+  assigneeName?: string;
+  missingItems?: string[];
+  extractedDetails?: ExtractedDetail[];
+  shots?: SubmissionShot[];
+  customerAnswers?: CustomerAnswer[];
+  internalNotes?: InternalNote[];
+  activity?: ActivityEvent[];
 }
+
