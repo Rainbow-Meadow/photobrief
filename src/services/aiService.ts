@@ -8,6 +8,7 @@
 //
 // All UI MUST call aiService — never construct AI strings inline.
 
+import { supabase } from "@/integrations/supabase/client";
 import { aiChecks } from "@/config/aiChecks";
 import { guideTemplates } from "@/config/guideTemplates";
 import { draftFromGuide } from "@/types/requestDraft";
