@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+import { AuthProvider } from "@/hooks/useAuth";
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PublicRequestLayout } from "@/components/layout/PublicRequestLayout";
@@ -36,6 +37,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <AuthProvider>
         <Routes>
           {/* Marketing + auth */}
           <Route element={<MarketingLayout />}>
@@ -72,6 +74,7 @@ const App = () => (
 
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
