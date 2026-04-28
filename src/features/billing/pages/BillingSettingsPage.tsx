@@ -63,7 +63,7 @@ const featureRows: FeatureKey[] = [
 export default function BillingSettingsPage() {
   const { workspace, loading: wsLoading, refetch: refetchWorkspace } = useCurrentWorkspace();
   const { usage, loading: usageLoading, refetch: refetchUsage } = useUsage();
-  const current = planLimits.find((p) => p.id === workspace.plan) ?? planLimits[0];
+  const current = planLimits.find((p) => p.id === workspace?.plan) ?? planLimits[0];
   const [opening, setOpening] = useState<"portal" | null>(null);
   const [checkout, setCheckout] = useState<{ plan: Plan; interval: BillingInterval } | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -85,6 +85,7 @@ export default function BillingSettingsPage() {
   }, [searchParams, refetchWorkspace, refetchUsage, setSearchParams]);
 
   const openPortal = async () => {
+    if (!workspace?.id) return;
     setOpening("portal");
     const { data, error } = await supabase.functions.invoke("customer-portal", {
       body: { workspace_id: workspace.id },
