@@ -79,6 +79,8 @@ export default function GuideLibraryPage() {
         }
       />
 
+      {!canCustomGuides ? <UpgradePromptCard feature="custom_guides" variant="inline" /> : null}
+
       {curatedCategories.map((cat) => {
         const guides = grouped.get(cat.id) ?? [];
         if (guides.length === 0) return null;
