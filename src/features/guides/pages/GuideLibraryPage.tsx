@@ -3,7 +3,8 @@ import { useNavigate, NavLink } from "react-router-dom";
 import { Plus, Wrench, Home, PackageCheck, Megaphone, Sparkles, EyeOff, Eye } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { useLaunchGuides, useInternalGuides } from "@/hooks/useGuides";
+import { useLaunchGuides, useInternalGuides, useWorkspaceGuides } from "@/hooks/useGuides";
+import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
 import { curatedCategories } from "@/config/curatedCategories";
 import type { CuratedCategory, PhotoGuide } from "@/types/photobrief";
 import { GuideCard } from "@/features/guides/components/GuideCard";
@@ -17,6 +18,8 @@ const iconMap = { Wrench, Home, PackageCheck, Megaphone, Sparkles };
 export default function GuideLibraryPage() {
   const launchGuides = useLaunchGuides();
   const internalGuides = useInternalGuides();
+  const { workspace } = useCurrentWorkspace();
+  const { data: workspaceGuides = [] } = useWorkspaceGuides(workspace?.id);
   const navigate = useNavigate();
   const { can } = usePlan();
   const canCustomGuides = can("custom_guides");
@@ -80,6 +83,33 @@ export default function GuideLibraryPage() {
       />
 
       {!canCustomGuides ? <UpgradePromptCard feature="custom_guides" variant="inline" /> : null}
+
+      {workspaceGuides.length > 0 ? (
+        <section className="space-y-4">
+          <div className="flex items-start gap-3">
+            <span className="rounded-md bg-primary/10 p-2 text-primary">
+              <Plus className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Your guides</h2>
+              <p className="text-sm text-muted-foreground">
+                Custom guides built by your team.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {workspaceGuides.map((g) => (
+              <GuideCard
+                key={g.id}
+                guide={g}
+                onUse={handleUse}
+                onPreview={setPreviewGuide}
+                onCustomize={handleCustomize}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {curatedCategories.map((cat) => {
         const guides = grouped.get(cat.id) ?? [];

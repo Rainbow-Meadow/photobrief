@@ -187,4 +187,74 @@ export const guidesService = {
     ]);
     return rowToGuide(guide, steps ?? [], questions ?? []);
   },
+
+  /**
+   * Update an existing workspace guide. Replaces all steps + questions
+   * (we don't track per-row diffs in the editor).
+   */
+  async updateGuide(args: {
+    guideId: string;
+    name: string;
+    description?: string | null;
+    steps: RequestDraft["steps"];
+    questions: RequestDraft["questions"];
+  }): Promise<PhotoGuide> {
+    const { guideId, name, description, steps, questions } = args;
+
+    const { data: guide, error: guideErr } = await supabase
+      .from("photo_guides")
+      .update({ name, description: description ?? null })
+      .eq("id", guideId)
+      .select()
+      .single();
+    if (guideErr) throw guideErr;
+
+    // Replace steps + questions wholesale.
+    await supabase.from("guide_steps").delete().eq("guide_id", guideId);
+    await supabase.from("context_questions").delete().eq("guide_id", guideId);
+
+    if (steps.length > 0) {
+      const stepRows = steps.map((s, idx) => ({
+        guide_id: guideId,
+        order_index: idx,
+        title: s.title,
+        instruction: s.instructions ?? null,
+        capture_type: (s.shotType ?? "photo") as any,
+        overlay_type: (s.overlayType ?? null) as any,
+        ai_checks: (s.aiChecks ?? []) as any,
+        required: s.required ?? true,
+      }));
+      const { error: stepsErr } = await supabase.from("guide_steps").insert(stepRows);
+      if (stepsErr) throw stepsErr;
+    }
+
+    if (questions.length > 0) {
+      const qRows = questions.map((q, idx) => ({
+        guide_id: guideId,
+        order_index: idx,
+        label: q.prompt,
+        input_type: q.inputType ?? "short_text",
+        options: (q.options ?? null) as any,
+        required: q.required ?? false,
+      }));
+      const { error: qErr } = await supabase.from("context_questions").insert(qRows);
+      if (qErr) throw qErr;
+    }
+
+    const [{ data: stepsRows }, { data: qRows }] = await Promise.all([
+      supabase.from("guide_steps").select("*").eq("guide_id", guideId),
+      supabase.from("context_questions").select("*").eq("guide_id", guideId),
+    ]);
+    return rowToGuide(guide, stepsRows ?? [], qRows ?? []);
+  },
+
+  /** Soft-delete: marks the guide inactive so it disappears from listings. */
+  async deleteGuide(guideId: string): Promise<void> {
+    const { error } = await supabase
+      .from("photo_guides")
+      .update({ is_active: false })
+      .eq("id", guideId);
+    if (error) throw error;
+  },
 };
+
