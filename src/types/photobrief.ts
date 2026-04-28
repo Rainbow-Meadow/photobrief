@@ -86,6 +86,18 @@ export interface ContextQuestion {
   required: boolean;
 }
 
+/**
+ * Curated categories shown in the public Guide Library.
+ * Internal-only guides leave this undefined and stay hidden behind the
+ * admin "Show internal templates" toggle.
+ */
+export type CuratedCategory =
+  | "service_quote"
+  | "property_proof"
+  | "product_support"
+  | "sales_listing"
+  | "custom_intake";
+
 export interface PhotoGuide {
   id: string;
   workspaceId?: string;
@@ -95,6 +107,16 @@ export interface PhotoGuide {
   isTemplate: boolean;
   steps: GuideStep[];
   questions: ContextQuestion[];
+  /** Curated section in the launch-ready library. Omit to keep internal-only. */
+  curatedCategory?: CuratedCategory;
+  /** Short "best for" tagline shown on the guide card. */
+  bestFor?: string;
+  /** Rough recipient time-to-complete in minutes. */
+  estimatedMinutes?: number;
+  /** Minimum plan tier recommended for this guide. */
+  recommendedPlan?: Plan;
+  /** True when this guide is part of the curated launch catalog. */
+  launchReady?: boolean;
 }
 
 export interface TeamMember {
