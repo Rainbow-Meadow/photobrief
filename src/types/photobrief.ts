@@ -189,6 +189,8 @@ export interface PhotoBriefRequest {
   guideName: string;
   recipientName: string;
   recipientContact: string;
+  recipientEmail?: string;
+  recipientPhone?: string;
   token: string;
   status: RequestStatus;
   createdAt: string;
