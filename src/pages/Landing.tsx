@@ -8,7 +8,7 @@ import { StatsBand } from "@/components/marketing/StatsBand";
 import { IndustryGrid } from "@/components/marketing/IndustryGrid";
 import { TestimonialsRow } from "@/components/marketing/TestimonialsRow";
 import { FinalCtaCard } from "@/components/marketing/FinalCtaCard";
-import { FoundingCustomerBanner } from "@/components/marketing/FoundingCustomerBanner";
+import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
 
 export default function LandingPage() {
   return (
@@ -84,9 +84,22 @@ export default function LandingPage() {
       {/* TESTIMONIALS -------------------------------------------------------- */}
       <TestimonialsRow />
 
-      {/* FOUNDING CUSTOMER BANNER ------------------------------------------- */}
-      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <FoundingCustomerBanner />
+      {/* PRICING ------------------------------------------------------------- */}
+      <section id="pricing" className="border-t bg-gradient-subtle">
+        <div className="mx-auto max-w-3xl px-4 pt-16 text-center sm:px-6 sm:pt-20 lg:px-8">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Simple, transparent pricing
+          </h2>
+          <p className="mt-4 text-base text-muted-foreground sm:text-lg">
+            Start free. Automate intake with Pro. Coordinate your team with Business. Scale with Enterprise.
+          </p>
+          <p className="mt-2 text-sm text-primary">
+            All paid plans include a 14-day free trial. No credit card required.
+          </p>
+        </div>
+        <div className="px-4 pb-16 pt-12 sm:px-6 lg:px-8 lg:pb-20">
+          <PricingCardGrid />
+        </div>
       </section>
 
       {/* FINAL CTA ----------------------------------------------------------- */}
