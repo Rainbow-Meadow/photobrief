@@ -3,12 +3,13 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
 import { ReadinessScoreBadge } from "@/components/shared/ReadinessScoreBadge";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { mockSubmissions } from "@/config/mockData";
+import { useSubmission, useSubmissions } from "@/hooks/useSubmissions";
 import { submissionStatusOptions } from "@/config/statusOptions";
 
 export default function SubmissionReviewPage() {
   const { id } = useParams();
-  const submission = mockSubmissions.find((s) => s.id === id) ?? mockSubmissions[0];
+  const fallback = useSubmissions()[0];
+  const submission = useSubmission(id) ?? fallback;
   const status = submissionStatusOptions[submission.status];
 
   return (
