@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { getTokenClient } from "@/integrations/supabase/tokenClient";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ChatThread } from "@/features/capture/components/ChatThread";
