@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
@@ -13,8 +14,18 @@ import { Button } from "@/components/ui/button";
 import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
 import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
 import { FoundingProBadge } from "@/components/pricing/FoundingProBadge";
+import { StripeEmbeddedCheckout } from "@/components/billing/StripeEmbeddedCheckout";
+import { PaymentTestModeBanner } from "@/components/billing/PaymentTestModeBanner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { isPaymentsConfigured } from "@/lib/stripe";
+import type { Plan, BillingInterval } from "@/types/photobrief";
 import { cn } from "@/lib/utils";
 
 function formatQuota(q: Quota): string {
@@ -50,10 +61,28 @@ const featureRows: FeatureKey[] = [
 ];
 
 export default function BillingSettingsPage() {
-  const { workspace, loading: wsLoading } = useCurrentWorkspace();
-  const { usage, loading: usageLoading } = useUsage();
+  const { workspace, loading: wsLoading, refetch: refetchWorkspace } = useCurrentWorkspace();
+  const { usage, loading: usageLoading, refetch: refetchUsage } = useUsage();
   const current = planLimits.find((p) => p.id === workspace.plan) ?? planLimits[0];
-  const [opening, setOpening] = useState<"checkout" | "portal" | null>(null);
+  const [opening, setOpening] = useState<"portal" | null>(null);
+  const [checkout, setCheckout] = useState<{ plan: Plan; interval: BillingInterval } | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // After Stripe Checkout returns, refetch and clear the URL flag.
+  useEffect(() => {
+    if (searchParams.get("checkout") === "success") {
+      toast({
+        title: "Payment received",
+        description: "Your plan is updating — this may take a few seconds.",
+      });
+      refetchWorkspace();
+      refetchUsage();
+      const next = new URLSearchParams(searchParams);
+      next.delete("checkout");
+      next.delete("session_id");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, refetchWorkspace, refetchUsage, setSearchParams]);
 
   const openPortal = async () => {
     setOpening("portal");
@@ -69,11 +98,12 @@ export default function BillingSettingsPage() {
       });
       return;
     }
-    window.location.href = data.url;
+    window.open(data.url, "_blank", "noopener,noreferrer");
   };
 
   return (
     <div className="space-y-8">
+      <PaymentTestModeBanner />
       <PageHeader title="Billing" description="Plan, usage, and limits." />
 
       {/* Current plan + usage --------------------------------------------- */}
