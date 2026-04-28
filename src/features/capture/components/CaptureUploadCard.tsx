@@ -6,7 +6,11 @@ import type { GuideStep } from "@/types/photobrief";
 interface CaptureUploadCardProps {
   step: GuideStep;
   pending: boolean;
-  onCapture: (previewUrl: string) => void;
+  /**
+   * Called when the recipient picks a file or simulates one.
+   * `file` is null for simulated/placeholder URLs (no real bytes available).
+   */
+  onCapture: (previewUrl: string, file: File | null) => void;
   onSkip?: () => void;
 }
 
@@ -31,7 +35,7 @@ export function CaptureUploadCard({ step, pending, onCapture, onSkip }: CaptureU
     const reader = new FileReader();
     reader.onload = () => {
       const url = String(reader.result);
-      onCapture(url);
+      onCapture(url, file);
     };
     reader.readAsDataURL(file);
   };
@@ -42,7 +46,7 @@ export function CaptureUploadCard({ step, pending, onCapture, onSkip }: CaptureU
       PLACEHOLDER_IMAGES[Math.floor(Math.random() * PLACEHOLDER_IMAGES.length)];
     setTimeout(() => {
       setBusy(false);
-      onCapture(url);
+      onCapture(url, null);
     }, 200);
   };
 

@@ -184,27 +184,48 @@ export const submissionsService = {
     workspaceId: string;
     recipientName?: string;
     recipientContact?: string;
+    /**
+     * If a submission row was already created (e.g. lazily during the
+     * chat capture flow so that captured_media inserts had a parent),
+     * pass its id here. Otherwise a new row is created.
+     */
+    existingSubmissionId?: string;
+    /** Photos that still need to be uploaded (most are already uploaded during capture). */
     photos: { stepId?: string; blob: Blob; ext: string; note?: string }[];
     answers: { questionId?: string; prompt: string; answer: string }[];
   }) {
     const client = getTokenClient(args.token);
 
-    // 1. Create the submission.
-    const { data: subRow, error: subErr } = await client
-      .from("submissions")
-      .insert({
-        request_id: args.requestId,
-        workspace_id: args.workspaceId,
-        submitter_name: args.recipientName ?? null,
-        submitter_contact: args.recipientContact ?? null,
-        status: "new",
-        submitted_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-    if (subErr) throw subErr;
+    // 1. Create or finalize the submission.
+    let submissionId = args.existingSubmissionId ?? null;
+    if (submissionId) {
+      const { error: updErr } = await client
+        .from("submissions")
+        .update({
+          submitter_name: args.recipientName ?? null,
+          submitter_contact: args.recipientContact ?? null,
+          submitted_at: new Date().toISOString(),
+        })
+        .eq("id", submissionId);
+      if (updErr) throw updErr;
+    } else {
+      const { data: subRow, error: subErr } = await client
+        .from("submissions")
+        .insert({
+          request_id: args.requestId,
+          workspace_id: args.workspaceId,
+          submitter_name: args.recipientName ?? null,
+          submitter_contact: args.recipientContact ?? null,
+          status: "new",
+          submitted_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      if (subErr) throw subErr;
+      submissionId = subRow.id;
+    }
 
-    // 2. Upload each media file under {workspace_id}/{request_id}/{filename}.
+    // 2. Upload each remaining media file.
     for (const p of args.photos) {
       const filename = `${crypto.randomUUID()}.${p.ext}`;
       const path = `${args.workspaceId}/${args.requestId}/${filename}`;
@@ -214,7 +235,7 @@ export const submissionsService = {
       if (upErr) throw upErr;
 
       const { error: medErr } = await client.from("captured_media").insert({
-        submission_id: subRow.id,
+        submission_id: submissionId,
         step_id: p.stepId ?? null,
         file_url: path,
         status: "captured",
@@ -231,9 +252,9 @@ export const submissionsService = {
 
     // 4. Fire-and-forget AI summary (server reads from DB and persists results).
     supabase.functions
-      .invoke("ai-summarize-submission", { body: { submissionId: subRow.id } })
+      .invoke("ai-summarize-submission", { body: { submissionId } })
       .catch((e) => console.warn("summary trigger failed", e));
 
-    return subRow;
+    return { id: submissionId };
   },
 };

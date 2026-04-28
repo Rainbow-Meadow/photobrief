@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { getTokenClient } from "@/integrations/supabase/tokenClient";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ChatThread } from "@/features/capture/components/ChatThread";
@@ -71,10 +72,72 @@ function RecipientChat({
   token: string | undefined;
   navigate: (to: string) => void;
 }) {
+  // A submission row is created lazily on the first photo capture so the
+  // captured_media inserts have a parent row that satisfies token RLS.
+  const submissionIdRef = useRef<string | null>(null);
+
+  const ensureSubmission = useCallback(async (): Promise<string | null> => {
+    if (submissionIdRef.current) return submissionIdRef.current;
+    if (!token || !ctx.requestId || !ctx.workspaceId) return null;
+    const client = getTokenClient(token);
+    const { data, error } = await client
+      .from("submissions")
+      .insert({
+        request_id: ctx.requestId,
+        workspace_id: ctx.workspaceId,
+        submitter_name: ctx.recipientName || null,
+        status: "new",
+      })
+      .select("id")
+      .single();
+    if (error) {
+      console.error("create submission failed", error);
+      return null;
+    }
+    submissionIdRef.current = data.id;
+    return data.id;
+  }, [token, ctx.requestId, ctx.workspaceId, ctx.recipientName]);
+
+  const uploadCapture = useCallback(
+    async ({ stepId, blob, ext }: { stepId: string; blob: Blob; ext: string }) => {
+      if (!token || !ctx.workspaceId || !ctx.requestId) {
+        throw new Error("No token context — preview only");
+      }
+      const submissionId = await ensureSubmission();
+      if (!submissionId) throw new Error("Could not create submission");
+      const client = getTokenClient(token);
+      const filename = `${crypto.randomUUID()}.${ext}`;
+      const path = `${ctx.workspaceId}/${ctx.requestId}/${filename}`;
+      const { error: upErr } = await client.storage
+        .from("submission-media")
+        .upload(path, blob, { contentType: blob.type, upsert: false });
+      if (upErr) throw upErr;
+      const { data: pub } = client.storage.from("submission-media").getPublicUrl(path);
+      const { data: row, error: insErr } = await client
+        .from("captured_media")
+        .insert({
+          submission_id: submissionId,
+          step_id: /^[0-9a-f-]{36}$/i.test(stepId) ? stepId : null,
+          file_url: path,
+          status: "analyzing",
+        })
+        .select("id")
+        .single();
+      if (insErr) throw insErr;
+      return {
+        publicUrl: pub.publicUrl,
+        storagePath: path,
+        capturedMediaId: row.id,
+      };
+    },
+    [token, ctx.workspaceId, ctx.requestId, ensureSubmission],
+  );
+
   const flow = useChatFlow({
     guide: ctx.guide,
     businessName: ctx.businessName,
     introBody: ctx.introBody,
+    uploadCapture,
   });
 
   const handleSubmit = async () => {
@@ -85,19 +148,25 @@ function RecipientChat({
       return;
     }
     try {
-      const photos = await Promise.all(
-        flow.photos.map(async (p) => {
-          const blob = await fetch(p.previewUrl).then((r) => r.blob());
-          const ext = (blob.type.split("/")[1] ?? "jpg").replace("jpeg", "jpg");
-          return { stepId: p.stepId, blob, ext };
-        }),
+      // Photos already uploaded during capture. Pass only the ones that
+      // need to be backfilled (e.g. simulated previews where no file
+      // existed). The service skips re-upload when storagePath is set.
+      const backfill = await Promise.all(
+        flow.photos
+          .filter((p) => !p.storagePath)
+          .map(async (p) => {
+            const blob = await fetch(p.previewUrl).then((r) => r.blob());
+            const ext = (blob.type.split("/")[1] ?? "jpg").replace("jpeg", "jpg");
+            return { stepId: p.stepId, blob, ext };
+          }),
       );
       await submissionsService.submitFromRecipient({
         token,
         requestId: ctx.requestId,
         workspaceId: ctx.workspaceId,
         recipientName: ctx.recipientName,
-        photos,
+        existingSubmissionId: submissionIdRef.current ?? undefined,
+        photos: backfill,
         answers: flow.answers,
       });
       setTimeout(() => navigate(`/r/${token}/done`), 1200);
