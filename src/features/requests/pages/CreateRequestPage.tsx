@@ -16,12 +16,16 @@ import { draftFromGuide } from "@/types/requestDraft";
 import type { RequestDraft } from "@/types/requestDraft";
 import { requestBuilderAi } from "@/services/requestBuilderAi";
 import type { PhotoGuide } from "@/types/photobrief";
+import { UpgradePromptCard } from "@/components/shared/UpgradePromptCard";
+import { usePlan } from "@/hooks/usePlan";
 
 let mid = 0;
 const newId = () => `chat_${Date.now()}_${++mid}`;
 
 export default function CreateRequestPage() {
   const navigate = useNavigate();
+  const { can } = usePlan();
+  const aiUnlocked = can("ai_request_builder");
   const [mode, setMode] = useState<BuilderMode>("template");
   const [draft, setDraft] = useState<RequestDraft | null>(null);
   const [chatMessages, setChatMessages] = useState<AiBuilderMessage[]>([]);
