@@ -8,7 +8,8 @@ import type {
   ChatMessage,
   FlowPhase,
 } from "@/types/chat";
-import { simulatePhotoChecks, worstSeverity } from "@/services/mockAiService";
+import { aiService } from "@/services/aiService";
+import type { AICheckSeverity } from "@/types/photobrief";
 import { microcopy } from "@/config/microcopy";
 
 interface UseChatFlowArgs {
@@ -118,10 +119,12 @@ export function useChatFlow({ guide, businessName, introBody }: UseChatFlowArgs)
       };
       append({ id: nextId(), kind: "user_photo", photo });
 
-      const checks = await simulatePhotoChecks(step);
-      photo.checks = checks;
-      const verdict = worstSeverity(checks);
-      append({ id: nextId(), kind: "ai_feedback", photo, verdict });
+      const { checks, verdict } = await aiService.analyzeCapturedMedia({
+        step,
+        mediaUrl: previewUrl,
+      });
+      photo.checks = checks.map((c) => ({ id: c.type, severity: c.severity, message: c.message }));
+      append({ id: nextId(), kind: "ai_feedback", photo, verdict: verdict as AICheckSeverity });
 
       if (verdict === "pass") {
         // Auto-accept and advance.

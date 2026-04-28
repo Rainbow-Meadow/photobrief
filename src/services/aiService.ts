@@ -8,6 +8,7 @@
 //
 // All UI MUST call aiService — never construct AI strings inline.
 
+import { supabase } from "@/integrations/supabase/client";
 import { aiChecks } from "@/config/aiChecks";
 import { guideTemplates } from "@/config/guideTemplates";
 import { draftFromGuide } from "@/types/requestDraft";
@@ -30,8 +31,12 @@ import type {
 export interface AnalyzeMediaInput {
   /** GuideStep being captured. */
   step: GuideStep;
-  /** Optional preview URL — unused in mock, present for parity with edge fn. */
+  /** Public URL of the captured image (required for real AI). */
   mediaUrl?: string;
+  /** Optional captured_media row id for server-side persistence. */
+  capturedMediaId?: string;
+  /** Optional recipient note attached to the photo. */
+  recipientNote?: string;
 }
 
 export interface AnalyzeMediaOutput {
@@ -145,15 +150,59 @@ function feedbackHeadline(verdict: AICheckSeverity, stepTitle: string): string {
 export const aiService = {
   /**
    * Run AI vision checks on a freshly captured photo/video.
-   * Contract: ai-check-photo prompt — returns per-check verdicts + aggregate.
+   * Calls the `ai-analyze-media` edge function with the image URL.
+   * Falls back to a local heuristic if the function is unreachable or
+   * the caller didn't provide a usable media URL (e.g. blob: previews).
    */
   async analyzeCapturedMedia(input: AnalyzeMediaInput): Promise<AnalyzeMediaOutput> {
-    await wait(900);
-    const { step } = input;
+    const { step, mediaUrl, capturedMediaId, recipientNote } = input;
+    const usableUrl = mediaUrl && /^https?:\/\//.test(mediaUrl) ? mediaUrl : null;
 
+    if (usableUrl) {
+      try {
+        const { data, error } = await supabase.functions.invoke("ai-analyze-media", {
+          body: {
+            stepId: step.id,
+            stepTitle: step.title,
+            instruction: step.instructions,
+            captureType: step.shotType,
+            overlayType: step.overlayType,
+            aiChecks: step.aiChecks,
+            imageUrl: usableUrl,
+            recipientNote,
+            capturedMediaId,
+          },
+        });
+        if (error) throw error;
+        if (data && data.checks) {
+          const checks = data.checks.map((c: any) => ({
+            type: c.type as AICheckType,
+            severity: c.severity as AICheckSeverity,
+            message: c.message,
+            label: c.label,
+          }));
+          const verdict = (data.verdict ?? worstOf(checks.map((c: any) => c.severity))) as AICheckSeverity;
+          const feedback: ShotAIFeedback = {
+            severity: verdict,
+            headline: data.headline ?? feedbackHeadline(verdict, step.title),
+            detail: data.detail ?? checks.find((c: any) => c.severity !== "pass")?.message,
+            checks: checks.map((c: any) => ({ type: c.type, severity: c.severity, label: c.label })),
+          };
+          return {
+            checks: checks.map(({ type, severity, message }: any) => ({ type, severity, message })),
+            verdict,
+            feedback,
+          };
+        }
+      } catch (e) {
+        console.warn("ai-analyze-media failed, falling back to heuristic", e);
+      }
+    }
+
+    // Fallback heuristic (used for blob previews, offline, or AI errors).
+    await wait(900);
     const checks = step.aiChecks.map((checkId) => {
       const def = aiChecks[checkId];
-      // Detector-style checks (label_detected etc.) are positive signals.
       const isDetector = def.defaultSeverity === "pass";
       const severity: AICheckSeverity = isDetector
         ? Math.random() < 0.85
@@ -162,16 +211,10 @@ export const aiService = {
         : pickSeverity();
       const message =
         severity === "pass" ? def.passMessage ?? `${def.label} ✓` : def.failMessage;
-      return {
-        type: checkId,
-        severity,
-        message,
-        label: def.label,
-      };
+      return { type: checkId, severity, message, label: def.label };
     });
 
     const verdict = worstOf(checks.map((c) => c.severity));
-
     const feedback: ShotAIFeedback = {
       severity: verdict,
       headline: feedbackHeadline(verdict, step.title),
@@ -179,11 +222,7 @@ export const aiService = {
         verdict === "pass"
           ? "Looks great — moving on."
           : checks.find((c) => c.severity !== "pass")?.message,
-      checks: checks.map((c) => ({
-        type: c.type,
-        severity: c.severity,
-        label: c.label,
-      })),
+      checks: checks.map((c) => ({ type: c.type, severity: c.severity, label: c.label })),
     };
 
     return {
@@ -200,7 +239,30 @@ export const aiService = {
   async generateSubmissionSummary(
     input: SubmissionSummaryInput,
   ): Promise<SubmissionSummaryOutput> {
-    await wait(700);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-summarize-submission", {
+        body: {
+          guideName: input.guideName,
+          recipientName: input.recipientName,
+          shots: input.shots.map((s) => ({
+            title: s.title,
+            missing: s.missing,
+            feedbackSeverity: s.feedback?.severity,
+            feedbackHeadline: s.feedback?.headline,
+          })),
+          customerAnswers: input.customerAnswers,
+        },
+      });
+      if (error) throw error;
+      if (data?.summary) {
+        return { summary: data.summary, highlights: data.highlights ?? [] };
+      }
+    } catch (e) {
+      console.warn("ai-summarize-submission failed, using fallback", e);
+    }
+
+    // Fallback heuristic.
+    await wait(300);
     const captured = input.shots.filter((s) => !s.missing);
     const total = input.shots.length;
     const fail = captured.filter((s) => s.feedback?.severity === "fail").length;
@@ -223,8 +285,7 @@ export const aiService = {
     const highlights: string[] = [];
     if (fail > 0) highlights.push(`${fail} shot${fail === 1 ? "" : "s"} failed AI checks`);
     if (warn > 0) highlights.push(`${warn} shot${warn === 1 ? "" : "s"} flagged with warnings`);
-    if (captured.length === total)
-      highlights.push("All requested shots captured");
+    if (captured.length === total) highlights.push("All requested shots captured");
     else highlights.push(`${total - captured.length} shot${total - captured.length === 1 ? "" : "s"} missing`);
     if (input.customerAnswers?.length)
       highlights.push(`${input.customerAnswers.length} context answer${input.customerAnswers.length === 1 ? "" : "s"} provided`);
@@ -334,10 +395,56 @@ export const aiService = {
   async generateGuideFromPrompt(
     input: GenerateGuideInput,
   ): Promise<GenerateGuideOutput> {
-    await wait(900);
     const { prompt } = input;
-    const lowered = prompt.toLowerCase();
 
+    // Try the AI gateway first (Pro+ gated server-side).
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-generate-guide", {
+        body: { prompt, category: input.category },
+      });
+      if (error) throw error;
+      if (data?.draft) {
+        const d = data.draft;
+        const seedGuide = guideTemplates[0];
+        const finalDraft: RequestDraft = {
+          ...draftFromGuide(seedGuide),
+          source: "ai",
+          prompt,
+          title: d.title ?? titleFromPrompt(prompt, seedGuide.name),
+          introMessage: d.introMessage,
+          steps: (d.steps ?? []).map((s: any, i: number) => ({
+            id: `step_${Date.now()}_${i}`,
+            orderIndex: s.orderIndex ?? i,
+            title: s.title,
+            instructions: s.instructions ?? s.instruction ?? "",
+            shotType: (s.shotType ?? "wide") as any,
+            overlayType: "full_area" as any,
+            aiChecks: s.aiChecks ?? [],
+            required: s.required ?? true,
+          })),
+          questions: (d.questions ?? []).map((q: any, i: number) => ({
+            id: `q_${Date.now()}_${i}`,
+            orderIndex: q.orderIndex ?? i,
+            prompt: q.prompt,
+            inputType: q.inputType ?? "short_text",
+            options: q.options,
+            required: q.required ?? false,
+          })),
+        };
+        return {
+          draft: finalDraft,
+          assistantReply: data.assistantReply ?? `Drafted "${finalDraft.title}".`,
+          sourceGuideId: seedGuide.id,
+        };
+      }
+    } catch (e: any) {
+      // 402 = Pro plan required; surface a friendly message but still scaffold.
+      console.warn("ai-generate-guide failed, using template fallback", e?.message);
+    }
+
+    // Fallback: keyword-match a launch template (works on Free plan too).
+    await wait(400);
+    const lowered = prompt.toLowerCase();
     const KEYWORDS: { guideId: string; keywords: string[] }[] = [
       { guideId: "guide_leak", keywords: ["leak", "drip", "water damage", "pipe burst"] },
       { guideId: "guide_water_heater", keywords: ["water heater", "hot water", "boiler", "tankless"] },
@@ -346,7 +453,6 @@ export const aiService = {
       { guideId: "guide_appliance", keywords: ["appliance", "fridge", "washer", "dryer", "oven", "dishwasher"] },
       { guideId: "guide_pest", keywords: ["pest", "rodent", "raccoon", "wasp", "bug", "wildlife", "infestation"] },
     ];
-
     let best = { score: 0, guideId: guideTemplates[0].id };
     for (const k of KEYWORDS) {
       const score = k.keywords.reduce((acc, kw) => (lowered.includes(kw) ? acc + 1 : acc), 0);
@@ -354,14 +460,12 @@ export const aiService = {
     }
     const guide: PhotoGuide =
       guideTemplates.find((g) => g.id === best.guideId) ?? guideTemplates[0];
-
     const draft = draftFromGuide(guide);
     const title = titleFromPrompt(prompt, guide.name);
     const introMessage = `Hi! Thanks for reaching out about ${
       prompt.trim().toLowerCase().slice(0, 80) || guide.category.toLowerCase()
     }. I'll walk you through a few quick photos so we can help you faster.`;
     const questions = augmentQuestions(prompt, draft.questions);
-
     const finalDraft: RequestDraft = {
       ...draft,
       source: "ai",
@@ -370,13 +474,11 @@ export const aiService = {
       introMessage,
       questions,
     };
-
     const stepCount = finalDraft.steps.length;
     const qCount = finalDraft.questions.length;
     const assistantReply = `Got it. I drafted a request titled "${finalDraft.title}" with ${stepCount} photo step${
       stepCount === 1 ? "" : "s"
     }${qCount ? ` and ${qCount} short question${qCount === 1 ? "" : "s"}` : ""}. Take a look on the right — you can edit anything before sending.`;
-
     return { draft: finalDraft, assistantReply, sourceGuideId: guide.id };
   },
 
