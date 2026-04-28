@@ -1,9 +1,9 @@
 // Live workspace + subscription for the signed-in user.
-// Falls back to the mock workspace for unauthenticated routes (landing, demo).
+// Returns `workspace: null` when the user is unauthenticated or has no
+// default workspace. Callers must handle the null case (loading vs missing).
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { mockWorkspace } from "@/config/mockData";
 import type { Plan, BillingInterval } from "@/types/photobrief";
 
 export interface CurrentWorkspace {
@@ -20,28 +20,14 @@ export interface CurrentWorkspace {
   stripeSubscriptionId: string | null;
 }
 
-const FALLBACK: CurrentWorkspace = {
-  id: mockWorkspace.id,
-  name: mockWorkspace.name,
-  industry: mockWorkspace.industry,
-  plan: mockWorkspace.plan,
-  isFoundingPro: false,
-  billingInterval: "monthly",
-  currentPeriodStart: null,
-  currentPeriodEnd: null,
-  cancelAtPeriodEnd: false,
-  stripeCustomerId: null,
-  stripeSubscriptionId: null,
-};
-
 export function useCurrentWorkspace() {
   const { user, loading: authLoading } = useAuth();
-  const [workspace, setWorkspace] = useState<CurrentWorkspace>(FALLBACK);
+  const [workspace, setWorkspace] = useState<CurrentWorkspace | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refetch = useCallback(async () => {
     if (!user) {
-      setWorkspace(FALLBACK);
+      setWorkspace(null);
       setLoading(false);
       return;
     }
@@ -55,7 +41,7 @@ export function useCurrentWorkspace() {
 
     const wsId = profile?.default_workspace_id;
     if (!wsId) {
-      setWorkspace(FALLBACK);
+      setWorkspace(null);
       setLoading(false);
       return;
     }
@@ -91,6 +77,8 @@ export function useCurrentWorkspace() {
         stripeCustomerId: sub?.stripe_customer_id ?? null,
         stripeSubscriptionId: sub?.stripe_subscription_id ?? null,
       });
+    } else {
+      setWorkspace(null);
     }
     setLoading(false);
   }, [user]);
