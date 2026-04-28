@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
-import { Plus, Send, Eye, Bell, MoreHorizontal } from "lucide-react";
+import { Plus, Send, Eye, Bell, MoreHorizontal, Archive, Trash2, UserPlus, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ReadinessScoreBadge } from "@/components/shared/ReadinessScoreBadge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useRequests } from "@/hooks/useRequests";
@@ -22,6 +25,7 @@ import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { toast } from "sonner";
 import { notificationService } from "@/services/notificationService";
 import { messagingService } from "@/services/messagingService";
+import { requestsService } from "@/services/requestsService";
 import { usePlan } from "@/hooks/usePlan";
 import { getPlanLimit, minPlanFor } from "@/config/planLimits";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,12 +44,16 @@ export default function RequestsInboxPage() {
   const queryClient = useQueryClient();
   const { can } = usePlan();
   const canRemind = can("reminders");
+  const canBulk = can("bulk_actions");
+  const canAssign = can("assignments");
   const [searchParams] = useSearchParams();
   const initialStatus = (searchParams.get("status") ?? "all") as RequestStatus | "all";
   const [filters, setFilters] = useState<InboxFilterState>({
     ...defaultInboxFilters,
     status: initialStatus,
   });
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   // Realtime: refetch when this workspace's requests/submissions change.
   useEffect(() => {
@@ -76,6 +84,100 @@ export default function RequestsInboxPage() {
     [],
   );
 
+  // Drop selections that are no longer in the filtered view
+  useEffect(() => {
+    setSelected((prev) => {
+      const ids = new Set(filtered.map((r) => r.id));
+      let changed = false;
+      const next = new Set<string>();
+      prev.forEach((id) => {
+        if (ids.has(id)) next.add(id);
+        else changed = true;
+      });
+      return changed ? next : prev;
+    });
+  }, [filtered]);
+
+  const allSelected = filtered.length > 0 && filtered.every((r) => selected.has(r.id));
+  const someSelected = selected.size > 0 && !allSelected;
+
+  const toggleAll = () => {
+    setSelected(allSelected ? new Set() : new Set(filtered.map((r) => r.id)));
+  };
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelected(new Set());
+
+  const ensureBulkAllowed = () => {
+    if (canBulk) return true;
+    const plan = minPlanFor("bulk_actions");
+    toast.error(`Bulk actions are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`);
+    return false;
+  };
+
+  const refetchInbox = () =>
+    queryClient.invalidateQueries({ queryKey: ["requests", workspace?.id] });
+
+  const handleBulkArchive = async () => {
+    if (!ensureBulkAllowed()) return;
+    setBulkBusy(true);
+    const ids = Array.from(selected);
+    try {
+      await requestsService.bulkUpdateStatus(ids, "archived");
+      toast.success(`Archived ${ids.length} request${ids.length === 1 ? "" : "s"}`);
+      clearSelection();
+      await refetchInbox();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not archive");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!ensureBulkAllowed()) return;
+    if (!window.confirm(`Delete ${selected.size} request(s)? This cannot be undone.`)) return;
+    setBulkBusy(true);
+    const ids = Array.from(selected);
+    try {
+      await requestsService.bulkDelete(ids);
+      toast.success(`Deleted ${ids.length} request${ids.length === 1 ? "" : "s"}`);
+      clearSelection();
+      await refetchInbox();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not delete");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleBulkAssign = async (assigneeId: string | null, name: string) => {
+    if (!ensureBulkAllowed()) return;
+    if (!canAssign) {
+      const plan = minPlanFor("assignments");
+      toast.error(`Assignments are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`);
+      return;
+    }
+    setBulkBusy(true);
+    const ids = Array.from(selected);
+    try {
+      await requestsService.bulkAssign(ids, assigneeId);
+      toast.success(`Assigned ${ids.length} to ${name}`);
+      clearSelection();
+      await refetchInbox();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not assign");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -98,15 +200,80 @@ export default function RequestsInboxPage() {
       />
 
       <div className="overflow-hidden rounded-lg border bg-card shadow-elev-sm">
-        <div className="flex items-center justify-between border-b px-5 py-3 text-xs text-muted-foreground">
-          <span>
-            {filtered.length} {filtered.length === 1 ? "request" : "requests"}
-          </span>
-        </div>
+        {selected.size > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 border-b bg-primary/5 px-5 py-2 text-xs">
+            <span className="font-medium text-foreground">
+              {selected.size} selected
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1"
+              onClick={handleBulkArchive}
+              disabled={bulkBusy}
+            >
+              <Archive className="h-3.5 w-3.5" /> Archive
+              {!canBulk ? <span className="ml-1 text-[10px] uppercase text-primary">Pro</span> : null}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 gap-1" disabled={bulkBusy}>
+                  <UserPlus className="h-3.5 w-3.5" /> Assign
+                  {!canAssign ? <span className="ml-1 text-[10px] uppercase text-primary">Pro</span> : null}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuLabel>Assign to</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleBulkAssign(null, "Unassigned")}>
+                  Unassigned
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {teamMembers.map((m) => (
+                  <DropdownMenuItem key={m.id} onClick={() => handleBulkAssign(m.id, m.name)}>
+                    {m.name}
+                  </DropdownMenuItem>
+                ))}
+                {teamMembers.length === 0 ? (
+                  <DropdownMenuItem disabled>No teammates yet</DropdownMenuItem>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 text-destructive hover:text-destructive"
+              onClick={handleBulkDelete}
+              disabled={bulkBusy}
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Delete
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto h-7 gap-1"
+              onClick={clearSelection}
+            >
+              <X className="h-3.5 w-3.5" /> Clear
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between border-b px-5 py-3 text-xs text-muted-foreground">
+            <span>
+              {filtered.length} {filtered.length === 1 ? "request" : "requests"}
+            </span>
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
+                <th className="w-10 px-3 py-3">
+                  <Checkbox
+                    aria-label="Select all"
+                    checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                    onCheckedChange={toggleAll}
+                  />
+                </th>
                 <th className="px-5 py-3 font-medium">Recipient</th>
                 <th className="px-5 py-3 font-medium">Guide</th>
                 <th className="px-5 py-3 font-medium">Status</th>
@@ -120,15 +287,23 @@ export default function RequestsInboxPage() {
             <tbody className="divide-y">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center text-sm text-muted-foreground">
+                  <td colSpan={9} className="px-5 py-10 text-center text-sm text-muted-foreground">
                     No requests match these filters.
                   </td>
                 </tr>
               ) : (
                 filtered.map((r) => {
                   const status = requestStatusOptions[r.status];
+                  const isSel = selected.has(r.id);
                   return (
-                    <tr key={r.id} className="hover:bg-muted/30">
+                    <tr key={r.id} className={isSel ? "bg-primary/5" : "hover:bg-muted/30"}>
+                      <td className="px-3 py-3 align-top">
+                        <Checkbox
+                          aria-label={`Select request for ${r.recipientName}`}
+                          checked={isSel}
+                          onCheckedChange={() => toggleOne(r.id)}
+                        />
+                      </td>
                       <td className="px-5 py-3 align-top">
                         <p className="font-medium text-foreground">{r.recipientName}</p>
                         <p className="text-xs text-muted-foreground">{r.recipientContact}</p>

@@ -61,6 +61,7 @@ export type Database = {
           contact_email: string | null
           contact_phone: string | null
           created_at: string
+          hide_photobrief_branding: boolean
           id: string
           intro_message: string | null
           logo_url: string | null
@@ -74,6 +75,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          hide_photobrief_branding?: boolean
           id?: string
           intro_message?: string | null
           logo_url?: string | null
@@ -87,6 +89,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          hide_photobrief_branding?: boolean
           id?: string
           intro_message?: string | null
           logo_url?: string | null
@@ -108,6 +111,7 @@ export type Database = {
       business_workspaces: {
         Row: {
           created_at: string
+          custom_domain: string | null
           id: string
           industry: string | null
           name: string
@@ -119,6 +123,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          custom_domain?: string | null
           id?: string
           industry?: string | null
           name: string
@@ -130,6 +135,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          custom_domain?: string | null
           id?: string
           industry?: string | null
           name?: string
@@ -998,6 +1004,101 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "usage_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_deliveries: {
+        Row: {
+          attempted_at: string
+          error: string | null
+          event: string
+          id: string
+          ok: boolean
+          payload: Json
+          status_code: number | null
+          subscription_id: string
+          workspace_id: string
+        }
+        Insert: {
+          attempted_at?: string
+          error?: string | null
+          event: string
+          id?: string
+          ok?: boolean
+          payload: Json
+          status_code?: number | null
+          subscription_id: string
+          workspace_id: string
+        }
+        Update: {
+          attempted_at?: string
+          error?: string | null
+          event?: string
+          id?: string
+          ok?: boolean
+          payload?: Json
+          status_code?: number | null
+          subscription_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_subscriptions: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          events: string[]
+          id: string
+          secret: string
+          updated_at: string
+          url: string
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          events?: string[]
+          id?: string
+          secret: string
+          updated_at?: string
+          url: string
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          events?: string[]
+          id?: string
+          secret?: string
+          updated_at?: string
+          url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_subscriptions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "business_workspaces"
