@@ -5,7 +5,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { mockWorkspace } from "@/config/mockData";
+import { workspaceService } from "@/services/workspaceService";
 
 export function DashboardLayout() {
   return (
