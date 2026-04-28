@@ -31,8 +31,12 @@ import type {
 export interface AnalyzeMediaInput {
   /** GuideStep being captured. */
   step: GuideStep;
-  /** Optional preview URL — unused in mock, present for parity with edge fn. */
+  /** Public URL of the captured image (required for real AI). */
   mediaUrl?: string;
+  /** Optional captured_media row id for server-side persistence. */
+  capturedMediaId?: string;
+  /** Optional recipient note attached to the photo. */
+  recipientNote?: string;
 }
 
 export interface AnalyzeMediaOutput {
@@ -146,15 +150,59 @@ function feedbackHeadline(verdict: AICheckSeverity, stepTitle: string): string {
 export const aiService = {
   /**
    * Run AI vision checks on a freshly captured photo/video.
-   * Contract: ai-check-photo prompt — returns per-check verdicts + aggregate.
+   * Calls the `ai-analyze-media` edge function with the image URL.
+   * Falls back to a local heuristic if the function is unreachable or
+   * the caller didn't provide a usable media URL (e.g. blob: previews).
    */
   async analyzeCapturedMedia(input: AnalyzeMediaInput): Promise<AnalyzeMediaOutput> {
-    await wait(900);
-    const { step } = input;
+    const { step, mediaUrl, capturedMediaId, recipientNote } = input;
+    const usableUrl = mediaUrl && /^https?:\/\//.test(mediaUrl) ? mediaUrl : null;
 
+    if (usableUrl) {
+      try {
+        const { data, error } = await supabase.functions.invoke("ai-analyze-media", {
+          body: {
+            stepId: step.id,
+            stepTitle: step.title,
+            instruction: step.instructions,
+            captureType: step.shotType,
+            overlayType: step.overlayType,
+            aiChecks: step.aiChecks,
+            imageUrl: usableUrl,
+            recipientNote,
+            capturedMediaId,
+          },
+        });
+        if (error) throw error;
+        if (data && data.checks) {
+          const checks = data.checks.map((c: any) => ({
+            type: c.type as AICheckType,
+            severity: c.severity as AICheckSeverity,
+            message: c.message,
+            label: c.label,
+          }));
+          const verdict = (data.verdict ?? worstOf(checks.map((c: any) => c.severity))) as AICheckSeverity;
+          const feedback: ShotAIFeedback = {
+            severity: verdict,
+            headline: data.headline ?? feedbackHeadline(verdict, step.title),
+            detail: data.detail ?? checks.find((c: any) => c.severity !== "pass")?.message,
+            checks: checks.map((c: any) => ({ type: c.type, severity: c.severity, label: c.label })),
+          };
+          return {
+            checks: checks.map(({ type, severity, message }: any) => ({ type, severity, message })),
+            verdict,
+            feedback,
+          };
+        }
+      } catch (e) {
+        console.warn("ai-analyze-media failed, falling back to heuristic", e);
+      }
+    }
+
+    // Fallback heuristic (used for blob previews, offline, or AI errors).
+    await wait(900);
     const checks = step.aiChecks.map((checkId) => {
       const def = aiChecks[checkId];
-      // Detector-style checks (label_detected etc.) are positive signals.
       const isDetector = def.defaultSeverity === "pass";
       const severity: AICheckSeverity = isDetector
         ? Math.random() < 0.85
@@ -163,16 +211,10 @@ export const aiService = {
         : pickSeverity();
       const message =
         severity === "pass" ? def.passMessage ?? `${def.label} ✓` : def.failMessage;
-      return {
-        type: checkId,
-        severity,
-        message,
-        label: def.label,
-      };
+      return { type: checkId, severity, message, label: def.label };
     });
 
     const verdict = worstOf(checks.map((c) => c.severity));
-
     const feedback: ShotAIFeedback = {
       severity: verdict,
       headline: feedbackHeadline(verdict, step.title),
@@ -180,11 +222,7 @@ export const aiService = {
         verdict === "pass"
           ? "Looks great — moving on."
           : checks.find((c) => c.severity !== "pass")?.message,
-      checks: checks.map((c) => ({
-        type: c.type,
-        severity: c.severity,
-        label: c.label,
-      })),
+      checks: checks.map((c) => ({ type: c.type, severity: c.severity, label: c.label })),
     };
 
     return {
