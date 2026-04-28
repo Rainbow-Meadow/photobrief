@@ -1,7 +1,8 @@
-// Workspace-aware plan gating hook. All UI gates should use `can(feature)`
-// instead of comparing plan strings directly.
+// Workspace-aware plan gating hook. Reads the live plan from the user's
+// current workspace + subscription. Falls back to "free" while loading
+// or when unauthenticated.
 import { useMemo } from "react";
-import { workspaceService } from "@/services/workspaceService";
+import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
 import {
   canUseFeature,
   getPlanLimit,
@@ -14,19 +15,22 @@ import type { Plan } from "@/types/photobrief";
 export interface UsePlan {
   plan: Plan;
   limit: PlanLimit;
+  loading: boolean;
   can: (feature: FeatureKey, currentUsage?: number) => boolean;
   requiredPlanFor: (feature: FeatureKey) => Plan | undefined;
 }
 
 export function usePlan(): UsePlan {
-  const workspace = workspaceService.current();
+  const { workspace, loading } = useCurrentWorkspace();
   return useMemo(
     () => ({
       plan: workspace.plan,
       limit: getPlanLimit(workspace.plan),
-      can: (feature, currentUsage) => canUseFeature(workspace.plan, feature, currentUsage),
+      loading,
+      can: (feature, currentUsage) =>
+        canUseFeature(workspace.plan, feature, currentUsage),
       requiredPlanFor: (feature) => minPlanFor(feature),
     }),
-    [workspace.plan],
+    [workspace.plan, loading],
   );
 }

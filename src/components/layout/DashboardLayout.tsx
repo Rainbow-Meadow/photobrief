@@ -6,10 +6,10 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { workspaceService } from "@/services/workspaceService";
+import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
 
 export function DashboardLayout() {
-  const workspace = workspaceService.current();
+  const { workspace } = useCurrentWorkspace();
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-gradient-subtle">
