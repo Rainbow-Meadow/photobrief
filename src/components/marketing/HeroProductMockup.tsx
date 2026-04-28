@@ -1,4 +1,5 @@
 import { Camera, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
+import leakPhoto from "@/assets/leak-photo.jpg";
 
 /**
  * Decorative product preview — pure CSS, no real product behavior.
