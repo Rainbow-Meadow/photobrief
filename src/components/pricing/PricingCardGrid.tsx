@@ -19,12 +19,17 @@ interface Props {
   variant?: "default" | "onDark";
   /** Optional initial billing interval. Defaults to annual to highlight savings. */
   defaultInterval?: BillingInterval;
+  /** When provided, intercepts the primary CTA (used for in-app checkout). */
+  onSelectPlan?: (plan: Plan, interval: BillingInterval) => void;
+  /** Disables a specific plan card (e.g. while opening checkout). */
+  pendingPlan?: Plan | null;
   className?: string;
   heading?: string;
   subheading?: string;
 }
 
-function ctaLabel(plan: PlanLimit, currentPlan?: Plan): string {
+function ctaLabel(plan: PlanLimit, currentPlan?: Plan, pending?: boolean): string {
+  if (pending) return "Opening…";
   if (currentPlan && currentPlan === plan.id) return "Current plan";
   if (plan.id === "free") return "Start free";
   if (plan.id === "business") return "Talk to us";
@@ -43,6 +48,8 @@ export function PricingCardGrid({
   compact = false,
   variant = "default",
   defaultInterval = "annual",
+  onSelectPlan,
+  pendingPlan,
   className,
   heading,
   subheading,
