@@ -4,7 +4,7 @@ import { Sparkles, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+
 
 interface AssistantMessage {
   id: string;
@@ -76,9 +76,13 @@ export function AssistantPanel({ open, onClose }: Props) {
       reply = {
         id: `a_${Date.now()}`,
         role: "assistant",
-        content: `Reminder queued. I'll send it to the recipient on your behalf.`,
-        actionLabel: "Confirm send",
-        onAction: () => toast.success("Reminder sent (mock)"),
+        content:
+          "Open the inbox and tap the bell on any request that's waiting on the customer to send a reminder.",
+        actionLabel: "View open requests",
+        onAction: () => {
+          navigate("/requests?status=needs_customer_action");
+          onClose();
+        },
       };
     } else if (/(show|list|find).*(request|brief)/.test(lower)) {
       reply = {

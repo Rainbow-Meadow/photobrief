@@ -180,8 +180,12 @@ export default function CreateRequestPage() {
     }
   };
 
-  const handleSaveAsGuide = () => {
+  const handleSaveAsGuide = async () => {
     if (!draft) return;
+    if (!workspace?.id) {
+      toast.error("Workspace not loaded yet");
+      return;
+    }
     if (!can("custom_guides")) {
       toast.error("Custom guides are on Pro", {
         description: "Upgrade to save your own capture guides.",
@@ -189,10 +193,23 @@ export default function CreateRequestPage() {
       });
       return;
     }
-    // Phase 3: mock — guides list is config-driven. Persistence lands in Phase 2.5/4.
-    toast.success(`Saved "${draft.title}" as a guide`, {
-      description: "Available in your Guide Library next session (mock).",
-    });
+    const t = toast.loading(`Saving "${draft.title}"…`);
+    try {
+      const { guidesService } = await import("@/services/guidesService");
+      const saved = await guidesService.saveDraftAsGuide({
+        workspaceId: workspace.id,
+        draft,
+      });
+      toast.dismiss(t);
+      toast.success(`Saved "${saved.name}" to your Guide Library`);
+      queryClient.invalidateQueries({ queryKey: ["guides", workspace.id] });
+    } catch (err: any) {
+      toast.dismiss(t);
+      const msg = err?.message?.includes("PLAN_FEATURE_LOCKED")
+        ? "Custom guides are on the Pro plan."
+        : err?.message ?? "Could not save guide";
+      toast.error(msg);
+    }
   };
 
   return (

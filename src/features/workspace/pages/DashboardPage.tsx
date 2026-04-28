@@ -22,6 +22,25 @@ import { formatRelativeTime } from "@/utils/format";
 import { AssistantPanel } from "@/features/workspace/components/AssistantPanel";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { messagingService } from "@/services/messagingService";
+
+async function sendReminder(requestId: string, recipientName: string) {
+  const t = toast.loading(`Sending reminder to ${recipientName}…`);
+  try {
+    const result = await messagingService.send({ requestId, kind: "reminder" });
+    toast.dismiss(t);
+    if (result.delivery === "sent") {
+      toast.success(`Reminder sent to ${recipientName}`);
+    } else {
+      toast.message("Reminder logged", {
+        description: "We couldn't deliver an email this time, but we recorded the nudge.",
+      });
+    }
+  } catch (err: any) {
+    toast.dismiss(t);
+    toast.error(err?.message ?? "Could not send reminder");
+  }
+}
 
 export default function DashboardPage() {
   const requests = useRequests();
@@ -186,7 +205,7 @@ function DashboardList({ title, emptyLabel, items, ctaLabel, ctaHref, showRemind
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => toast.success(`Reminder sent to ${r.recipientName} (mock)`)}
+                      onClick={() => sendReminder(r.id, r.recipientName)}
                       aria-label="Send reminder"
                     >
                       <Bell className="h-4 w-4" />

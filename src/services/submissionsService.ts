@@ -120,6 +120,61 @@ export const submissionsService = {
     return count ?? 0;
   },
 
+  async updateStatus(id: string, status: SubmissionStatus): Promise<void> {
+    const patch: { status: SubmissionStatus; reviewed_at?: string } = { status };
+    if (status === "reviewed") patch.reviewed_at = new Date().toISOString();
+    const { error } = await supabase.from("submissions").update(patch).eq("id", id);
+    if (error) throw error;
+  },
+
+  async assignViaRequest(requestId: string, userId: string | null): Promise<void> {
+    const { error } = await supabase
+      .from("photo_brief_requests")
+      .update({ assigned_to: userId })
+      .eq("id", requestId);
+    if (error) throw error;
+  },
+
+  async addInternalNote(args: {
+    submissionId: string;
+    workspaceId: string;
+    body: string;
+  }): Promise<InternalNote> {
+    const { data: user } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from("internal_notes")
+      .insert({
+        submission_id: args.submissionId,
+        workspace_id: args.workspaceId,
+        user_id: user.user?.id ?? null,
+        note: args.body,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    const meta = (user.user?.user_metadata ?? {}) as Record<string, unknown>;
+    const profileName =
+      (typeof meta.name === "string" && meta.name) ||
+      (typeof meta.full_name === "string" && meta.full_name) ||
+      user.user?.email ||
+      "You";
+    const initials = String(profileName)
+      .split(/\s+/)
+      .map((p) => p[0])
+      .filter(Boolean)
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+    return {
+      id: data.id,
+      authorName: String(profileName),
+      authorInitials: initials || "YO",
+      body: data.note,
+      createdAt: data.created_at,
+    };
+  },
+
+
   /**
    * Recipient-side: create a submission row + upload media + insert captured_media.
    */
