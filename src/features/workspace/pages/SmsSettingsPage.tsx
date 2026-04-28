@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, ShieldCheck, AlertCircle, Trash2 } from "lucide-react";
+import { Loader2, ShieldCheck, AlertCircle, Trash2, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/PageHeader";
