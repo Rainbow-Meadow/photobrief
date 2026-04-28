@@ -52,10 +52,25 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPasswordPage />} />
           </Route>
 
-          {/* Onboarding + invite acceptance (no sidebar, but still auth-only) */}
+          {/* Onboarding + invite acceptance (no sidebar, but still auth-only).
+              Onboarding intentionally skips the onboarding gate to avoid loops. */}
           <Route element={<MarketingLayout />}>
-            <Route path="/onboarding" element={<RequireAuth><OnboardingPage /></RequireAuth>} />
-            <Route path="/invite/:token" element={<RequireAuth><AcceptInvitePage /></RequireAuth>} />
+            <Route
+              path="/onboarding"
+              element={
+                <RequireAuth requireOnboarding={false}>
+                  <OnboardingPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/invite/:token"
+              element={
+                <RequireAuth requireOnboarding={false}>
+                  <AcceptInvitePage />
+                </RequireAuth>
+              }
+            />
           </Route>
 
           {/* Authenticated business app */}
