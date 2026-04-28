@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InlineAuthCard } from "@/features/auth/components/InlineAuthCard";
+import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
 import mark from "@/assets/photobrief-mark.png";
 
 const features = [
@@ -236,6 +237,21 @@ export default function LandingPage() {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* PRICING ------------------------------------------------------------- */}
+      <section
+        id="pricing"
+        className="relative overflow-hidden border-y bg-gradient-brand py-16 text-white sm:py-20"
+      >
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-radial-glow" />
+        <div className="relative px-4 sm:px-6 lg:px-8">
+          <PricingCardGrid
+            variant="onDark"
+            heading="Pricing built for small teams."
+            subheading="Start free. Upgrade when PhotoBrief is saving you real time. Annual saves 20%."
+          />
         </div>
       </section>
 

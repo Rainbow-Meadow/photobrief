@@ -1,0 +1,217 @@
+import { useState } from "react";
+import { NavLink } from "react-router-dom";
+import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { planLimits, type PlanLimit } from "@/config/planLimits";
+import type { BillingInterval, Plan } from "@/types/photobrief";
+import { BillingIntervalToggle } from "./BillingIntervalToggle";
+import { FoundingProBadge } from "./FoundingProBadge";
+
+interface Props {
+  /** Where the per-card primary button should send the user. */
+  ctaTarget?: "signup" | "billing";
+  /** When set, hides Free + dims the user's current plan. */
+  currentPlan?: Plan;
+  /** Compact spacing for in-app billing page. */
+  compact?: boolean;
+  /** Surface variant — used on the dark hero band. */
+  variant?: "default" | "onDark";
+  /** Optional initial billing interval. Defaults to annual to highlight savings. */
+  defaultInterval?: BillingInterval;
+  className?: string;
+  heading?: string;
+  subheading?: string;
+}
+
+function ctaLabel(plan: PlanLimit, currentPlan?: Plan): string {
+  if (currentPlan && currentPlan === plan.id) return "Current plan";
+  if (plan.id === "free") return "Start free";
+  if (plan.id === "business") return "Talk to us";
+  return `Choose ${plan.name}`;
+}
+
+function ctaTo(plan: PlanLimit, target: "signup" | "billing"): string {
+  if (plan.id === "business") return "mailto:hello@photobrief.app?subject=Business%20plan";
+  if (target === "billing") return `/app/settings/billing?plan=${plan.id}`;
+  return `/auth?mode=signup&plan=${plan.id}`;
+}
+
+export function PricingCardGrid({
+  ctaTarget = "signup",
+  currentPlan,
+  compact = false,
+  variant = "default",
+  defaultInterval = "annual",
+  className,
+  heading,
+  subheading,
+}: Props) {
+  const [interval, setInterval] = useState<BillingInterval>(defaultInterval);
+  const onDark = variant === "onDark";
+
+  // Hide Free in-app once a user is paying — keep on landing.
+  const visiblePlans = planLimits.filter((p) => {
+    if (currentPlan && currentPlan !== "free" && p.id === "free") return false;
+    return true;
+  });
+
+  return (
+    <section className={cn("mx-auto max-w-7xl", className)}>
+      {(heading || subheading) && (
+        <div className="mx-auto max-w-2xl text-center">
+          {heading ? (
+            <h2
+              className={cn(
+                "text-3xl font-semibold tracking-tight sm:text-4xl",
+                onDark ? "text-white" : "text-foreground",
+              )}
+            >
+              {heading}
+            </h2>
+          ) : null}
+          {subheading ? (
+            <p className={cn("mt-3", onDark ? "text-white/75" : "text-muted-foreground")}>
+              {subheading}
+            </p>
+          ) : null}
+        </div>
+      )}
+
+      <div className="mt-8 flex flex-col items-center justify-center gap-3">
+        <BillingIntervalToggle value={interval} onChange={setInterval} variant={variant} />
+        <FoundingProBadge variant={onDark ? "onDark" : "default"} />
+      </div>
+
+      <div
+        className={cn(
+          "mt-10 grid gap-5",
+          compact ? "lg:grid-cols-3 xl:grid-cols-5" : "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5",
+        )}
+      >
+        {visiblePlans.map((plan) => {
+          const isCurrent = currentPlan === plan.id;
+          const price =
+            interval === "annual" ? plan.priceAnnualMonthly : plan.priceMonthly;
+          const annualTotal = Math.round(plan.priceAnnualMonthly * 12);
+          const showHighlight = plan.highlight && !isCurrent;
+
+          return (
+            <article
+              key={plan.id}
+              className={cn(
+                "relative flex flex-col rounded-2xl border p-6 transition",
+                onDark
+                  ? "border-white/15 bg-white/[0.06] text-white backdrop-blur"
+                  : "bg-card shadow-elev-sm hover:shadow-elev-md",
+                showHighlight &&
+                  (onDark
+                    ? "border-primary-glow/60 bg-white/[0.09] shadow-glow lg:-translate-y-2"
+                    : "border-primary/60 shadow-glow ring-1 ring-primary/30 lg:-translate-y-2"),
+                isCurrent && !onDark && "border-success/60 ring-1 ring-success/30",
+              )}
+            >
+              {showHighlight ? (
+                <span className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary-foreground shadow-elev-md">
+                  <Sparkles className="h-3 w-3" /> Most popular
+                </span>
+              ) : null}
+              {isCurrent ? (
+                <span className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 rounded-full bg-success px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-success-foreground">
+                  Current
+                </span>
+              ) : null}
+
+              <header>
+                <h3 className={cn("text-lg font-semibold", onDark ? "text-white" : "text-foreground")}>
+                  {plan.name}
+                </h3>
+                <p className={cn("mt-1 text-sm", onDark ? "text-white/70" : "text-muted-foreground")}>
+                  {plan.tagline}
+                </p>
+              </header>
+
+              <div className="mt-5 flex items-baseline gap-1">
+                <span
+                  className={cn(
+                    "text-4xl font-semibold tracking-tight",
+                    onDark ? "text-white" : "text-foreground",
+                  )}
+                >
+                  ${price}
+                </span>
+                <span className={cn("text-sm", onDark ? "text-white/60" : "text-muted-foreground")}>
+                  {plan.priceMonthly === 0 ? "" : "/mo"}
+                </span>
+              </div>
+              <p
+                className={cn(
+                  "mt-1 min-h-[1.25rem] text-xs",
+                  onDark ? "text-white/60" : "text-muted-foreground",
+                )}
+              >
+                {plan.priceMonthly === 0
+                  ? "Forever free"
+                  : interval === "annual"
+                    ? `Billed $${annualTotal}/yr · save 20%`
+                    : "Billed monthly"}
+              </p>
+
+              <Button
+                asChild
+                size="default"
+                disabled={isCurrent}
+                variant={showHighlight ? "default" : onDark ? "outline" : "outline"}
+                className={cn(
+                  "mt-5 w-full justify-center",
+                  onDark &&
+                    !showHighlight &&
+                    "border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white",
+                )}
+              >
+                <NavLink to={ctaTo(plan, ctaTarget)}>
+                  {ctaLabel(plan, currentPlan)}
+                  {!isCurrent && plan.id !== "free" ? <ArrowRight className="ml-1 h-4 w-4" /> : null}
+                </NavLink>
+              </Button>
+
+              <ul className="mt-6 space-y-2.5 text-sm">
+                {plan.features.slice(0, 7).map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <CheckCircle2
+                      className={cn(
+                        "mt-0.5 h-4 w-4 shrink-0",
+                        onDark ? "text-primary-glow" : "text-success",
+                      )}
+                    />
+                    <span className={onDark ? "text-white/85" : "text-foreground"}>{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {plan.features.length > 7 ? (
+                <p
+                  className={cn(
+                    "mt-4 text-xs",
+                    onDark ? "text-white/55" : "text-muted-foreground",
+                  )}
+                >
+                  + {plan.features.length - 7} more
+                </p>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+
+      <p
+        className={cn(
+          "mt-8 text-center text-xs",
+          onDark ? "text-white/55" : "text-muted-foreground",
+        )}
+      >
+        Prices in USD. Cancel anytime. Annual plans billed yearly.
+      </p>
+    </section>
+  );
+}
