@@ -17,6 +17,7 @@ import type { RequestDraft } from "@/types/requestDraft";
 import { aiService } from "@/services/aiService";
 import { notificationService } from "@/services/notificationService";
 import { requestsService } from "@/services/requestsService";
+import { messagingService } from "@/services/messagingService";
 import type { PhotoGuide } from "@/types/photobrief";
 import { UpgradePromptCard } from "@/components/shared/UpgradePromptCard";
 import { usePlan } from "@/hooks/usePlan";
@@ -119,11 +120,30 @@ export default function CreateRequestPage() {
       const link = `${window.location.origin}/r/${created.token}`;
       const recipient = draft.recipientName || "your customer";
 
+      // Send the recipient their link via Lovable Email (best-effort).
+      let delivery: "sent" | "logged_only" | "skipped" = "logged_only";
+      if (isEmail) {
+        try {
+          const result = await messagingService.send({
+            requestId: created.id,
+            kind: "initial",
+            channel: "email",
+          });
+          delivery = result.delivery;
+        } catch (sendErr) {
+          console.error("Failed to send recipient email", sendErr);
+          // Non-fatal: the request was created; the user can resend from the detail page.
+        }
+      }
+
       notificationService.notify({
         event: "request_created",
         audience: "business",
         title: `Request "${draft.title}" created`,
-        body: `Link ready for ${recipient}.`,
+        body:
+          delivery === "sent"
+            ? `Email sent to ${recipient}.`
+            : `Link ready for ${recipient}.`,
         href: `/requests/${created.id}`,
       });
       notificationService.notify({
@@ -134,6 +154,18 @@ export default function CreateRequestPage() {
         href: `/requests/${created.id}`,
         recipientEmail: isEmail ? contact : undefined,
       });
+
+      if (delivery === "sent") {
+        toast.success(`Email sent to ${recipient}`);
+      } else if (isEmail) {
+        toast.message("Request created", {
+          description: "Email is queued for delivery.",
+        });
+      } else {
+        toast.message("Request created", {
+          description: "Copy the link and share it with your customer.",
+        });
+      }
 
       queryClient.invalidateQueries({ queryKey: ["requests", workspace?.id] });
       navigate(`/requests/${created.id}`);
