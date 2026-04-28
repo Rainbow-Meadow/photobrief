@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
-import { Plus, Send, Eye, Bell, MoreHorizontal } from "lucide-react";
+import { Plus, Send, Eye, Bell, MoreHorizontal, Archive, Trash2, UserPlus, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ReadinessScoreBadge } from "@/components/shared/ReadinessScoreBadge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useRequests } from "@/hooks/useRequests";
@@ -22,6 +25,7 @@ import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { toast } from "sonner";
 import { notificationService } from "@/services/notificationService";
 import { messagingService } from "@/services/messagingService";
+import { requestsService } from "@/services/requestsService";
 import { usePlan } from "@/hooks/usePlan";
 import { getPlanLimit, minPlanFor } from "@/config/planLimits";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,12 +44,16 @@ export default function RequestsInboxPage() {
   const queryClient = useQueryClient();
   const { can } = usePlan();
   const canRemind = can("reminders");
+  const canBulk = can("bulk_actions");
+  const canAssign = can("assignments");
   const [searchParams] = useSearchParams();
   const initialStatus = (searchParams.get("status") ?? "all") as RequestStatus | "all";
   const [filters, setFilters] = useState<InboxFilterState>({
     ...defaultInboxFilters,
     status: initialStatus,
   });
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   // Realtime: refetch when this workspace's requests/submissions change.
   useEffect(() => {
