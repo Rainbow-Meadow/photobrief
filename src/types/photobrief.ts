@@ -97,6 +97,12 @@ export interface PhotoGuide {
   questions: ContextQuestion[];
 }
 
+export interface TeamMember {
+  id: string;
+  name: string;
+  initials: string;
+}
+
 export interface PhotoBriefRequest {
   id: string;
   workspaceId: string;
@@ -107,6 +113,15 @@ export interface PhotoBriefRequest {
   token: string;
   status: RequestStatus;
   createdAt: string;
+  /** 0-100 — latest known readiness score for this request. Undefined when nothing has been submitted yet. */
+  readinessScore?: number;
+  /** Short labels for items the recipient still owes (e.g. "Shut-off valve photo"). */
+  missingItems?: string[];
+  /** ISO timestamp of the last meaningful event (recipient action, AI feedback, reviewer comment). */
+  lastActivityAt?: string;
+  /** Optional assignee on the business side. */
+  assigneeId?: string;
+  assigneeName?: string;
 }
 
 export interface Submission {
