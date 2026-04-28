@@ -14,7 +14,7 @@ import {
 import { RequestDraftPreview } from "@/features/requests/components/RequestDraftPreview";
 import { draftFromGuide } from "@/types/requestDraft";
 import type { RequestDraft } from "@/types/requestDraft";
-import { requestBuilderAi } from "@/services/requestBuilderAi";
+import { aiService } from "@/services/aiService";
 import type { PhotoGuide } from "@/types/photobrief";
 import { UpgradePromptCard } from "@/components/shared/UpgradePromptCard";
 import { usePlan } from "@/hooks/usePlan";
@@ -48,12 +48,13 @@ export default function CreateRequestPage() {
     setIsGenerating(true);
 
     try {
-      const generated = await requestBuilderAi.generateRequestDraft(prompt);
+      const { draft: generated, assistantReply } = await aiService.generateGuideFromPrompt({
+        prompt,
+      });
       setDraft(generated);
-      const reply = await requestBuilderAi.assistantReply(prompt, generated);
       setChatMessages((m) =>
         m.map((msg) =>
-          msg.id === pendingMsg.id ? { ...msg, pending: false, text: reply } : msg,
+          msg.id === pendingMsg.id ? { ...msg, pending: false, text: assistantReply } : msg,
         ),
       );
     } catch (err) {
