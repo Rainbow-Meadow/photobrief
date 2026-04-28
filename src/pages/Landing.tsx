@@ -8,6 +8,7 @@ import { StatsBand } from "@/components/marketing/StatsBand";
 import { IndustryGrid } from "@/components/marketing/IndustryGrid";
 import { TestimonialsRow } from "@/components/marketing/TestimonialsRow";
 import { FinalCtaCard } from "@/components/marketing/FinalCtaCard";
+import { FoundingCustomerBanner } from "@/components/marketing/FoundingCustomerBanner";
 
 export default function LandingPage() {
   return (
@@ -82,6 +83,11 @@ export default function LandingPage() {
 
       {/* TESTIMONIALS -------------------------------------------------------- */}
       <TestimonialsRow />
+
+      {/* FOUNDING CUSTOMER BANNER ------------------------------------------- */}
+      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <FoundingCustomerBanner />
+      </section>
 
       {/* FINAL CTA ----------------------------------------------------------- */}
       <FinalCtaCard />
