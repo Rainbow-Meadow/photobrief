@@ -10,6 +10,8 @@ import { useRequest, useRequests } from "@/hooks/useRequests";
 import { requestStatusOptions } from "@/config/statusOptions";
 import { messagingService, type RequestMessage } from "@/services/messagingService";
 import { usePlan } from "@/hooks/usePlan";
+import { useSmsConfig } from "@/hooks/useSmsConfig";
+import { ChannelPicker, type SendChannel } from "@/components/messaging/ChannelPicker";
 import { formatRelativeTime } from "@/utils/format";
 
 export default function RequestDetailPage() {
@@ -19,9 +21,26 @@ export default function RequestDetailPage() {
   const status = requestStatusOptions[request.status];
   const { can } = usePlan();
   const canRemind = can("reminders");
+  const { smsReady, defaultChannel } = useSmsConfig();
+
+  const hasEmail = !!request?.recipientEmail;
+  const hasPhone = !!request?.recipientPhone;
 
   const [messages, setMessages] = useState<RequestMessage[]>([]);
   const [busy, setBusy] = useState<null | "send" | "remind">(null);
+  const [channel, setChannel] = useState<SendChannel>("email");
+
+  // Initialize channel from workspace default once we know SMS readiness +
+  // recipient's available contact fields.
+  useEffect(() => {
+    let next: SendChannel = smsReady ? defaultChannel : "email";
+    if (next === "sms" && !hasPhone) next = hasEmail ? "email" : "sms";
+    if (next === "both" && (!hasEmail || !hasPhone)) {
+      next = hasEmail ? "email" : "sms";
+    }
+    if (next === "email" && !hasEmail && hasPhone && smsReady) next = "sms";
+    setChannel(next);
+  }, [smsReady, defaultChannel, hasEmail, hasPhone]);
 
   useEffect(() => {
     if (!request?.id) return;
@@ -38,7 +57,7 @@ export default function RequestDetailPage() {
   async function sendInitial() {
     setBusy("send");
     try {
-      await messagingService.send({ requestId: request.id, kind: "initial" });
+      await messagingService.send({ requestId: request.id, kind: "initial", channel });
       toast.success("Request sent");
       const updated = await messagingService.list(request.id);
       setMessages(updated);
@@ -56,7 +75,7 @@ export default function RequestDetailPage() {
     }
     setBusy("remind");
     try {
-      await messagingService.send({ requestId: request.id, kind: "reminder" });
+      await messagingService.send({ requestId: request.id, kind: "reminder", channel });
       toast.success("Reminder sent");
       const updated = await messagingService.list(request.id);
       setMessages(updated);
@@ -107,6 +126,24 @@ export default function RequestDetailPage() {
             {busy === "remind" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
             Send reminder
           </Button>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">Send via:</span>
+          <ChannelPicker
+            value={channel}
+            onChange={setChannel}
+            smsAvailable={smsReady}
+            hasEmail={hasEmail}
+            hasPhone={hasPhone}
+          />
+          {!smsReady && (
+            <NavLink
+              to="/settings/sms"
+              className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+            >
+              Set up SMS
+            </NavLink>
+          )}
         </div>
       </section>
 
