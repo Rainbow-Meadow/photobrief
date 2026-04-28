@@ -21,7 +21,7 @@ export default function GuideLibraryPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {mockGuides.map((g) => (
+        {guides.map((g) => (
           <NavLink
             key={g.id}
             to={`/guides/${g.id}`}
