@@ -16,9 +16,13 @@ import { draftFromGuide } from "@/types/requestDraft";
 import type { RequestDraft } from "@/types/requestDraft";
 import { aiService } from "@/services/aiService";
 import { notificationService } from "@/services/notificationService";
+import { requestsService } from "@/services/requestsService";
 import type { PhotoGuide } from "@/types/photobrief";
 import { UpgradePromptCard } from "@/components/shared/UpgradePromptCard";
 import { usePlan } from "@/hooks/usePlan";
+import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
+import { useUsage } from "@/hooks/useUsage";
+import { useQueryClient } from "@tanstack/react-query";
 
 let mid = 0;
 const newId = () => `chat_${Date.now()}_${++mid}`;
@@ -26,11 +30,15 @@ const newId = () => `chat_${Date.now()}_${++mid}`;
 export default function CreateRequestPage() {
   const navigate = useNavigate();
   const { can } = usePlan();
+  const { workspace } = useCurrentWorkspace();
+  const { usage } = useUsage();
+  const queryClient = useQueryClient();
   const aiUnlocked = can("ai_request_builder");
   const [mode, setMode] = useState<BuilderMode>("template");
   const [draft, setDraft] = useState<RequestDraft | null>(null);
   const [chatMessages, setChatMessages] = useState<AiBuilderMessage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   const handleSelectTemplate = (guide: PhotoGuide) => {
     setDraft(draftFromGuide(guide));
