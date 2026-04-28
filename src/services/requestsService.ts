@@ -133,9 +133,36 @@ export const requestsService = {
         status: input.status ?? "sent",
         created_by: user.user?.id ?? null,
       })
-      .select("*, photo_guides(name)")
+      .select("*, photo_guides(name), business_workspaces(name), brand_profiles(intro_message)")
       .single();
     if (error) throw error;
+
+    // Fire-and-forget recipient email if we have an address.
+    if (input.recipientEmail) {
+      const link = `${window.location.origin}/r/${(data as any).token}`;
+      const businessName = (data as any).business_workspaces?.name ?? undefined;
+      const introMessage =
+        (data as any).brand_profiles?.intro_message ??
+        input.customMessage ??
+        undefined;
+      supabase.functions
+        .invoke("send-transactional-email", {
+          body: {
+            templateName: "recipient-request-link",
+            recipientEmail: input.recipientEmail,
+            idempotencyKey: `request-link-${(data as any).id}`,
+            templateData: {
+              recipientName: input.recipientName,
+              businessName,
+              introMessage,
+              link,
+              estimatedMinutes: 2,
+            },
+          },
+        })
+        .catch((e) => console.warn("recipient email failed", e));
+    }
+
     return toDomain(data as any, (data as any).photo_guides?.name ?? null, null);
   },
 
