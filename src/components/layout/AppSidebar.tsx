@@ -7,6 +7,7 @@ import {
   Settings,
   Sparkles,
   FileText,
+  MessageSquare,
 } from "lucide-react";
 
 import {
@@ -37,6 +38,7 @@ const settingsItems = [
   { title: "Brand", url: "/settings/brand", icon: Sparkles },
   { title: "Team", url: "/settings/team", icon: Settings },
   { title: "Templates", url: "/settings/templates", icon: FileText },
+  { title: "SMS", url: "/settings/sms", icon: MessageSquare },
   { title: "Billing", url: "/settings/billing", icon: CreditCard },
 ];
 

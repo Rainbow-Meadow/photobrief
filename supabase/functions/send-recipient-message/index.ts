@@ -152,6 +152,48 @@ Deno.serve(async (req) => {
     let deliveryStatus: "sent" | "logged_only" | "skipped" = "logged_only";
     let deliveryError: string | undefined;
 
+    if (channel === "sms") {
+      // Route SMS through the BYO Twilio send-sms function. It logs to
+      // sms_send_log AND inserts a request_messages row, so we return early
+      // and skip the email-side insert below.
+      if (!request.recipient_phone) {
+        return new Response(
+          JSON.stringify({ error: "Recipient has no phone number" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+      const { data: smsResult, error: smsErr } = await admin.functions.invoke(
+        "send-sms",
+        {
+          body: {
+            workspaceId: request.workspace_id,
+            requestId: request.id,
+            toNumber: request.recipient_phone,
+            body,
+            kind: payload.kind,
+          },
+          headers: { Authorization: auth },
+        },
+      );
+      if (smsErr) {
+        const ctx = (smsErr as { context?: { error?: string } }).context;
+        return new Response(
+          JSON.stringify({ error: ctx?.error ?? smsErr.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+      return new Response(
+        JSON.stringify({ ok: true, delivery: "sent", smsResult }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     if (channel === "email" && toEmail) {
       if (payload.kind === "initial") {
         const { error: sendErr } = await admin.functions.invoke(

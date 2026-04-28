@@ -771,6 +771,7 @@ export type Database = {
           body: string | null
           channel: string
           created_at: string
+          direction: string
           id: string
           kind: string
           metadata: Json
@@ -785,6 +786,7 @@ export type Database = {
           body?: string | null
           channel?: string
           created_at?: string
+          direction?: string
           id?: string
           kind: string
           metadata?: Json
@@ -799,6 +801,7 @@ export type Database = {
           body?: string | null
           channel?: string
           created_at?: string
+          direction?: string
           id?: string
           kind?: string
           metadata?: Json
@@ -810,6 +813,103 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: []
+      }
+      sms_send_log: {
+        Row: {
+          body: string
+          cost_amount: number | null
+          cost_currency: string | null
+          error_code: string | null
+          error_message: string | null
+          from_number: string
+          id: string
+          metadata: Json
+          request_id: string | null
+          sent_at: string
+          sent_by: string | null
+          status: string
+          to_number: string
+          twilio_message_sid: string | null
+          workspace_id: string
+        }
+        Insert: {
+          body: string
+          cost_amount?: number | null
+          cost_currency?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          from_number: string
+          id?: string
+          metadata?: Json
+          request_id?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+          to_number: string
+          twilio_message_sid?: string | null
+          workspace_id: string
+        }
+        Update: {
+          body?: string
+          cost_amount?: number | null
+          cost_currency?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          from_number?: string
+          id?: string
+          metadata?: Json
+          request_id?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+          to_number?: string
+          twilio_message_sid?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_send_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_suppressions: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json | null
+          phone_number: string
+          reason: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          phone_number: string
+          reason?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          phone_number?: string
+          reason?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_suppressions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       submissions: {
         Row: {
@@ -1225,6 +1325,65 @@ export type Database = {
             foreignKeyName: "workspace_members_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "business_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_sms_config: {
+        Row: {
+          account_sid: string
+          api_key_secret: string
+          api_key_secret_last4: string
+          api_key_sid: string
+          created_at: string
+          created_by: string | null
+          default_channel: string
+          enabled: boolean
+          from_number: string | null
+          from_number_friendly: string | null
+          last_error: string | null
+          updated_at: string
+          verified_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          account_sid: string
+          api_key_secret: string
+          api_key_secret_last4: string
+          api_key_sid: string
+          created_at?: string
+          created_by?: string | null
+          default_channel?: string
+          enabled?: boolean
+          from_number?: string | null
+          from_number_friendly?: string | null
+          last_error?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          account_sid?: string
+          api_key_secret?: string
+          api_key_secret_last4?: string
+          api_key_sid?: string
+          created_at?: string
+          created_by?: string | null
+          default_channel?: string
+          enabled?: boolean
+          from_number?: string | null
+          from_number_friendly?: string | null
+          last_error?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_sms_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "business_workspaces"
             referencedColumns: ["id"]
           },
