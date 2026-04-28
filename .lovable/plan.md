@@ -1,199 +1,89 @@
-# Wire up PhotoBrief pricing/billing — schema, gating, visuals
+# Sitewide design refresh around the PhotoBrief logo package
 
-Source of truth pulled from your Drive: `01_Strategy/02_pricing_and_plan_limits.md`, `08_Config_Blueprints/planLimits.example.ts`, `10_Go_To_Market/03_founding_pro_offer.md`. The current `src/config/planLimits.ts` doesn't match the spec — wrong tier set, wrong prices, wrong quotas. Everything below realigns to the spec.
+You uploaded 7 official assets. Today the app only uses two flat PNGs (`photobrief-logo.png` wordmark and `photobrief-mark.png` mark), and the favicon + OG image are still Lovable defaults. This plan installs the full package, retires the old files, and threads the right variant into every brand surface.
 
-## The five tiers (from the spec)
+## 1. Install the logo package
 
-| Tier | Monthly | Annual (~20% off) | Requests/mo | Users | Headline unlock |
-|---|---:|---:|---:|---:|---|
-| Free | $0 | $0 | 3 | 1 | Try the workflow |
-| Starter | $19 | $182/yr ($15.20/mo) | 25 | 1 | Branded request links |
-| Pro | $49 | $470/yr ($39.20/mo) | 150 | 3 | Custom guides + AI automation |
-| Team | $99 | $950/yr ($79.20/mo) | 500 | 10 | Team workflows |
-| Business | $199 | $1,910/yr ($159.20/mo) | 1,500+ | 25+ | White-label + integrations |
+Copy uploaded files into `src/assets/brand/` (and `public/` for static head/meta refs):
 
-**Founding Pro**: $29/mo for life, first 50 paying businesses. Locked Pro entitlements. Tracked as a coupon-driven badge on the Pro card and in billing.
+```text
+src/assets/brand/
+  photobrief-primary.png       (Primary_Transparent  — 3D camera mark, color)
+  photobrief-mark-dark.png     (Dark_Logo           — flat navy mark, on light bg)
+  photobrief-mark-light.png    (Light_Logo          — flat white mark, on dark bg)
+  photobrief-mark-cartoon.png  (Cartoon             — flat color mark, playful)
+  photobrief-wordmark.png      (Wordmark            — "PhotoBrief" type only)
+  photobrief-horizontal.png    (Horizontal          — mark + wordmark, lockup)
+  photobrief-stacked.png       (Stacked             — mark over wordmark)
 
-## What gets built
-
-### 1. Spec-aligned plan config
-- **Replace** `src/config/planLimits.ts`:
-  - `Plan` becomes `free | starter | pro | team | business` (drop `enterprise`).
-  - New quotas: `requestsPerMonth`, `users`, `historyMonths`, `aiChecksPerMonth`, `savedTemplates`.
-  - Capability keys aligned to spec: `branded_links`, `custom_guides`, `ai_guide_generator`, `advanced_ai_checks`, `missing_shot_followup`, `reminders`, `internal_notes`, `assignments`, `pdf_export` (`'basic' | 'branded' | 'full_branding' | 'custom'`), `saved_templates`, `bulk_actions`, `team_inbox`, `multi_workspace`, `custom_domain`, `white_label`, `api_webhooks`, `priority_support`.
-  - Add `priceMonthly`, `priceAnnualMonthly`, `stripeMonthlyPriceId?`, `stripeAnnualPriceId?` (filled in after Stripe setup).
-- **Update** `src/types/photobrief.ts` `Plan` union to match.
-- **Update** every existing call-site that uses removed feature keys (`white_label` already exists, `team_members` → `team_inbox`, `branding` → `branded_links`, etc.). Files affected: `RequestBuilderModeTabs.tsx`, `GuideLibraryPage.tsx`, `CreateRequestPage.tsx`, `TeamSettingsPage.tsx`, `SubmissionReviewPage.tsx`, `InternalNotesPanel.tsx`, `BrandSettingsPage.tsx`, `BillingSettingsPage.tsx`.
-
-### 2. Database — extend `subscriptions` + add audit field on workspaces
-The DB already has `subscriptions` and `usage_events`. Migration adds:
-
-- Extend `plan_tier` enum: add `'starter'` and `'team'`. (DB already has `free`, `pro`, `business`, `enterprise` — keep `enterprise` mapped to `business` in app for safety until rows are migrated; UI will only show the five spec tiers.)
-- Add columns to `subscriptions`: `billing_interval` (`'monthly' | 'annual'`), `current_period_start`, `current_period_end`, `cancel_at_period_end bool`, `is_founding_pro bool`, `trial_ends_at timestamptz`.
-- Add `usage_events.metadata jsonb` so we can record `{guide_id, ai_check_type, ...}`.
-- Add a SQL function `current_period_usage(_workspace_id uuid, _event_type text)` returning the count for the current billing period (defaults to calendar month when no period set). Used by the usage hook.
-- Add a SQL function `enforce_request_limit()` trigger on `photo_brief_requests` insert that rejects when the workspace is at its monthly cap (raises so the client can show the upgrade prompt).
-- Backfill existing free rows with `billing_interval='monthly'`, period = calendar month.
-- Backfill `business_workspaces.plan_tier` is fine since the column already exists; new signups stay `free` (handled by `handle_new_user`).
-- New table `founding_pro_claims (workspace_id pk, claimed_at)` so we can cap at 50.
-
-All RLS policies follow the existing workspace-member pattern.
-
-### 3. Real workspace + plan wiring
-- **Replace** `src/services/workspaceService.ts` mock with a real implementation:
-  - `current()` keeps a synchronous getter for compatibility, backed by `useCurrentWorkspace()` cache.
-  - New `useCurrentWorkspace()` hook: loads `business_workspaces` + `subscriptions` + `brand_profiles` for the signed-in user via `workspace_members`.
-  - Caches via React Query.
-- **Update** `usePlan` to read from the real subscription row (fallback `free`).
-- New `useUsage()` hook: pulls `current_period_usage` for `request_created` and `ai_check_run` and exposes `{ used, cap, pct, isOver, isNear }` per quota.
-
-### 4. Usage event writes
-Centralize in a small `usageService.ts` so call-sites stay clean:
-
-```ts
-usageService.record('request_created', { request_id })
-usageService.record('ai_check_run', { check_type })
-usageService.record('reminder_sent', { request_id })
+public/
+  favicon.png                  (from Cartoon — readable at 16/32px)
+  apple-touch-icon.png         (from Primary, 180×180)
+  og-image.png                 (1200×630 — Stacked on brand-navy gradient)
 ```
 
-Wire it from:
-- `requestService.create(...)` → `request_created`.
-- `aiService.analyzeCapturedMedia` → `ai_check_run` per check.
-- `notificationService` for `reminder_sent`.
+Delete the legacy `src/assets/photobrief-logo.png`, `src/assets/photobrief-mark.png`, and `public/favicon.ico` once references are migrated.
 
-### 5. Gating + upgrade prompts
-- New `useFeatureGate(feature)` hook returns `{ allowed, requiredPlan, ctaProps }`. Wraps `usePlan().can` plus the usage hook for `request_limit`.
-- New `<FeatureLock feature=... fallback?>` component: renders children when allowed, else renders `<UpgradePromptCard feature=...>`.
-- New `<UsageMeter quotaKey=... />` component: shared bar used on dashboard + billing.
-- Refresh `<UpgradePromptCard>`:
-  - Visual upgrade — keep gradient surface but use `bg-gradient-brand`, add the navy two-tone accent, and surface the *required plan name* as a chip ("Upgrade to Pro").
-  - New `compact` variant for in-table CTAs.
-  - When `feature='request_limit'` and `usage.pct >= 100`, button reads "You're out of requests — upgrade".
-- Trigger near-cap toasts at 80% and 100% via `notificationService` (one per period, stored in `localStorage` keyed by workspace+period).
+## 2. Upgrade `BrandMark` to a variant-aware component
 
-### 6. Stripe (Lovable built-in) setup
-- Run `recommend_payment_provider` to confirm fit, then call `enable_stripe_payments`.
-- After enable, create products via `batch_create_product`:
-  - Starter, Pro, Team, Business — each with `monthly` and `annual` prices.
-  - Tax handling: **automatic_tax (option 2)** by default — calculation only, since PhotoBrief sells globally and the seller likely wants flexibility. Each product gets the Stripe tax code `txcd_10103001` (Software as a Service — pre-written/non-customized).
-- Founding Pro = a 100%-discount-stacking coupon `FOUNDINGPRO` applied to the Pro monthly price, capped at 50 redemptions, locked-in price by storing $29 as `discount_amount`. (Stripe doesn't natively cap to 50 globally; we enforce in `founding_pro_claims` before creating the checkout session.)
-- New `supabase/functions/create-checkout/index.ts` (verify_jwt = true): takes `{ priceId, interval, foundingPro?: boolean }`, looks up the user's workspace, calls Stripe, returns hosted checkout URL.
-- New `supabase/functions/customer-portal/index.ts` (verify_jwt = true): returns Stripe billing portal URL.
-- New `supabase/functions/stripe-webhook/index.ts` (verify_jwt = false, signature verified): on `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` → upserts the workspace's `subscriptions` row (plan_tier, status, period dates, cancel_at_period_end, is_founding_pro).
+Replace the current 2-image component with a typed API so every surface picks the *right* asset instead of inverting/recoloring a single PNG:
 
-### 7. The marketing visuals (this is the design ask)
+```tsx
+type Variant = "horizontal" | "stacked" | "wordmark" | "mark" | "primary";
+type Tone    = "auto" | "light" | "dark" | "color";
 
-#### A — Pricing cards: a new `<PricingCardGrid>` shared component
-- Used on `/pricing`, on `/landing`, and on `/settings/billing`.
-- Five cards in a single row on desktop, 2-up on tablet, stacked on mobile.
-- **Card anatomy**:
-  ```text
-  ┌────────────────────────┐
-  │  Plan name             │  Optional ribbon: "Most popular" (Pro)
-  │  Tagline (1 line)      │            or "Founding offer · 27 left" (Pro variant)
-  │                        │
-  │  $49 /mo               │  Strikethrough $49 → $29 when foundingPro variant
-  │  $39.20/mo billed yr   │  Toggle-driven secondary line
-  │                        │
-  │  ✓ 150 requests/month  │  Top-3 quota-style bullets in primary navy
-  │  ✓ 3 users             │
-  │  ✓ Custom guides + AI  │
-  │  ───                   │
-  │  Everything in Starter │  Inherited bullet
-  │  + Internal notes      │  Plus-bullets specific to this tier
-  │  + Reminders           │
-  │                        │
-  │ [Choose Pro →]         │  Filled for highlight, outline for others
-  └────────────────────────┘
-  ```
-- Pro card gets:
-  - `ring-2 ring-primary/40`, soft `shadow-glow`, scale 1.03 on lg+
-  - "Most popular" ribbon (white text on primary).
-  - Founding Pro callout *underneath* the price block — small chip "Founding deal: $29/mo for life · {N}/50 left" linking to the founding offer details. Hidden once 50/50 claimed.
-- Free card gets a muted card style (no shadow, dashed border).
-- Business card gets the navy `bg-gradient-brand` treatment with white text — mirrors the hero on the landing page so the highest tier visually anchors the row.
-- Monthly/Annual toggle pill above the grid (`Tabs` component). Annual prices show "Save 20%" badge. Toggle state lifted via prop so the same component works on landing/pricing/billing.
+<BrandMark variant="horizontal" tone="auto" size={28} />
+```
 
-#### B — Landing page integration
-- Insert a new "Pricing" section between the value-prop band and the CTA band on `src/pages/Landing.tsx`.
-- Eyebrow + headline pair, the toggle, then `<PricingCardGrid variant="marketing">`.
-- Anchor `id="pricing"` and add a "Pricing" link in `MarketingLayout` header.
+Mapping rules:
+- `tone="light"` → uses `mark-light` (white) for dark backgrounds — no more CSS `invert` hack.
+- `tone="dark"`  → uses `mark-dark` (navy) for light backgrounds.
+- `tone="color"` → uses `primary` (3D) — for hero/marketing moments only.
+- `tone="auto"`  → respects `dark:` class via Tailwind.
+- `variant="horizontal"` and `variant="stacked"` use the prebuilt lockups (better kerning than ad-hoc mark+wordmark).
 
-#### C — Dedicated `/pricing` page
-- Rewrite `src/pages/Pricing.tsx`:
-  - Page-wide hero band with `bg-gradient-brand`, headline, monthly/annual toggle.
-  - `<PricingCardGrid variant="marketing">`.
-  - Founding Pro spotlight section: full-width card with the founding offer copy, urgency counter, and "Claim founding Pro" button (signed-out: → /auth?mode=signup&plan=pro&founding=1; signed-in: → checkout w/ coupon).
-  - Comparison table (already exists logic-wise on billing) re-skinned for marketing — sticky plan headers, alternating row tints.
-  - FAQ accordion (5–7 items pulled from spec wording).
+## 3. Surface-by-surface application
 
-#### D — Billing page (`/settings/billing`)
-- Top: "Current plan" hero card with plan name, status pill, renewal date, billing interval, "Manage billing" (→ Stripe portal) and "Change plan" buttons.
-- Usage section: `<UsageMeter>` per quota (requests, AI checks, users) with cap, %, and a "near cap" warning banner.
-- `<PricingCardGrid variant="billing">` — same component, "Current" badge on the active tier, plan downgrades go to portal, upgrades go to checkout.
-- Invoices list: pulled from Stripe via the customer portal (link out, no inline list yet).
+| Surface | Today | After |
+|---|---|---|
+| `MarketingLayout` header | `<BrandMark />` (horizontal PNG) | `variant="horizontal" tone="dark"` at h=32 |
+| `MarketingLayout` footer | same | `variant="wordmark" tone="dark"` at h=20, muted |
+| `AppSidebar` (collapsed) | mark only | `variant="mark" tone="auto"` at 24 |
+| `AppSidebar` (expanded) | wordmark | `variant="horizontal" tone="auto"` at 26 |
+| `Auth` page card | wordmark | `variant="stacked" tone="color"` (Primary mark + wordmark) — hero-grade welcome |
+| `Landing` hero right column | n/a | subtle floating `primary` mark watermark behind `InlineAuthCard` (very low opacity, decorative) |
+| `Landing` "Why teams switch" | flat mark @ opacity 90 | `variant="primary"` (3D) at h=160, no opacity reduction — let it shine |
+| `Landing` CTA band | n/a | small `mark-light` next to the headline for brand recall |
+| `PublicRequestLayout` header | generic primary square placeholder when no recipient logo | fallback to `variant="mark" tone="dark"` at 28 |
+| `index.html` `<title>` / meta | "Lovable App" / Lovable OG | "PhotoBrief — Take the right photos, every time." + new `og-image.png` + favicon set |
+| `<head>` icons | `favicon.ico` | `favicon.png` + `apple-touch-icon.png` + `theme-color` `#0A6BFF` |
 
-#### E — Upgrade prompts in-app
-- Use the refreshed `<UpgradePromptCard>` on:
-  - Create Request page when `request_limit` is hit (already a guard, swap to new card).
-  - Guide library when `custom_guides` blocked.
-  - Brand settings when `branded_links` blocked.
-  - Internal Notes panel when `internal_notes` blocked.
-  - Team Settings when `team_inbox` blocked.
-  - Submission Review "AI guide generator" when blocked.
-- Each prompt is named-feature aware so the chip says "Upgrade to Pro / Team / Business" automatically.
+## 4. Lockup, spacing & motion polish
 
-## Order of execution
+- Hero pages (`Landing`, `Pricing`, CTA bands) gain a faint, large `primary` mark as a decorative background element on the gradient (single-instance, blurred, ~8% opacity) — gives the brand a physical presence without crowding copy.
+- Stacked variant on `Auth` gets a soft 600ms fade-in using the existing `fade-in` keyframe.
+- `BrandMark` adds optional `withGlow` prop that drops `shadow-glow` behind the 3D mark on dark backgrounds (used in Auth + CTA only).
+- All instances get `loading="eager"` for above-the-fold (header, hero, auth) and `loading="lazy"` everywhere else.
 
-1. Run `recommend_payment_provider` → confirm Stripe fit.
-2. DB migration (new enum values, subscription columns, founding_pro_claims, RPC + trigger).
-3. Rewrite `planLimits.ts` + `Plan` type + update all gate call-sites.
-4. Real `workspaceService` + `useCurrentWorkspace` + updated `usePlan` + `useUsage`.
-5. `usageService` + wire write points.
-6. Build `PricingCardGrid`, `UsageMeter`, `FeatureLock`; refresh `UpgradePromptCard`.
-7. Rewrite `Pricing.tsx`, update `Landing.tsx`, update `BillingSettingsPage.tsx`.
-8. `enable_stripe_payments` (requires Pro plan — flag if not).
-9. Create products + coupon + Edge Functions (`create-checkout`, `customer-portal`, `stripe-webhook`).
-10. Smoke test the test-mode checkout on Pro monthly + Founding Pro.
+## 5. Microcopy + meta alignment
 
-## Files
+- `index.html`: title, description, OG/Twitter tags rewritten to PhotoBrief. `theme-color` and `apple-mobile-web-app-title` added.
+- `MarketingLayout` footer tagline already says "Take the right photos, every time" — keep, pair with new wordmark.
 
-**New**
-- `src/components/pricing/PricingCardGrid.tsx`
-- `src/components/pricing/PricingCard.tsx`
-- `src/components/pricing/BillingIntervalToggle.tsx`
-- `src/components/pricing/FoundingProBadge.tsx`
-- `src/components/shared/UsageMeter.tsx`
-- `src/components/shared/FeatureLock.tsx`
-- `src/hooks/useCurrentWorkspace.tsx`
-- `src/hooks/useUsage.ts`
-- `src/hooks/useFeatureGate.ts`
-- `src/services/usageService.ts`
-- `src/services/billingService.ts` (calls create-checkout / customer-portal)
-- `supabase/functions/create-checkout/index.ts`
-- `supabase/functions/customer-portal/index.ts`
-- `supabase/functions/stripe-webhook/index.ts`
+## Technical notes
 
-**Modified**
-- `src/types/photobrief.ts`
-- `src/config/planLimits.ts`
-- `src/services/workspaceService.ts`
-- `src/hooks/usePlan.ts`
-- `src/components/shared/UpgradePromptCard.tsx`
-- `src/pages/Pricing.tsx`
-- `src/pages/Landing.tsx`
-- `src/components/layout/MarketingLayout.tsx` (add Pricing nav link)
-- `src/features/billing/pages/BillingSettingsPage.tsx`
-- The 8 gate call-sites listed above
-- DB migration
+- All seven uploads are copied via `code--copy` from `user-uploads://` into `src/assets/brand/` and `public/`.
+- New `BrandMark.tsx` keeps the existing default export signature (`<BrandMark className size />`) backwards-compatible so unchanged call sites still render the horizontal lockup — only the source file changes.
+- Tailwind `dark:` selectors handle `tone="auto"` via two `<img>` tags swapped with `hidden dark:block` / `block dark:hidden` (no JS).
+- `og-image.png` is generated locally with ImageMagick (composite stacked logo on `--gradient-brand` background, 1200×630) and committed to `public/`.
+- `favicon.ico` is removed AFTER `index.html` is updated to point at `favicon.png`, to avoid the browser default request hitting a stale icon.
+- No backend, schema, or routing changes.
 
-## Out of scope
-- Multi-workspace switcher UI (Business plan unlocks it; the data model already supports it).
-- Per-seat billing math (Team/Business include a fixed seat count; over-cap is just a soft block on member invites).
-- Coupon engine beyond Founding Pro.
-- Inline invoice list (link to Stripe portal instead).
+## Files touched
 
-## Key design decisions to flag
-- **Tax**: Stripe automatic tax (calculation only). User registers and remits per jurisdiction. Switching to "managed_payments" later requires Stripe US/EU residency.
-- **Founding cap**: enforced server-side in `founding_pro_claims` before checkout creation — Stripe coupons alone can't cap globally.
-- **Annual discount**: hard-coded 20% on the public side; actual Stripe annual prices are stored on the plan config so the cards never show a number Stripe doesn't have.
+- **Add**: 7 brand PNGs in `src/assets/brand/`, `public/favicon.png`, `public/apple-touch-icon.png`, `public/og-image.png`
+- **Rewrite**: `src/components/layout/BrandMark.tsx`, `index.html`
+- **Edit**: `MarketingLayout.tsx`, `AppSidebar.tsx`, `PublicRequestLayout.tsx`, `pages/Landing.tsx`, `pages/Auth.tsx`
+- **Delete**: `src/assets/photobrief-logo.png`, `src/assets/photobrief-mark.png`, `public/favicon.ico`
+
+Approve and I'll switch to build mode and ship it.
