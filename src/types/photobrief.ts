@@ -49,7 +49,7 @@ export type ContextQuestionInputType =
   | "multi_select"
   | "number";
 
-export type Plan = "free" | "pro" | "team";
+export type Plan = "free" | "pro" | "business" | "enterprise";
 
 export interface BusinessWorkspace {
   id: string;
