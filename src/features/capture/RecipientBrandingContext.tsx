@@ -8,6 +8,7 @@ export interface RecipientBranding {
   businessName: string;
   brandColor?: string;
   logoUrl?: string;
+  completionBody?: string;
 }
 
 const Ctx = createContext<RecipientBranding | null>(null);
