@@ -218,7 +218,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (channel === "email" && toEmail) {
+    const includeEmail = channel === "email" || channel === "both";
+    if (includeEmail && toEmail) {
       if (payload.kind === "initial") {
         const { error: sendErr } = await admin.functions.invoke(
           "send-transactional-email",
@@ -238,7 +239,9 @@ Deno.serve(async (req) => {
           },
         );
         if (sendErr) {
-          deliveryError = sendErr.message;
+          deliveryError = deliveryError
+            ? `${deliveryError}; email failed: ${sendErr.message}`
+            : sendErr.message;
           deliveryStatus = "logged_only";
         } else {
           deliveryStatus = "sent";
@@ -247,7 +250,7 @@ Deno.serve(async (req) => {
         // Reminders/followups: queue path will land in a later stage. Logged.
         deliveryStatus = "logged_only";
       }
-    } else if (channel === "email" && !toEmail) {
+    } else if (includeEmail && !toEmail) {
       deliveryStatus = "skipped";
     }
 
