@@ -1,66 +1,144 @@
-import { useParams, NavLink } from "react-router-dom";
-import { Camera, MessageSquare, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ChatThread } from "@/features/capture/components/ChatThread";
+import { ChatMessage } from "@/features/capture/components/ChatMessage";
+import { PhotoPromptCard } from "@/features/capture/components/PhotoPromptCard";
+import { CaptureUploadCard } from "@/features/capture/components/CaptureUploadCard";
+import { AIFeedbackMessage } from "@/features/capture/components/AIFeedbackMessage";
+import { RetakeDecisionCard } from "@/features/capture/components/RetakeDecisionCard";
+import { QuestionCard } from "@/features/capture/components/QuestionCard";
+import { ReviewSummaryCard } from "@/features/capture/components/ReviewSummaryCard";
+import { SubmitConfirmationCard } from "@/features/capture/components/SubmitConfirmationCard";
+import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
+import {
+  RecipientBrandingProvider,
+} from "@/features/capture/RecipientBrandingContext";
+import { getRecipientContext } from "@/features/capture/recipientContext";
+import { useChatFlow } from "@/hooks/useChatFlow";
 
 /**
- * Public recipient page — Phase 1 preview.
- * Renders a chat-first intro card. The full ChatThread + capture cards
- * land in Phase 4 (capture engine) and Phase 6 (chat-first conversion).
+ * Public recipient page — chat-first capture flow.
+ * Generic over any guide via getRecipientContext(token). The layout shows
+ * branded business name; this page renders the ChatThread with all messages.
  */
 export default function PublicRecipientPage() {
   const { token } = useParams();
+  const navigate = useNavigate();
+  const ctx = useMemo(() => getRecipientContext(token), [token]);
+
+  const flow = useChatFlow({
+    guide: ctx.guide,
+    businessName: ctx.businessName,
+    introBody: ctx.introBody,
+  });
+
+  const handleSubmit = () => {
+    flow.submitAll();
+    // Also keep the legacy /done route reachable for sharing
+    setTimeout(() => navigate(`/r/${token ?? "demo"}/done`, { replace: false }), 1600);
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Assistant intro message — placeholder for ChatThread/AssistantMessage components */}
-      <div className="flex gap-3">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground">
-          <MessageSquare className="h-4 w-4" />
-        </span>
-        <div className="flex-1 rounded-2xl rounded-tl-sm border bg-card p-4 shadow-elev-sm">
-          <p className="text-sm font-medium text-foreground">Hi! Bright Spark Plumbing here.</p>
-          <p className="mt-1 text-sm text-foreground/90">
-            Thanks for reaching out about the leak. I'll walk you through a few quick photos so we can
-            quote you accurately. Should take about 2 minutes — no app to download.
-          </p>
-        </div>
-      </div>
+    <RecipientBrandingProvider
+      value={{ businessName: ctx.businessName, brandColor: ctx.brandColor }}
+    >
+      <div className="space-y-4">
+        <ReadinessProgress
+          value={flow.progress.total === 0 ? 0 : (flow.progress.done / flow.progress.total) * 100}
+          label={`${flow.progress.done} of ${flow.progress.total} steps`}
+        />
 
-      {/* Photo prompt card preview */}
-      <div className="flex gap-3">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground">
-          <MessageSquare className="h-4 w-4" />
-        </span>
-        <div className="flex-1 space-y-3">
-          <div className="rounded-2xl rounded-tl-sm border bg-card p-4 shadow-elev-sm">
-            <p className="text-sm text-foreground">First, a wide shot of the area under the leak.</p>
-          </div>
-          <div className="rounded-2xl border-2 border-dashed bg-card p-6 text-center shadow-elev-sm">
-            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground">
-              <Camera className="h-5 w-5" />
-            </span>
-            <p className="mt-3 text-sm font-medium text-foreground">Take or upload a photo</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">Step 1 of 5</p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              <Button size="sm" className="gap-1.5">
-                <Camera className="h-4 w-4" /> Take photo
-              </Button>
-              <Button variant="outline" size="sm">Upload</Button>
-            </div>
-          </div>
-        </div>
+        <ChatThread autoScrollKey={flow.messages.length}>
+          {flow.messages.map((msg) => {
+            switch (msg.kind) {
+              case "assistant_text":
+                return (
+                  <ChatMessage key={msg.id} from="assistant">
+                    <p className="text-sm">{msg.text}</p>
+                  </ChatMessage>
+                );
+              case "user_text":
+                return (
+                  <ChatMessage key={msg.id} from="user">
+                    <p className="text-sm">{msg.text}</p>
+                  </ChatMessage>
+                );
+              case "photo_prompt":
+                return (
+                  <ChatMessage key={msg.id} from="assistant">
+                    <PhotoPromptCard step={msg.step} index={msg.index} total={msg.total} />
+                  </ChatMessage>
+                );
+              case "capture_card":
+                return (
+                  <ChatMessage key={msg.id} from="assistant" bare>
+                    <CaptureUploadCard
+                      step={msg.step}
+                      pending={msg.pending}
+                      onCapture={flow.submitPhoto}
+                    />
+                  </ChatMessage>
+                );
+              case "user_photo":
+                return (
+                  <ChatMessage key={msg.id} from="user" bare>
+                    <img
+                      src={msg.photo.previewUrl}
+                      alt="Submitted"
+                      className="block max-h-72 w-full object-cover"
+                    />
+                  </ChatMessage>
+                );
+              case "ai_feedback":
+                return (
+                  <ChatMessage key={msg.id} from="assistant">
+                    <AIFeedbackMessage photo={msg.photo} verdict={msg.verdict} />
+                  </ChatMessage>
+                );
+              case "retake_decision":
+                return (
+                  <ChatMessage key={msg.id} from="assistant">
+                    <RetakeDecisionCard
+                      photo={msg.photo}
+                      step={msg.step}
+                      onRetake={flow.retake}
+                      onUseAnyway={flow.useAnyway}
+                    />
+                  </ChatMessage>
+                );
+              case "question":
+                return (
+                  <ChatMessage key={msg.id} from="assistant">
+                    <QuestionCard question={msg.question} onAnswer={flow.answerQuestion} />
+                  </ChatMessage>
+                );
+              case "review_summary":
+                return (
+                  <ChatMessage key={msg.id} from="assistant" bare>
+                    <div className="p-4">
+                      <ReviewSummaryCard
+                        guide={ctx.guide}
+                        photos={flow.photos}
+                        answers={flow.answers}
+                        onSubmit={handleSubmit}
+                      />
+                    </div>
+                  </ChatMessage>
+                );
+              case "submit_confirmation":
+                return (
+                  <ChatMessage key={msg.id} from="assistant" bare>
+                    <div className="p-4">
+                      <SubmitConfirmationCard businessName={ctx.businessName} />
+                    </div>
+                  </ChatMessage>
+                );
+              default:
+                return null;
+            }
+          })}
+        </ChatThread>
       </div>
-
-      <p className="pt-2 text-center text-xs text-muted-foreground">
-        Phase 1 preview — token <code>{token}</code>. Full chat capture flow lands in Phase 6.
-      </p>
-
-      <div className="pt-2 text-center">
-        <Button asChild variant="ghost" size="sm" className="gap-1">
-          <NavLink to={`/r/${token}/done`}>
-            Skip to confirmation preview <ArrowRight className="h-3.5 w-3.5" />
-          </NavLink>
-        </Button>
-      </div>
-    </div>
+    </RecipientBrandingProvider>
   );
 }
