@@ -1,4 +1,5 @@
 import { Camera, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
+import leakPhoto from "@/assets/leak-photo.jpg";
 
 /**
  * Decorative product preview — pure CSS, no real product behavior.
@@ -43,9 +44,17 @@ export function HeroProductMockup() {
                   <p className="text-[11px] text-muted-foreground">Close-up of the leak</p>
                 </div>
               </div>
-              <div className="relative mt-3 aspect-[4/3] overflow-hidden rounded-lg bg-gradient-to-br from-muted to-secondary">
+              <div className="relative mt-3 aspect-[4/3] overflow-hidden rounded-lg bg-muted">
+                <img
+                  src={leakPhoto}
+                  alt="Close-up of a leaking P-trap pipe under a kitchen sink"
+                  width={768}
+                  height={576}
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
                 {/* faux framing overlay */}
-                <div className="absolute inset-4 rounded-md border-2 border-dashed border-white/60" />
+                <div className="absolute inset-4 rounded-md border-2 border-dashed border-white/70" />
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold text-primary-foreground shadow-sm">
                   Get close, keep it in focus
                 </div>
