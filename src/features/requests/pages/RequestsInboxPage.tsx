@@ -200,15 +200,80 @@ export default function RequestsInboxPage() {
       />
 
       <div className="overflow-hidden rounded-lg border bg-card shadow-elev-sm">
-        <div className="flex items-center justify-between border-b px-5 py-3 text-xs text-muted-foreground">
-          <span>
-            {filtered.length} {filtered.length === 1 ? "request" : "requests"}
-          </span>
-        </div>
+        {selected.size > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 border-b bg-primary/5 px-5 py-2 text-xs">
+            <span className="font-medium text-foreground">
+              {selected.size} selected
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1"
+              onClick={handleBulkArchive}
+              disabled={bulkBusy}
+            >
+              <Archive className="h-3.5 w-3.5" /> Archive
+              {!canBulk ? <span className="ml-1 text-[10px] uppercase text-primary">Pro</span> : null}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 gap-1" disabled={bulkBusy}>
+                  <UserPlus className="h-3.5 w-3.5" /> Assign
+                  {!canAssign ? <span className="ml-1 text-[10px] uppercase text-primary">Pro</span> : null}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuLabel>Assign to</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleBulkAssign(null, "Unassigned")}>
+                  Unassigned
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {teamMembers.map((m) => (
+                  <DropdownMenuItem key={m.id} onClick={() => handleBulkAssign(m.id, m.name)}>
+                    {m.name}
+                  </DropdownMenuItem>
+                ))}
+                {teamMembers.length === 0 ? (
+                  <DropdownMenuItem disabled>No teammates yet</DropdownMenuItem>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 text-destructive hover:text-destructive"
+              onClick={handleBulkDelete}
+              disabled={bulkBusy}
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Delete
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto h-7 gap-1"
+              onClick={clearSelection}
+            >
+              <X className="h-3.5 w-3.5" /> Clear
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between border-b px-5 py-3 text-xs text-muted-foreground">
+            <span>
+              {filtered.length} {filtered.length === 1 ? "request" : "requests"}
+            </span>
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
+                <th className="w-10 px-3 py-3">
+                  <Checkbox
+                    aria-label="Select all"
+                    checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                    onCheckedChange={toggleAll}
+                  />
+                </th>
                 <th className="px-5 py-3 font-medium">Recipient</th>
                 <th className="px-5 py-3 font-medium">Guide</th>
                 <th className="px-5 py-3 font-medium">Status</th>
@@ -222,15 +287,23 @@ export default function RequestsInboxPage() {
             <tbody className="divide-y">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center text-sm text-muted-foreground">
+                  <td colSpan={9} className="px-5 py-10 text-center text-sm text-muted-foreground">
                     No requests match these filters.
                   </td>
                 </tr>
               ) : (
                 filtered.map((r) => {
                   const status = requestStatusOptions[r.status];
+                  const isSel = selected.has(r.id);
                   return (
-                    <tr key={r.id} className="hover:bg-muted/30">
+                    <tr key={r.id} className={isSel ? "bg-primary/5" : "hover:bg-muted/30"}>
+                      <td className="px-3 py-3 align-top">
+                        <Checkbox
+                          aria-label={`Select request for ${r.recipientName}`}
+                          checked={isSel}
+                          onCheckedChange={() => toggleOne(r.id)}
+                        />
+                      </td>
                       <td className="px-5 py-3 align-top">
                         <p className="font-medium text-foreground">{r.recipientName}</p>
                         <p className="text-xs text-muted-foreground">{r.recipientContact}</p>
