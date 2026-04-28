@@ -212,6 +212,7 @@ export type Database = {
           label: string
           options: Json | null
           order_index: number
+          reason_to_ask: string | null
           required: boolean
           updated_at: string
         }
@@ -225,6 +226,7 @@ export type Database = {
           label: string
           options?: Json | null
           order_index: number
+          reason_to_ask?: string | null
           required?: boolean
           updated_at?: string
         }
@@ -238,6 +240,7 @@ export type Database = {
           label?: string
           options?: Json | null
           order_index?: number
+          reason_to_ask?: string | null
           required?: boolean
           updated_at?: string
         }
@@ -664,7 +667,9 @@ export type Database = {
           name: string
           nested_category: string | null
           output_type: Database["public"]["Enums"]["output_type"] | null
+          recommended_plan_tier: string | null
           updated_at: string
+          workflow_type: string | null
           workspace_id: string | null
         }
         Insert: {
@@ -679,7 +684,9 @@ export type Database = {
           name: string
           nested_category?: string | null
           output_type?: Database["public"]["Enums"]["output_type"] | null
+          recommended_plan_tier?: string | null
           updated_at?: string
+          workflow_type?: string | null
           workspace_id?: string | null
         }
         Update: {
@@ -694,7 +701,9 @@ export type Database = {
           name?: string
           nested_category?: string | null
           output_type?: Database["public"]["Enums"]["output_type"] | null
+          recommended_plan_tier?: string | null
           updated_at?: string
+          workflow_type?: string | null
           workspace_id?: string | null
         }
         Relationships: [
@@ -1280,11 +1289,12 @@ export type Database = {
         | "expired"
       submission_status: "new" | "reviewed" | "needs_more" | "archived"
       topline_category:
-        | "service_quote_intake"
-        | "property_proof_records"
-        | "product_support_claims"
-        | "sales_marketing_content"
+        | "field_service_quote_intake"
+        | "property_realestate_claims"
+        | "commerce_warranty_resale"
+        | "marketing_content_capture"
         | "custom_business_intake"
+        | "care_health_living_systems"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1477,11 +1487,12 @@ export const Constants = {
       ],
       submission_status: ["new", "reviewed", "needs_more", "archived"],
       topline_category: [
-        "service_quote_intake",
-        "property_proof_records",
-        "product_support_claims",
-        "sales_marketing_content",
+        "field_service_quote_intake",
+        "property_realestate_claims",
+        "commerce_warranty_resale",
+        "marketing_content_capture",
         "custom_business_intake",
+        "care_health_living_systems",
       ],
     },
   },
