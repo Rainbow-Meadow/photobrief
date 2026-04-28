@@ -85,11 +85,14 @@ export default function CreateRequestPage() {
     }
   };
 
-  // Mock current usage — wired to real counts in a later phase.
-  const requestsUsedThisMonth = 42;
+  const requestsUsedThisMonth = usage.requests;
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!draft) return;
+    if (!workspace?.id) {
+      toast.error("Workspace not loaded yet — try again in a moment.");
+      return;
+    }
     if (!can("request_limit", requestsUsedThisMonth)) {
       toast.error("You've hit this month's request limit", {
         description: "Upgrade to send more briefs this month.",
@@ -97,27 +100,52 @@ export default function CreateRequestPage() {
       });
       return;
     }
-    // Phase 3: mock — generate the link, fire lifecycle events, then go to inbox.
-    const token = `tok_${Math.random().toString(36).slice(2, 8)}`;
-    const link = `${window.location.origin}/r/${token}`;
-    const recipient = draft.recipientName || "your customer";
 
-    notificationService.notify({
-      event: "request_created",
-      audience: "business",
-      title: `Request "${draft.title}" created`,
-      body: `Draft saved — link ready for ${recipient}.`,
-      href: "/requests",
-    });
-    notificationService.notify({
-      event: "request_sent",
-      audience: "recipient",
-      title: `Request sent to ${recipient}`,
-      body: link,
-      href: "/requests",
-      recipientEmail: draft.recipientContact,
-    });
-    navigate("/requests");
+    setIsCreating(true);
+    try {
+      // Determine recipient channel.
+      const contact = draft.recipientContact?.trim() ?? "";
+      const isEmail = contact.includes("@");
+      const created = await requestsService.create({
+        workspaceId: workspace.id,
+        guideId: draft.baseGuideId ?? null,
+        recipientName: draft.recipientName || "Recipient",
+        recipientEmail: isEmail ? contact : undefined,
+        recipientPhone: !isEmail && contact ? contact : undefined,
+        customMessage: draft.introMessage,
+        status: "sent",
+      });
+
+      const link = `${window.location.origin}/r/${created.token}`;
+      const recipient = draft.recipientName || "your customer";
+
+      notificationService.notify({
+        event: "request_created",
+        audience: "business",
+        title: `Request "${draft.title}" created`,
+        body: `Link ready for ${recipient}.`,
+        href: `/requests/${created.id}`,
+      });
+      notificationService.notify({
+        event: "request_sent",
+        audience: "recipient",
+        title: `Request sent to ${recipient}`,
+        body: link,
+        href: `/requests/${created.id}`,
+        recipientEmail: isEmail ? contact : undefined,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["requests", workspace.id] });
+      navigate(`/requests/${created.id}`);
+    } catch (err: any) {
+      console.error(err);
+      const msg = err?.message?.includes("PLAN_LIMIT_REACHED")
+        ? "You've hit this month's request limit on your current plan."
+        : err?.message ?? "Could not create request";
+      toast.error(msg);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleSaveAsGuide = () => {
