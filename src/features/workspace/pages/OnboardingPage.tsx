@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
+import { withSupabaseRetry, isTransientSupabaseError } from "@/lib/supabaseRetry";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,6 +81,9 @@ export default function OnboardingPage() {
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [saving, setSaving] = useState(false);
+  const [repairing, setRepairing] = useState(false);
+  const [finishError, setFinishError] = useState<string | null>(null);
+  const autoRepairTried = useRef(false);
   const [form, setForm] = useState<FormState>({
     workspaceName: "",
     industry: "",
@@ -87,6 +91,34 @@ export default function OnboardingPage() {
     introMessage: "Hi! Help us help you — a few quick photos.",
     completionMessage: "Thanks! We've got everything we need.",
   });
+
+  // Server-side fallback: provision the workspace + bootstrap rows if the
+  // signup trigger somehow skipped them (or a transient Cloud failure left
+  // the user with no default_workspace_id). Idempotent; safe to retry.
+  const repairWorkspace = async (silent = false) => {
+    setRepairing(true);
+    try {
+      const { error } = await supabase.functions.invoke("ensure-workspace", {
+        body: {},
+      });
+      if (error) throw error;
+      await refetch();
+      if (!silent) toast.success("Workspace ready");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not repair workspace";
+      if (!silent) toast.error(msg);
+    } finally {
+      setRepairing(false);
+    }
+  };
+
+  // Auto-repair once if the workspace can't be loaded after auth resolves.
+  useEffect(() => {
+    if (wsLoading || workspace?.id || !user?.id || autoRepairTried.current) return;
+    autoRepairTried.current = true;
+    void repairWorkspace(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wsLoading, workspace?.id, user?.id]);
 
   // Seed initial values from the workspace + brand profile created by the
   // signup trigger so we don't blow away anything the user has already set.
@@ -151,23 +183,31 @@ export default function OnboardingPage() {
     }
 
     setSaving(true);
+    setFinishError(null);
     try {
       // Workspace name + industry
-      const { error: wsErr } = await supabase
-        .from("business_workspaces")
-        .update({
-          name: basics.data.workspaceName,
-          industry: basics.data.industry,
-        })
-        .eq("id", workspace.id);
+      const { error: wsErr } = await withSupabaseRetry(async () =>
+        await supabase
+          .from("business_workspaces")
+          .update({
+            name: basics.data.workspaceName,
+            industry: basics.data.industry,
+          })
+          .eq("id", workspace.id)
+          .select("id")
+          .maybeSingle(),
+      );
       if (wsErr) throw wsErr;
 
       // Brand profile (a row was seeded by handle_new_user; update in place).
-      const { data: existing } = await supabase
-        .from("brand_profiles")
-        .select("id")
-        .eq("workspace_id", workspace.id)
-        .maybeSingle();
+      const { data: existing, error: existErr } = await withSupabaseRetry(async () =>
+        await supabase
+          .from("brand_profiles")
+          .select("id")
+          .eq("workspace_id", workspace.id)
+          .maybeSingle(),
+      );
+      if (existErr) throw existErr;
 
       const brandPayload = {
         workspace_id: workspace.id,
@@ -175,23 +215,44 @@ export default function OnboardingPage() {
         intro_message: brand.data.introMessage,
         completion_message: brand.data.completionMessage,
       };
-      const { error: bpErr } = existing?.id
-        ? await supabase.from("brand_profiles").update(brandPayload).eq("id", existing.id)
-        : await supabase.from("brand_profiles").insert(brandPayload);
+      const existingId = (existing as { id?: string } | null)?.id;
+      const { error: bpErr } = await withSupabaseRetry(async () =>
+        existingId
+          ? await supabase
+              .from("brand_profiles")
+              .update(brandPayload)
+              .eq("id", existingId)
+              .select("id")
+              .maybeSingle()
+          : await supabase
+              .from("brand_profiles")
+              .insert(brandPayload)
+              .select("id")
+              .maybeSingle(),
+      );
       if (bpErr) throw bpErr;
 
       // Mark onboarding as complete.
-      const { error: profErr } = await supabase
-        .from("profiles")
-        .update({ onboarded_at: new Date().toISOString() })
-        .eq("id", user.id);
+      const { error: profErr } = await withSupabaseRetry(async () =>
+        await supabase
+          .from("profiles")
+          .update({ onboarded_at: new Date().toISOString() })
+          .eq("id", user.id)
+          .select("id")
+          .maybeSingle(),
+      );
       if (profErr) throw profErr;
 
       await refetch();
       toast.success("You're all set");
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Could not save your workspace";
+      const errObj = err as { code?: string; message?: string } | undefined;
+      const transient = isTransientSupabaseError(errObj);
+      const msg = transient
+        ? "We're having trouble reaching the backend. Wait a moment and try again."
+        : errObj?.message ?? "Could not save your workspace";
+      setFinishError(msg);
       toast.error(msg);
     } finally {
       setSaving(false);
@@ -253,6 +314,39 @@ export default function OnboardingPage() {
           style={{ width: `${progress}%` }}
         />
       </div>
+
+      {!wsLoading && !workspace?.id ? (
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+          <div className="flex-1 space-y-2">
+            <p className="font-medium text-foreground">
+              We can't reach your workspace right now
+            </p>
+            <p className="text-muted-foreground">
+              This usually clears in a few seconds. You can keep filling in the form
+              and we'll save it once the connection recovers.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button type="button" size="sm" variant="outline" onClick={() => void refetch()} disabled={repairing}>
+                Retry
+              </Button>
+              <Button type="button" size="sm" onClick={() => void repairWorkspace(false)} disabled={repairing}>
+                {repairing ? (
+                  <span className="inline-flex items-center">
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    Repairing…
+                  </span>
+                ) : (
+                  "Repair workspace"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="rounded-xl border bg-card p-6 shadow-elev-sm">
         {step === 1 ? (
@@ -393,6 +487,27 @@ export default function OnboardingPage() {
           </div>
         ) : null}
 
+        {finishError ? (
+          <div
+            role="alert"
+            className="mt-5 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs text-foreground"
+          >
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+            <div className="flex-1 space-y-1.5">
+              <p>{finishError}</p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void handleFinish()}
+                disabled={saving}
+              >
+                Try again
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         <div className="mt-6 flex items-center justify-between">
           <Button
             type="button"
@@ -412,7 +527,14 @@ export default function OnboardingPage() {
             <Button
               type="button"
               onClick={handleFinish}
-              disabled={saving || wsLoading}
+              disabled={saving || wsLoading || !workspace?.id}
+              title={
+                wsLoading
+                  ? "Loading workspace…"
+                  : !workspace?.id
+                    ? "Workspace unavailable — tap Repair above"
+                    : undefined
+              }
               className="gap-1.5"
             >
               {saving ? (

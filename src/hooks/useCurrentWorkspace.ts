@@ -11,6 +11,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { withSupabaseRetry as withRetry } from "@/lib/supabaseRetry";
 import type { Plan, BillingInterval } from "@/types/photobrief";
 
 export interface CurrentWorkspace {
@@ -25,37 +26,6 @@ export interface CurrentWorkspace {
   cancelAtPeriodEnd: boolean;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
-}
-
-const TRANSIENT_CODES = new Set(["PGRST001", "PGRST002", "503"]);
-
-function isTransient(error: { code?: string; message?: string } | null | undefined): boolean {
-  if (!error) return false;
-  const code = error.code ?? "";
-  const msg = error.message ?? "";
-  return (
-    TRANSIENT_CODES.has(code) ||
-    msg.includes("schema cache") ||
-    msg.includes("Database client error") ||
-    msg.includes("503")
-  );
-}
-
-async function withRetry<T>(
-  fn: () => Promise<{ data: T | null; error: { code?: string; message?: string } | null }>,
-  maxAttempts = 4,
-): Promise<{ data: T | null; error: { code?: string; message?: string } | null }> {
-  let lastResult: { data: T | null; error: { code?: string; message?: string } | null } = {
-    data: null,
-    error: null,
-  };
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    lastResult = await fn();
-    if (!lastResult.error || !isTransient(lastResult.error)) return lastResult;
-    // 250ms, 750ms, 2.25s
-    await new Promise((r) => setTimeout(r, 250 * Math.pow(3, attempt)));
-  }
-  return lastResult;
 }
 
 export function useCurrentWorkspace() {

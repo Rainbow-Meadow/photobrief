@@ -15,6 +15,8 @@ project_id = "ymuhxcdjdlwfstekkzmp"
     verify_jwt = false
   [functions.ensure-demo-user]
     verify_jwt = false
+  [functions.ensure-workspace]
+    verify_jwt = false
   [functions.handle-email-suppression]
     verify_jwt = false
   [functions.handle-email-unsubscribe]
