@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from "react-router-dom";
-import { Plus, LifeBuoy } from "lucide-react";
+import { Plus, LifeBuoy, KeyRound, LogOut } from "lucide-react";
 
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
@@ -8,11 +8,22 @@ import { MobileTabBar } from "@/components/layout/MobileTabBar";
 import { BrandMark } from "@/components/layout/BrandMark";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
 import { RequireAuth } from "@/components/auth/RequireAuth";
+import { useAccountActions } from "@/features/account/useAccountActions";
 
 export function DashboardLayout() {
   const { workspace } = useCurrentWorkspace();
+  const { resetPassword, logOut, resetting, signingOut, email } = useAccountActions();
+  const initial = (email?.[0] ?? "U").toUpperCase();
   return (
     <RequireAuth>
       <SidebarProvider>
@@ -47,11 +58,51 @@ export function DashboardLayout() {
                   </NavLink>
                 </Button>
                 <NotificationBell />
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                    BS
-                  </AvatarFallback>
-                </Avatar>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Account menu"
+                      className="rounded-full outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                          {initial}
+                        </AvatarFallback>
+                      </Avatar>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="font-normal">
+                      <p className="text-xs text-muted-foreground">Signed in as</p>
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {email ?? "—"}
+                      </p>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        resetPassword();
+                      }}
+                      disabled={resetting || !email}
+                    >
+                      <KeyRound className="mr-2 h-4 w-4" />
+                      {resetting ? "Sending link…" : "Reset password"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        logOut();
+                      }}
+                      disabled={signingOut}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      {signingOut ? "Signing out…" : "Log out"}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </header>
 
