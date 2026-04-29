@@ -161,7 +161,7 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className={cn("space-y-6", assistantOpen ? "lg:col-span-2" : "lg:col-span-3")}>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-3 grid-cols-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <MetricCard
               label="Ready to review"
               value={metrics.readyToReview}
@@ -187,6 +187,7 @@ export default function DashboardPage() {
               hint="Sent since the 1st"
             />
             <MetricCard
+              className="col-span-2 lg:col-span-1"
               label="First-pass acceptance"
               value={metrics.firstPassPct === null ? "—" : `${metrics.firstPassPct}%`}
               icon={ShieldCheck}
