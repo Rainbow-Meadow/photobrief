@@ -236,6 +236,8 @@ export const submissionsService = {
       .eq("id", args.submissionId);
     if (statusErr) throw statusErr;
   },
+
+  /**
    * Recipient-side: create a submission row + upload media + insert captured_media.
    */
   async submitFromRecipient(args: {
