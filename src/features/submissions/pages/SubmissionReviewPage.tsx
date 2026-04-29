@@ -113,11 +113,21 @@ export default function SubmissionReviewPage() {
   const [extraNotes, setExtraNotes] = useState<InternalNote[]>([]);
   const [askOpen, setAskOpen] = useState(false);
 
+  // Pending per-shot decisions (mediaId -> approve/reject + comment).
+  // Only persisted when the reviewer hits "Send back for resubmission".
+  const [pending, setPending] = useState<
+    Record<string, { status: ShotReviewStatus; comment?: string }>
+  >({});
+  const [confirmRejectOpen, setConfirmRejectOpen] = useState(false);
+  const [rejectMessage, setRejectMessage] = useState("");
+  const [rejecting, setRejecting] = useState(false);
+
   // Reset overlays when the submission id changes.
   useEffect(() => {
     setOverlay({});
     setExtraActivity([]);
     setExtraNotes([]);
+    setPending({});
   }, [id]);
 
   if (!id) {
