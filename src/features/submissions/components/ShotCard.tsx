@@ -1,8 +1,11 @@
-import { CheckCircle2, AlertTriangle, XCircle, ImageOff } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CheckCircle2, AlertTriangle, XCircle, ImageOff, Check, X, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { formatRelativeTime } from "@/utils/format";
-import type { ShotFeedbackSeverity, SubmissionShot } from "@/types/photobrief";
+import type { ShotFeedbackSeverity, ShotReviewStatus, SubmissionShot } from "@/types/photobrief";
 
 const severityMeta: Record<
   ShotFeedbackSeverity,
@@ -15,14 +18,49 @@ const severityMeta: Record<
 
 interface Props {
   shot: SubmissionShot;
+  /**
+   * Pending reviewer decision (held by parent) — overrides `shot.reviewStatus`
+   * for visual state until the parent persists the rejection batch.
+   */
+  pendingDecision?: { status: ShotReviewStatus; comment?: string };
+  /** Called when the user approves this shot in the pending batch. */
+  onApprove?: () => void;
+  /** Called when the user saves a rejection (with a required comment). */
+  onReject?: (comment: string) => void;
+  /** Called when the user clears their pending decision on this shot. */
+  onClearDecision?: () => void;
 }
 
-export function ShotCard({ shot }: Props) {
+export function ShotCard({ shot, pendingDecision, onApprove, onReject, onClearDecision }: Props) {
   const sev = shot.feedback?.severity ?? (shot.missing ? "fail" : "pass");
   const meta = severityMeta[sev];
+  const reviewActionsAvailable = !!(onApprove || onReject);
+
+  // The effective decision shown on the card. Parent's pending state wins,
+  // otherwise we fall back to whatever's already persisted on the shot.
+  const persistedDecision: ShotReviewStatus | undefined =
+    shot.reviewStatus && shot.reviewStatus !== "pending" ? shot.reviewStatus : undefined;
+  const decision = pendingDecision?.status ?? persistedDecision;
+  const decisionComment = pendingDecision?.comment ?? shot.reviewComment ?? "";
+
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(decisionComment);
+
+  useEffect(() => {
+    setDraft(decisionComment);
+  }, [decisionComment]);
+
+  const isRejected = decision === "rejected";
+  const isApproved = decision === "approved";
 
   return (
-    <article className="overflow-hidden rounded-lg border bg-card shadow-elev-sm">
+    <article
+      className={cn(
+        "overflow-hidden rounded-lg border bg-card shadow-elev-sm transition-colors",
+        isRejected && "border-destructive/50",
+        isApproved && "border-success/40",
+      )}
+    >
       <div className="relative aspect-video w-full bg-muted">
         {shot.missing || !shot.imageUrl ? (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-muted-foreground">
@@ -98,6 +136,135 @@ export function ShotCard({ shot }: Props) {
                   </li>
                 ))}
               </ul>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* Reviewer actions */}
+        {reviewActionsAvailable ? (
+          <div className="space-y-2 pt-1">
+            {isRejected && !editing ? (
+              <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-medium text-destructive">Will be returned for retake</p>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
+                      aria-label="Edit comment"
+                      onClick={() => setEditing(true)}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    {onClearDecision ? (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6"
+                        aria-label="Clear rejection"
+                        onClick={onClearDecision}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+                {decisionComment ? (
+                  <p className="mt-1 leading-snug text-muted-foreground">{decisionComment}</p>
+                ) : (
+                  <p className="mt-1 italic text-muted-foreground">No comment.</p>
+                )}
+              </div>
+            ) : null}
+
+            {editing || (isRejected === false && isApproved === false) || (isRejected && editing) ? (
+              editing ? (
+                <div className="space-y-2 rounded-md border bg-background p-2">
+                  <Textarea
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    placeholder="What should the recipient retake or fix?"
+                    rows={2}
+                    className="text-xs"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setEditing(false);
+                        setDraft(decisionComment);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      disabled={draft.trim().length === 0}
+                      onClick={() => {
+                        onReject?.(draft.trim());
+                        setEditing(false);
+                      }}
+                    >
+                      Save rejection
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  {onApprove ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={onApprove}
+                    >
+                      <Check className="h-3.5 w-3.5" /> Approve
+                    </Button>
+                  ) : null}
+                  {onReject ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => {
+                        setDraft(decisionComment);
+                        setEditing(true);
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" /> Reject…
+                    </Button>
+                  ) : null}
+                </div>
+              )
+            ) : null}
+
+            {isApproved && !editing ? (
+              <div className="flex items-center justify-between rounded-md border border-success/40 bg-success/5 px-3 py-2 text-xs">
+                <p className="font-medium text-success inline-flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Approved for this round
+                </p>
+                {onClearDecision ? (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    aria-label="Clear approval"
+                    onClick={onClearDecision}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                ) : null}
+              </div>
             ) : null}
           </div>
         ) : null}
