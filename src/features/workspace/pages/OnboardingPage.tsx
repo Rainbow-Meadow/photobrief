@@ -349,7 +349,7 @@ export default function OnboardingPage() {
       ) : null}
 
       <div className="rounded-xl border bg-card p-6 shadow-elev-sm">
-
+        {step === 1 ? (
           <div className="space-y-5">
             <div className="space-y-1.5">
               <Label htmlFor="workspaceName">Business name</Label>
