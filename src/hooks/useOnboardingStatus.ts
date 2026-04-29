@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { withSupabaseRetry } from "@/lib/supabaseRetry";
 
 interface OnboardingStatus {
   loading: boolean;
@@ -25,13 +26,19 @@ export function useOnboardingStatus(): OnboardingStatus {
     }
     let cancelled = false;
     setLoading(true);
-    supabase
-      .from("profiles")
-      .select("onboarded_at")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
+    withSupabaseRetry(async () =>
+      await supabase
+        .from("profiles")
+        .select("onboarded_at")
+        .eq("id", user.id)
+        .maybeSingle(),
+    ).then(({ data, error }) => {
         if (cancelled) return;
+        if (error) {
+          setOnboarded(false);
+          setLoading(false);
+          return;
+        }
         setOnboarded(!!data?.onboarded_at);
         setLoading(false);
       });
