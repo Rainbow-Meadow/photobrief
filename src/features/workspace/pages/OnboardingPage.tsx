@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
 import { withSupabaseRetry, isTransientSupabaseError } from "@/lib/supabaseRetry";
+import { onboardingDebug, edgeFunctionErrorDebug, supabaseErrorDebug } from "@/lib/onboardingDebug";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -92,19 +93,60 @@ export default function OnboardingPage() {
     completionMessage: "Thanks! We've got everything we need.",
   });
 
+  useEffect(() => {
+    onboardingDebug("onboarding.route_mount", {
+      sessionPresent: !!user,
+      currentUserId: user?.id ?? null,
+      currentUserEmail: user?.email ?? null,
+      workspaceFound: !!workspace?.id,
+      onboardingStatus: "onboarding_page_visible",
+    });
+  }, [user?.id, user?.email, workspace?.id]);
+
   // Server-side fallback: provision the workspace + bootstrap rows if the
   // signup trigger somehow skipped them (or a transient Cloud failure left
   // the user with no default_workspace_id). Idempotent; safe to retry.
   const repairWorkspace = async (silent = false) => {
     setRepairing(true);
     try {
-      const { error } = await supabase.functions.invoke("ensure-workspace", {
+      onboardingDebug("onboarding.edge_function.start", {
+        sessionPresent: !!user,
+        currentUserId: user?.id ?? null,
+        currentUserEmail: user?.email ?? null,
+        requestName: "ensure-workspace",
+        urlPath: "/functions/v1/ensure-workspace",
+        method: "POST",
+        triggeredBy: silent ? "auto_repair_once" : "manual_repair",
+      });
+      const { data, error } = await supabase.functions.invoke("ensure-workspace", {
         body: {},
+      });
+      onboardingDebug("onboarding.edge_function.done", {
+        sessionPresent: !!user,
+        currentUserId: user?.id ?? null,
+        currentUserEmail: user?.email ?? null,
+        requestName: "ensure-workspace",
+        urlPath: "/functions/v1/ensure-workspace",
+        method: "POST",
+        workspaceFound: !!(data as { workspace_id?: string } | null)?.workspace_id,
+        responseBody: data ?? null,
+        error: await edgeFunctionErrorDebug(error),
+        triggeredBy: silent ? "auto_repair_once" : "manual_repair",
       });
       if (error) throw error;
       await refetch();
       if (!silent) toast.success("Workspace ready");
     } catch (err) {
+      onboardingDebug("onboarding.edge_function.thrown", {
+        sessionPresent: !!user,
+        currentUserId: user?.id ?? null,
+        currentUserEmail: user?.email ?? null,
+        requestName: "ensure-workspace",
+        urlPath: "/functions/v1/ensure-workspace",
+        method: "POST",
+        thrownErrorMessage: err instanceof Error ? err.message : String(err),
+        triggeredBy: silent ? "auto_repair_once" : "manual_repair",
+      });
       const msg = err instanceof Error ? err.message : "Could not repair workspace";
       if (!silent) toast.error(msg);
     } finally {
