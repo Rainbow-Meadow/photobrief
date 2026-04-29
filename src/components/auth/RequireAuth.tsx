@@ -19,7 +19,7 @@ interface RequireAuthProps {
  */
 export function RequireAuth({ children, requireOnboarding = true }: RequireAuthProps) {
   const { user, loading: authLoading } = useAuth();
-  const { onboarded, loading: onboardingLoading } = useOnboardingStatus();
+  const { onboarded, loading: onboardingLoading } = useOnboardingStatus(requireOnboarding);
   const location = useLocation();
 
   if (authLoading || (user && requireOnboarding && onboardingLoading)) {

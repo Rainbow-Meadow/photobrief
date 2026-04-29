@@ -6,33 +6,53 @@
 // signed-in flow that depends on a fresh table read (workspace lookup,
 // onboarding writes, etc.) fails silently.
 
-type SupaError = { code?: string; message?: string } | null | undefined;
+type SupaError =
+  | { code?: string; message?: string; details?: string; hint?: string; status?: number }
+  | null
+  | undefined;
 type SupaResult<T> = { data: T | null; error: SupaError };
 
-const TRANSIENT_CODES = new Set(["PGRST001", "PGRST002", "503"]);
+const TRANSIENT_CODES = new Set(["PGRST001", "PGRST002", "503", "57P03", "08000", "08001", "08006"]);
+
+function normalizeThrownError(err: unknown): Exclude<SupaError, null | undefined> {
+  if (err && typeof err === "object") return err as Exclude<SupaError, null | undefined>;
+  return { message: typeof err === "string" ? err : "Network request failed" };
+}
 
 export function isTransientSupabaseError(error: SupaError): boolean {
   if (!error) return false;
   const code = error.code ?? "";
   const msg = error.message ?? "";
   return (
+    error.status === 503 ||
     TRANSIENT_CODES.has(code) ||
     msg.includes("schema cache") ||
     msg.includes("Database client error") ||
-    msg.includes("503")
+    msg.includes("503") ||
+    msg.includes("Connection terminated") ||
+    msg.includes("Failed to fetch") ||
+    msg.includes("fetch failed") ||
+    msg.includes("secure TLS") ||
+    msg.includes("temporarily unavailable") ||
+    msg.includes("timeout")
   );
 }
 
 export async function withSupabaseRetry<T>(
   fn: () => Promise<SupaResult<T>>,
-  maxAttempts = 4,
+  maxAttempts = 7,
 ): Promise<SupaResult<T>> {
   let last: SupaResult<T> = { data: null, error: null };
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    last = await fn();
+    try {
+      last = await fn();
+    } catch (err) {
+      last = { data: null, error: normalizeThrownError(err) };
+    }
     if (!last.error || !isTransientSupabaseError(last.error)) return last;
-    // 250ms, 750ms, 2.25s
-    await new Promise((r) => setTimeout(r, 250 * Math.pow(3, attempt)));
+    if (attempt === maxAttempts - 1) break;
+    const delay = Math.min(4000, 300 * Math.pow(2, attempt)) + Math.floor(Math.random() * 150);
+    await new Promise((r) => setTimeout(r, delay));
   }
   return last;
 }
