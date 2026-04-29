@@ -156,6 +156,8 @@ export type Database = {
           file_url: string | null
           id: string
           note: string | null
+          review_comment: string | null
+          reviewed_at: string | null
           status: string
           step_id: string | null
           submission_id: string
@@ -170,6 +172,8 @@ export type Database = {
           file_url?: string | null
           id?: string
           note?: string | null
+          review_comment?: string | null
+          reviewed_at?: string | null
           status?: string
           step_id?: string | null
           submission_id: string
@@ -184,6 +188,8 @@ export type Database = {
           file_url?: string | null
           id?: string
           note?: string | null
+          review_comment?: string | null
+          reviewed_at?: string | null
           status?: string
           step_id?: string | null
           submission_id?: string
@@ -929,16 +935,62 @@ export type Database = {
           },
         ]
       }
+      submission_reviews: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          rejected_media_ids: string[]
+          reviewer_id: string | null
+          round: number
+          submission_id: string
+          summary_message: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          rejected_media_ids?: string[]
+          reviewer_id?: string | null
+          round: number
+          submission_id: string
+          summary_message?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          rejected_media_ids?: string[]
+          reviewer_id?: string | null
+          round?: number
+          submission_id?: string
+          summary_message?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_reviews_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submissions: {
         Row: {
           ai_summary: string | null
           created_at: string
+          first_pass_status: string
           id: string
           missing_items: Json
           next_action: string | null
           readiness_score: number | null
           request_id: string
           reviewed_at: string | null
+          second_pass_status: string
           status: Database["public"]["Enums"]["submission_status"]
           submitted_at: string | null
           submitter_contact: string | null
@@ -949,12 +1001,14 @@ export type Database = {
         Insert: {
           ai_summary?: string | null
           created_at?: string
+          first_pass_status?: string
           id?: string
           missing_items?: Json
           next_action?: string | null
           readiness_score?: number | null
           request_id: string
           reviewed_at?: string | null
+          second_pass_status?: string
           status?: Database["public"]["Enums"]["submission_status"]
           submitted_at?: string | null
           submitter_contact?: string | null
@@ -965,12 +1019,14 @@ export type Database = {
         Update: {
           ai_summary?: string | null
           created_at?: string
+          first_pass_status?: string
           id?: string
           missing_items?: Json
           next_action?: string | null
           readiness_score?: number | null
           request_id?: string
           reviewed_at?: string | null
+          second_pass_status?: string
           status?: Database["public"]["Enums"]["submission_status"]
           submitted_at?: string | null
           submitter_contact?: string | null
@@ -1426,6 +1482,8 @@ export type Database = {
           recipient_name: string | null
           recipient_phone: string | null
           status: Database["public"]["Enums"]["request_status"] | null
+          submission_first_pass_status: string | null
+          submission_second_pass_status: string | null
           token: string | null
           updated_at: string | null
           workspace_id: string | null
