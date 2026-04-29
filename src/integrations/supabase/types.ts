@@ -790,6 +790,54 @@ export type Database = {
           },
         ]
       }
+      request_credit_packs: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          environment: string
+          id: string
+          pack_size: number
+          period_end: string
+          plan_at_purchase: Database["public"]["Enums"]["plan_tier"] | null
+          remaining: number
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          environment?: string
+          id?: string
+          pack_size: number
+          period_end: string
+          plan_at_purchase?: Database["public"]["Enums"]["plan_tier"] | null
+          remaining: number
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          environment?: string
+          id?: string
+          pack_size?: number
+          period_end?: string
+          plan_at_purchase?: Database["public"]["Enums"]["plan_tier"] | null
+          remaining?: number
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       request_messages: {
         Row: {
           body: string | null
@@ -1511,6 +1559,13 @@ export type Database = {
       current_period_usage: {
         Args: { _event_type: string; _workspace_id: string }
         Returns: number
+      }
+      current_topup_balance: {
+        Args: { _workspace_id: string }
+        Returns: {
+          expires_at: string
+          remaining: number
+        }[]
       }
       delete_email: {
         Args: { message_id: number; queue_name: string }
