@@ -75,7 +75,8 @@ function RecipientChat({
 }) {
   // A submission row is created lazily on the first photo capture so the
   // captured_media inserts have a parent row that satisfies token RLS.
-  const submissionIdRef = useRef<string | null>(null);
+  // In resubmit mode we reuse the existing submission instead.
+  const submissionIdRef = useRef<string | null>(ctx.resubmit?.submissionId ?? null);
 
   const ensureSubmission = useCallback(async (): Promise<string | null> => {
     if (submissionIdRef.current) return submissionIdRef.current;
@@ -134,11 +135,22 @@ function RecipientChat({
     [token, ctx.workspaceId, ctx.requestId, ensureSubmission],
   );
 
+  const resubmitConfig = ctx.resubmit
+    ? {
+        commentsByStepId: ctx.resubmit.items.reduce<Record<string, string>>((acc, it) => {
+          acc[it.stepId] = it.comment;
+          return acc;
+        }, {}),
+        summaryMessage: ctx.resubmit.summaryMessage,
+      }
+    : undefined;
+
   const flow = useChatFlow({
     guide: ctx.guide,
     businessName: ctx.businessName,
     introBody: ctx.introBody,
     uploadCapture,
+    resubmit: resubmitConfig,
   });
 
   // Track step completions (progress.done increases) without leaking PII.
@@ -160,6 +172,7 @@ function RecipientChat({
       guide_id: ctx.guide.id,
       photos: flow.photos.length,
       answers: Object.keys(flow.answers ?? {}).length,
+      resubmit: !!ctx.resubmit,
     });
     if (!ctx.requestId || !ctx.workspaceId || !token) {
       // Demo / no-token preview: just bounce to confirmation.
@@ -188,6 +201,19 @@ function RecipientChat({
         photos: backfill,
         answers: flow.answers,
       });
+
+      // In resubmit mode, mark the original rejected captured_media rows
+      // as "resubmitted" so the reviewer sees they've been replaced.
+      if (ctx.resubmit && ctx.resubmit.items.length > 0) {
+        const client = getTokenClient(token);
+        const ids = ctx.resubmit.items.map((it) => it.rejectedMediaId);
+        const { error: markErr } = await client
+          .from("captured_media")
+          .update({ status: "resubmitted" })
+          .in("id", ids);
+        if (markErr) console.warn("mark resubmitted failed", markErr);
+      }
+
       setTimeout(() => navigate(`/r/${token}/done`), 1200);
     } catch (err) {
       console.error("Submission failed", err);
