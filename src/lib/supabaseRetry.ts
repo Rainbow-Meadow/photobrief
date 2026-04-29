@@ -38,9 +38,12 @@ export function isTransientSupabaseError(error: SupaError): boolean {
   );
 }
 
+// Reduced from 7 → 2 attempts. Heavy retry loops were amplifying backend load
+// during 503 windows; we'd rather surface the failure once and let the UI show
+// a clear "backend unavailable" state instead of hammering PostgREST.
 export async function withSupabaseRetry<T>(
   fn: () => Promise<SupaResult<T>>,
-  maxAttempts = 7,
+  maxAttempts = 2,
 ): Promise<SupaResult<T>> {
   let last: SupaResult<T> = { data: null, error: null };
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
