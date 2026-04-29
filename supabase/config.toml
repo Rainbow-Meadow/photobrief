@@ -9,6 +9,8 @@ project_id = "ymuhxcdjdlwfstekkzmp"
     verify_jwt = false
   [functions.create-checkout]
     verify_jwt = false
+  [functions.create-topup-checkout]
+    verify_jwt = false
   [functions.customer-portal]
     verify_jwt = false
   [functions.ensure-demo-user]

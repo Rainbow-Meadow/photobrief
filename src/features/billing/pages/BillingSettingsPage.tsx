@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   planLimits,
@@ -15,6 +15,8 @@ import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
 import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
 import { FoundingProBadge } from "@/components/pricing/FoundingProBadge";
 import { StripeEmbeddedCheckout } from "@/components/billing/StripeEmbeddedCheckout";
+import { StripeTopupCheckout } from "@/components/billing/StripeTopupCheckout";
+import { TopupPackCards } from "@/components/billing/TopupPackCards";
 import { PaymentTestModeBanner } from "@/components/billing/PaymentTestModeBanner";
 import {
   Dialog,
@@ -26,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { isPaymentsConfigured } from "@/lib/stripe";
 import type { Plan, BillingInterval } from "@/types/photobrief";
+import type { TopupPack } from "@/config/topupPacks";
 import { cn } from "@/lib/utils";
 
 function formatQuota(q: Quota): string {
@@ -62,10 +65,11 @@ const featureRows: FeatureKey[] = [
 
 export default function BillingSettingsPage() {
   const { workspace, loading: wsLoading, refetch: refetchWorkspace } = useCurrentWorkspace();
-  const { usage, loading: usageLoading, refetch: refetchUsage } = useUsage();
+  const { usage, loading: usageLoading, refetch: refetchUsage, topup } = useUsage();
   const current = planLimits.find((p) => p.id === workspace?.plan) ?? planLimits[0];
   const [opening, setOpening] = useState<"portal" | null>(null);
   const [checkout, setCheckout] = useState<{ plan: Plan; interval: BillingInterval } | null>(null);
+  const [topupCheckout, setTopupCheckout] = useState<TopupPack | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
   // After Stripe Checkout returns, refetch and clear the URL flag.
@@ -79,6 +83,20 @@ export default function BillingSettingsPage() {
       refetchUsage();
       const next = new URLSearchParams(searchParams);
       next.delete("checkout");
+      next.delete("session_id");
+      setSearchParams(next, { replace: true });
+    }
+    if (searchParams.get("topup") === "success") {
+      toast({
+        title: "Top-up purchased",
+        description: "Your extra request credits will appear within a few seconds.",
+      });
+      setTopupCheckout(null);
+      // Webhook may take a moment — refetch a couple of times.
+      refetchUsage();
+      setTimeout(() => refetchUsage(), 2500);
+      const next = new URLSearchParams(searchParams);
+      next.delete("topup");
       next.delete("session_id");
       setSearchParams(next, { replace: true });
     }
@@ -164,6 +182,7 @@ export default function BillingSettingsPage() {
               used={usage.requests}
               cap={current.quotas.requestsPerMonth}
               loading={usageLoading}
+              topupRemaining={topup.remaining}
             />
             <UsageMeter
               label="AI checks this month"
@@ -171,9 +190,50 @@ export default function BillingSettingsPage() {
               cap={current.quotas.aiChecksPerMonth}
               loading={usageLoading}
             />
+            {topup.remaining > 0 ? (
+              <p className="rounded-lg bg-success/10 px-3 py-2 text-xs text-success-foreground">
+                <Sparkles className="mr-1 inline h-3.5 w-3.5" />
+                <span className="font-medium">+{topup.remaining}</span> top-up requests available
+                {topup.expiresAt
+                  ? ` until ${new Date(topup.expiresAt).toLocaleDateString()}`
+                  : ""}
+                .
+              </p>
+            ) : null}
           </div>
         </div>
       </section>
+
+      {/* Top-up credits --------------------------------------------------- */}
+      {workspace.plan !== "free" ? (
+        <section className="rounded-2xl border bg-card p-5 shadow-elev-sm sm:p-6">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-foreground">Top-up credits</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Out of requests but not ready to upgrade? Buy a one-time pack — credits stack on
+                top of your plan and are valid until the end of your current billing period.
+              </p>
+            </div>
+          </div>
+          <div className="mt-5">
+            <TopupPackCards
+              onSelect={(pack) => {
+                if (!isPaymentsConfigured()) {
+                  toast({
+                    title: "Payments not configured",
+                    description: "Reload the preview after enabling payments.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setTopupCheckout(pack);
+              }}
+              pendingPriceId={topupCheckout?.priceId ?? null}
+            />
+          </div>
+        </section>
+      ) : null}
 
       {/* Plan switcher ---------------------------------------------------- */}
       <section>
@@ -266,6 +326,25 @@ export default function BillingSettingsPage() {
           </table>
         </div>
       </section>
+
+      {/* Top-up Embedded Checkout dialog --------------------------------- */}
+      <Dialog open={!!topupCheckout} onOpenChange={(open) => !open && setTopupCheckout(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {topupCheckout
+                ? `Buy ${topupCheckout.size} extra requests`
+                : "Top-up checkout"}
+            </DialogTitle>
+          </DialogHeader>
+          {topupCheckout ? (
+            <StripeTopupCheckout
+              workspaceId={workspace.id}
+              pack={topupCheckout}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -275,20 +354,25 @@ function UsageMeter({
   used,
   cap,
   loading,
+  topupRemaining = 0,
 }: {
   label: string;
   used: number;
   cap: Quota;
   loading?: boolean;
+  topupRemaining?: number;
 }) {
   const value = pct(used, cap);
-  const danger = value >= 90;
+  const danger = value >= 90 && topupRemaining === 0;
   return (
     <div>
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">{label}</span>
         <span className={cn("font-medium tabular-nums", danger ? "text-destructive" : "text-foreground")}>
           {loading ? "…" : used} / {formatQuota(cap)}
+          {topupRemaining > 0 ? (
+            <span className="ml-1 text-success">+{topupRemaining}</span>
+          ) : null}
         </span>
       </div>
       <ReadinessProgress value={loading ? 0 : value} className="mt-1.5" />

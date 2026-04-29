@@ -182,10 +182,21 @@ export default function CreateRequestPage() {
       navigate(`/requests/${created.id}`);
     } catch (err: any) {
       console.error(err);
-      const msg = err?.message?.includes("PLAN_LIMIT_REACHED")
+      const isLimit = err?.message?.includes("PLAN_LIMIT_REACHED");
+      const msg = isLimit
         ? "You've hit this month's request limit on your current plan."
         : err?.message ?? "Could not create request";
-      toast.error(msg);
+      if (isLimit) {
+        toast.error(msg, {
+          description: "Buy a top-up pack or upgrade your plan to keep sending requests.",
+          action: {
+            label: "Buy top-up",
+            onClick: () => navigate("/settings/billing#topup"),
+          },
+        });
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setIsCreating(false);
     }
