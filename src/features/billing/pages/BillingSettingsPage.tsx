@@ -182,6 +182,7 @@ export default function BillingSettingsPage() {
               used={usage.requests}
               cap={current.quotas.requestsPerMonth}
               loading={usageLoading}
+              topupRemaining={topup.remaining}
             />
             <UsageMeter
               label="AI checks this month"
@@ -189,9 +190,50 @@ export default function BillingSettingsPage() {
               cap={current.quotas.aiChecksPerMonth}
               loading={usageLoading}
             />
+            {topup.remaining > 0 ? (
+              <p className="rounded-lg bg-success/10 px-3 py-2 text-xs text-success-foreground">
+                <Sparkles className="mr-1 inline h-3.5 w-3.5" />
+                <span className="font-medium">+{topup.remaining}</span> top-up requests available
+                {topup.expiresAt
+                  ? ` until ${new Date(topup.expiresAt).toLocaleDateString()}`
+                  : ""}
+                .
+              </p>
+            ) : null}
           </div>
         </div>
       </section>
+
+      {/* Top-up credits --------------------------------------------------- */}
+      {workspace.plan !== "free" ? (
+        <section className="rounded-2xl border bg-card p-5 shadow-elev-sm sm:p-6">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-foreground">Top-up credits</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Out of requests but not ready to upgrade? Buy a one-time pack — credits stack on
+                top of your plan and are valid until the end of your current billing period.
+              </p>
+            </div>
+          </div>
+          <div className="mt-5">
+            <TopupPackCards
+              onSelect={(pack) => {
+                if (!isPaymentsConfigured()) {
+                  toast({
+                    title: "Payments not configured",
+                    description: "Reload the preview after enabling payments.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setTopupCheckout(pack);
+              }}
+              pendingPriceId={topupCheckout?.priceId ?? null}
+            />
+          </div>
+        </section>
+      ) : null}
 
       {/* Plan switcher ---------------------------------------------------- */}
       <section>
