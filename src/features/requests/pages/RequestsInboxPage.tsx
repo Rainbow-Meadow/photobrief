@@ -29,6 +29,7 @@ import { requestsService } from "@/services/requestsService";
 import { usePlan } from "@/hooks/usePlan";
 import { getPlanLimit, minPlanFor } from "@/config/planLimits";
 import { supabase } from "@/integrations/supabase/client";
+import { PlanTag } from "@/components/shared/PlanTag";
 import {
   InboxFilters,
   applyInboxFilters,
@@ -213,13 +214,13 @@ export default function RequestsInboxPage() {
               disabled={bulkBusy}
             >
               <Archive className="h-3.5 w-3.5" /> Archive
-              {!canBulk ? <span className="ml-1 text-[10px] uppercase text-primary">Pro</span> : null}
+              {!canBulk ? <PlanTag plan="pro" className="ml-1" /> : null}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-7 gap-1" disabled={bulkBusy}>
                   <UserPlus className="h-3.5 w-3.5" /> Assign
-                  {!canAssign ? <span className="ml-1 text-[10px] uppercase text-primary">Pro</span> : null}
+                  {!canAssign ? <PlanTag plan="pro" className="ml-1" /> : null}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
@@ -393,7 +394,7 @@ export default function RequestsInboxPage() {
                               >
                                 <Bell className="mr-2 h-3.5 w-3.5" /> Send reminder
                                 {!canRemind ? (
-                                  <span className="ml-auto text-[10px] uppercase tracking-wide text-primary">Pro</span>
+                                  <PlanTag plan="pro" alignRight />
                                 ) : null}
                               </DropdownMenuItem>
                               <DropdownMenuItem
