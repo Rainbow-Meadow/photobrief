@@ -8,6 +8,7 @@ import {
   Sparkles,
   FileText,
   MessageSquare,
+  LifeBuoy,
 } from "lucide-react";
 
 import {
