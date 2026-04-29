@@ -38,6 +38,7 @@ export function CurrentWorkspaceProvider({ children }: { children: ReactNode }) 
   const [workspace, setWorkspace] = useState<CurrentWorkspace | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [backendUnavailable, setBackendUnavailable] = useState(false);
 
   const refetch = useCallback(async () => {
     if (!user) {
@@ -50,6 +51,7 @@ export function CurrentWorkspaceProvider({ children }: { children: ReactNode }) 
 
     setLoading(true);
     setError(null);
+    setBackendUnavailable(false);
     onboardingDebug("workspace.profile_lookup.start", {
       sessionPresent: true,
       currentUserId: user.id,
@@ -77,7 +79,11 @@ export function CurrentWorkspaceProvider({ children }: { children: ReactNode }) 
       error: supabaseErrorDebug(profileErr),
     });
     if (profileErr) {
-      if (!isTransientSupabaseError(profileErr)) setWorkspace(null);
+      const transient = isTransientSupabaseError(profileErr);
+      if (transient) setBackendUnavailable(true);
+      // Keep prior workspace cached during a transient blip so the UI
+      // doesn't flash an "empty" state. Only clear on a real failure.
+      if (!transient) setWorkspace(null);
       setError(profileErr.message ?? "Could not load workspace");
       setLoading(false);
       return;
@@ -142,7 +148,9 @@ export function CurrentWorkspaceProvider({ children }: { children: ReactNode }) 
 
     const loadErr = wsErr ?? subErr;
     if (loadErr) {
-      if (!isTransientSupabaseError(loadErr)) setWorkspace(null);
+      const transient = isTransientSupabaseError(loadErr);
+      if (transient) setBackendUnavailable(true);
+      if (!transient) setWorkspace(null);
       setError(loadErr.message ?? "Could not load workspace");
       setLoading(false);
       return;
