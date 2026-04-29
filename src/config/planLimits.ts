@@ -268,6 +268,7 @@ export const planLimits: PlanLimit[] = [
       "Internal notes & assignments",
       "Saved message templates",
       "Branded PDF export",
+      "White-label recipient pages",
       "12-month history",
     ],
     capabilities: {
@@ -284,6 +285,7 @@ export const planLimits: PlanLimit[] = [
       assignments: true,
       saved_templates: true,
       pdf_export: true,
+      white_label: true,
     },
     pdfExport: "branded",
   },
@@ -313,6 +315,7 @@ export const planLimits: PlanLimit[] = [
       "Higher AI limits",
       "Bulk actions",
       "Full PDF branding",
+      "White-label recipient pages",
       "2-year history",
     ],
     capabilities: {
@@ -332,6 +335,7 @@ export const planLimits: PlanLimit[] = [
       saved_templates: true,
       bulk_actions: true,
       pdf_export: true,
+      white_label: true,
       priority_support: true,
     },
     pdfExport: "full_branding",
