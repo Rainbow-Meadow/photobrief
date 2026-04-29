@@ -1,5 +1,5 @@
 // Live workspace + subscription for the signed-in user.
-import { createContext, useContext, useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
+import { createContext, createElement, useContext, useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { isTransientSupabaseError, withSupabaseRetry as withRetry } from "@/lib/supabaseRetry";
@@ -140,7 +140,7 @@ export function CurrentWorkspaceProvider({ children }: { children: ReactNode }) 
     [workspace, loading, authLoading, error, refetch],
   );
 
-  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
+  return createElement(WorkspaceContext.Provider, { value }, children);
 }
 
 export function useCurrentWorkspace() {
