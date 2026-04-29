@@ -334,7 +334,14 @@ export default function OnboardingPage() {
                 Retry
               </Button>
               <Button type="button" size="sm" onClick={() => void repairWorkspace(false)} disabled={repairing}>
-                {repairing ? (<><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Repairing…</>) : "Repair workspace"}
+                {repairing ? (
+                  <span className="inline-flex items-center">
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    Repairing…
+                  </span>
+                ) : (
+                  "Repair workspace"
+                )}
               </Button>
             </div>
           </div>
