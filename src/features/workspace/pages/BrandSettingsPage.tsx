@@ -175,6 +175,7 @@ export default function BrandSettingsPage() {
       <PageHeader
         title="Brand"
         description="How your recipient pages look and sound to customers."
+        bordered={false}
       />
 
       {!canBrand ? <UpgradePromptCard feature="branding" className="max-w-3xl" /> : null}
@@ -186,7 +187,7 @@ export default function BrandSettingsPage() {
             e.preventDefault();
             handleSave();
           }}
-          className="space-y-6 rounded-lg border bg-card p-6 shadow-elev-sm"
+          className="space-y-6 rounded-lg border bg-card p-5 shadow-elev-sm"
           aria-disabled={disabled}
         >
           <fieldset disabled={disabled} className="space-y-6 disabled:opacity-60">

@@ -100,6 +100,7 @@ export default function TeamSettingsPage() {
       <PageHeader
         title="Team"
         description={`Invite teammates, assign work, and manage roles. Current plan: ${plan}.`}
+        bordered={false}
       />
 
       {!canTeam ? (
@@ -146,12 +147,12 @@ export default function TeamSettingsPage() {
             <h2 className="text-sm font-semibold text-foreground">Members ({members.length})</h2>
             <div className="mt-4 space-y-2">
               {members.length === 0 ? (
-                <EmptyState icon={Users} title="No members yet" description="Invite someone to get started." />
+                <EmptyState icon={Users} title="No members yet" description="Invite someone to get started." compact />
               ) : (
                 members.map((m) => (
                   <div
                     key={m.id}
-                    className="flex items-center justify-between rounded-md border bg-card p-3 text-sm"
+                    className="flex items-center justify-between rounded-md border bg-card px-4 py-3 text-sm"
                   >
                     <div>
                       <p className="font-medium text-foreground">{m.name ?? m.email ?? m.userId.slice(0, 8)}</p>
@@ -173,7 +174,7 @@ export default function TeamSettingsPage() {
                 {invites.map((inv) => (
                   <div
                     key={inv.id}
-                    className="flex items-center justify-between rounded-md border bg-card p-3 text-sm"
+                    className="flex items-center justify-between rounded-md border bg-card px-4 py-3 text-sm"
                   >
                     <div className="flex items-center gap-3">
                       <Mail className="h-4 w-4 text-muted-foreground" />
