@@ -57,6 +57,7 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/unsubscribe" element={<UnsubscribePage />} />
+            <Route path="/help" element={<BetaGuidePage />} />
           </Route>
 
           {/* Onboarding + invite acceptance (no sidebar, but still auth-only).
