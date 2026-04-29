@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { requestStatusOptions } from "@/config/statusOptions";
 import { formatRelativeTime } from "@/utils/format";
 import { AssistantPanel } from "@/features/workspace/components/AssistantPanel";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { messagingService } from "@/services/messagingService";
@@ -250,13 +251,20 @@ export default function DashboardPage() {
         </div>
 
         {assistantOpen ? (
-          <div className="lg:col-span-1">
+          <div className="hidden lg:col-span-1 lg:block">
             <div className="sticky top-4 h-[calc(100vh-6rem)]">
               <AssistantPanel open onClose={() => setAssistantOpen(false)} />
             </div>
           </div>
         ) : null}
       </div>
+
+      {/* Mobile: same panel rendered as a bottom sheet so it doesn't push page content. */}
+      <Sheet open={assistantOpen} onOpenChange={setAssistantOpen}>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0 lg:hidden">
+          <AssistantPanel open onClose={() => setAssistantOpen(false)} />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
