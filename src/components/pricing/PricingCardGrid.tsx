@@ -101,7 +101,7 @@ export function PricingCardGrid({
         </div>
       ) : null}
 
-      <div className="mt-10 grid gap-5 sm:grid-cols-2">
+      <div className="mt-10 -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 no-scrollbar sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0">
         {visiblePlans.map((plan) => {
           const isCurrent = currentPlan === plan.id;
           const price =
@@ -114,6 +114,8 @@ export function PricingCardGrid({
               key={plan.id}
               className={cn(
                 "relative flex flex-col rounded-2xl border p-6 transition",
+                /* Mobile: each card is a full-width snap item; restore grid behaviour at sm:. */
+                "min-w-[85%] shrink-0 snap-center sm:min-w-0 sm:shrink",
                 onDark
                   ? "border-white/15 bg-white/[0.06] text-white backdrop-blur"
                   : "bg-card shadow-elev-sm hover:shadow-elev-md",
