@@ -552,14 +552,7 @@ export default function OnboardingPage() {
             <Button
               type="button"
               onClick={handleFinish}
-              disabled={saving || wsLoading || !workspace?.id}
-              title={
-                wsLoading
-                  ? "Loading workspace…"
-                  : !workspace?.id
-                    ? "Workspace unavailable — tap Repair above"
-                    : undefined
-              }
+              disabled={saving || !user?.id}
               className="gap-1.5"
             >
               {saving ? (
