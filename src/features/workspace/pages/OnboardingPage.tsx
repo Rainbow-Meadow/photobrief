@@ -168,9 +168,29 @@ export default function OnboardingPage() {
 
   const goBack = () => setStep((s) => (s > 1 ? ((s - 1) as 1 | 2) : s));
 
+  // Resolve the workspace id even if useCurrentWorkspace is still spinning
+  // on a transient 503 — read directly from profiles, then fall back to
+  // the ensure-workspace edge function which will provision one if needed.
+  const resolveWorkspaceId = async (): Promise<string | null> => {
+    if (workspace?.id) return workspace.id;
+    if (!user?.id) return null;
+    const { data: prof } = await withSupabaseRetry(async () =>
+      await supabase
+        .from("profiles")
+        .select("default_workspace_id")
+        .eq("id", user.id)
+        .maybeSingle(),
+    );
+    const profTyped = prof as { default_workspace_id?: string | null } | null;
+    if (profTyped?.default_workspace_id) return profTyped.default_workspace_id;
+    // Last resort: ask the edge function to provision and return one.
+    const { data: fnData } = await supabase.functions.invoke("ensure-workspace", { body: {} });
+    return (fnData as { workspace_id?: string } | null)?.workspace_id ?? null;
+  };
+
   const handleFinish = async () => {
-    if (!user?.id || !workspace?.id) {
-      toast.error("Workspace not loaded — please retry.");
+    if (!user?.id) {
+      toast.error("You need to be signed in.");
       return;
     }
     // Re-validate everything just before write.
@@ -185,6 +205,11 @@ export default function OnboardingPage() {
     setSaving(true);
     setFinishError(null);
     try {
+      const wsId = await resolveWorkspaceId();
+      if (!wsId) {
+        throw new Error("Couldn't load your workspace — please retry.");
+      }
+
       // Workspace name + industry
       const { error: wsErr } = await withSupabaseRetry(async () =>
         await supabase
@@ -193,7 +218,7 @@ export default function OnboardingPage() {
             name: basics.data.workspaceName,
             industry: basics.data.industry,
           })
-          .eq("id", workspace.id)
+          .eq("id", wsId)
           .select("id")
           .maybeSingle(),
       );
@@ -204,13 +229,13 @@ export default function OnboardingPage() {
         await supabase
           .from("brand_profiles")
           .select("id")
-          .eq("workspace_id", workspace.id)
+          .eq("workspace_id", wsId)
           .maybeSingle(),
       );
       if (existErr) throw existErr;
 
       const brandPayload = {
-        workspace_id: workspace.id,
+        workspace_id: wsId,
         primary_color: brand.data.primaryColor,
         intro_message: brand.data.introMessage,
         completion_message: brand.data.completionMessage,
@@ -527,14 +552,7 @@ export default function OnboardingPage() {
             <Button
               type="button"
               onClick={handleFinish}
-              disabled={saving || wsLoading || !workspace?.id}
-              title={
-                wsLoading
-                  ? "Loading workspace…"
-                  : !workspace?.id
-                    ? "Workspace unavailable — tap Repair above"
-                    : undefined
-              }
+              disabled={saving || !user?.id}
               className="gap-1.5"
             >
               {saving ? (
