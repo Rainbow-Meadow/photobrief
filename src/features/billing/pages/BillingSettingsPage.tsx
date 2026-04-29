@@ -326,6 +326,25 @@ export default function BillingSettingsPage() {
           </table>
         </div>
       </section>
+
+      {/* Top-up Embedded Checkout dialog --------------------------------- */}
+      <Dialog open={!!topupCheckout} onOpenChange={(open) => !open && setTopupCheckout(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {topupCheckout
+                ? `Buy ${topupCheckout.size} extra requests`
+                : "Top-up checkout"}
+            </DialogTitle>
+          </DialogHeader>
+          {topupCheckout ? (
+            <StripeTopupCheckout
+              workspaceId={workspace.id}
+              pack={topupCheckout}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -335,20 +354,25 @@ function UsageMeter({
   used,
   cap,
   loading,
+  topupRemaining = 0,
 }: {
   label: string;
   used: number;
   cap: Quota;
   loading?: boolean;
+  topupRemaining?: number;
 }) {
   const value = pct(used, cap);
-  const danger = value >= 90;
+  const danger = value >= 90 && topupRemaining === 0;
   return (
     <div>
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">{label}</span>
         <span className={cn("font-medium tabular-nums", danger ? "text-destructive" : "text-foreground")}>
           {loading ? "…" : used} / {formatQuota(cap)}
+          {topupRemaining > 0 ? (
+            <span className="ml-1 text-success">+{topupRemaining}</span>
+          ) : null}
         </span>
       </div>
       <ReadinessProgress value={loading ? 0 : value} className="mt-1.5" />
