@@ -96,6 +96,7 @@ const App = () => (
             <Route path="/settings/templates" element={<MessageTemplatesPage />} />
             <Route path="/settings/sms" element={<SmsSettingsPage />} />
             <Route path="/settings/billing" element={<BillingSettingsPage />} />
+            <Route path="/app/help" element={<BetaGuidePage />} />
           </Route>
 
           {/* Public recipient (chat-first, no auth) */}
