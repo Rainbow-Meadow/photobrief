@@ -50,7 +50,35 @@ export default function DashboardPage() {
   const requests = useRequests();
   const [assistantOpen, setAssistantOpen] = useState(false);
   const { can } = usePlan();
+  const { workspace } = useCurrentWorkspace();
   const canRemind = can("reminders");
+
+  // Count refunds (request_credit usage events) granted this billing
+  // period — the visible payoff of the First-pass guarantee.
+  const [refundedThisPeriod, setRefundedThisPeriod] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const wsId = workspace?.id;
+    if (!wsId) {
+      setRefundedThisPeriod(null);
+      return;
+    }
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    supabase
+      .from("usage_events")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", wsId)
+      .eq("event_type", "request_credit")
+      .gte("created_at", monthStart.toISOString())
+      .then(({ count }) => {
+        if (!cancelled) setRefundedThisPeriod(count ?? 0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workspace?.id]);
 
   const metrics = useMemo(() => {
     const readyToReview = requests.filter((r) => r.status === "submitted").length;
