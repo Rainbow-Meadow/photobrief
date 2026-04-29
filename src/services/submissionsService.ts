@@ -34,6 +34,11 @@ async function hydrate(
     imageUrl: publicUrl(m.file_url),
     capturedAt: m.created_at,
     feedback: m.ai_feedback ?? undefined,
+    reviewStatus: (m.status === "approved" || m.status === "rejected" || m.status === "resubmitted")
+      ? m.status
+      : "pending",
+    reviewComment: m.review_comment ?? undefined,
+    reviewedAt: m.reviewed_at ?? undefined,
   }));
   const extractedDetails: ExtractedDetail[] = (detailsRows ?? []).map((d) => ({
     label: d.label,
@@ -174,8 +179,63 @@ export const submissionsService = {
     };
   },
 
-
   /**
+   * Reviewer-side: reject one or more captured shots, append per-shot
+   * comments, push the submission back to "needs_more", and record an
+   * audit entry that powers first/second-pass acceptance metrics.
+   */
+  async rejectShots(args: {
+    submissionId: string;
+    workspaceId: string;
+    items: { mediaId: string; comment: string }[];
+    summaryMessage: string;
+  }): Promise<void> {
+    if (args.items.length === 0) return;
+    const reviewedAt = new Date().toISOString();
+
+    // 1. Update each rejected captured_media row.
+    for (const item of args.items) {
+      const { error: medErr } = await supabase
+        .from("captured_media")
+        .update({
+          status: "rejected",
+          review_comment: item.comment || null,
+          reviewed_at: reviewedAt,
+        })
+        .eq("id", item.mediaId);
+      if (medErr) throw medErr;
+    }
+
+    // 2. Compute the next round number for this submission.
+    const { data: prior, error: roundErr } = await supabase
+      .from("submission_reviews")
+      .select("round")
+      .eq("submission_id", args.submissionId)
+      .order("round", { ascending: false })
+      .limit(1);
+    if (roundErr) throw roundErr;
+    const nextRound = (prior?.[0]?.round ?? 0) + 1;
+
+    // 3. Insert the audit row (trigger updates first/second_pass_status).
+    const { data: user } = await supabase.auth.getUser();
+    const { error: revErr } = await supabase.from("submission_reviews").insert({
+      submission_id: args.submissionId,
+      workspace_id: args.workspaceId,
+      reviewer_id: user.user?.id ?? null,
+      action: "rejected",
+      round: nextRound,
+      summary_message: args.summaryMessage,
+      rejected_media_ids: args.items.map((i) => i.mediaId),
+    });
+    if (revErr) throw revErr;
+
+    // 4. Move submission to needs_more.
+    const { error: statusErr } = await supabase
+      .from("submissions")
+      .update({ status: "needs_more" })
+      .eq("id", args.submissionId);
+    if (statusErr) throw statusErr;
+  },
    * Recipient-side: create a submission row + upload media + insert captured_media.
    */
   async submitFromRecipient(args: {
