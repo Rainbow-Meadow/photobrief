@@ -7,6 +7,22 @@ import { guideTemplates } from "@/config/guideTemplates";
 import { guidesService } from "@/services/guidesService";
 import type { PhotoGuide } from "@/types/photobrief";
 
+export interface ResubmitItem {
+  /** captured_media row id of the rejected shot (will be marked resubmitted). */
+  rejectedMediaId: string;
+  /** guide step id this rejection is tied to. */
+  stepId: string;
+  /** reviewer's per-shot comment shown to the recipient as guidance. */
+  comment: string;
+}
+
+export interface ResubmitContext {
+  submissionId: string;
+  /** Aggregated reviewer message from the rejection round. */
+  summaryMessage?: string;
+  items: ResubmitItem[];
+}
+
 export interface RecipientContext {
   requestId: string | null;
   workspaceId: string | null;
@@ -18,6 +34,8 @@ export interface RecipientContext {
   logoUrl?: string;
   hidePhotobriefBranding?: boolean;
   guide: PhotoGuide;
+  /** Present when the latest submission has rejected shots awaiting rework. */
+  resubmit?: ResubmitContext;
 }
 
 const DEFAULT_GUIDE = guideTemplates[0];
