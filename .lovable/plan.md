@@ -1,118 +1,55 @@
-## Mobile-first UI overhaul
+## Add Top-Up Request Credits
 
-Goal: every screen feels native-quality on a phone (≤640px) while preserving the existing desktop experience pixel-for-pixel above `lg`. Same components, same design tokens — just reflowed and density-tuned per breakpoint.
+Let businesses buy extra request packs when they hit their monthly cap, instead of being forced to upgrade tiers. Top-ups are one-time purchases that add credits on top of the plan's monthly allowance and last until the end of the current billing period.
 
-We are **not** packaging this as Capacitor yet. This pass makes the web app look and feel like a mobile app inside the browser so a future Capacitor wrapper "just works". I'll flag the install/native step as a separate follow-up.
+### Pricing (mobile-first cards on Billing page)
 
-### Design principles applied everywhere
+Pack pricing is set so per-request cost is roughly **2× the marginal plan rate** — cheaper than upgrading for short bursts, but a clear nudge to move up if used often.
 
-- **Mobile-first defaults** — base classes target phones; `sm:` / `lg:` layer on tablet/desktop refinements. No `hidden lg:block` content that disappears on mobile without a mobile equivalent.
-- **Tap targets ≥ 44px** — icon buttons get `h-11 w-11` on mobile, shrink to `h-9 w-9` from `sm:` up.
-- **Thumb-zone primary actions** — sticky bottom action bars on long forms (Create Request, Brand Settings, Submission Review).
-- **Safe areas** — root layouts add `pb-[env(safe-area-inset-bottom)]` and `pt-[env(safe-area-inset-top)]` so the UI doesn't sit under iOS home indicator / notch when wrapped natively later.
-- **No horizontal scroll** — replace tables on mobile with stacked cards; tables stay on `md:` and up.
-- **Single source of truth** — semantic tokens from `index.css` only; no new colors, no per-screen overrides.
+| Pack | Requests | Price | Per-request |
+|------|----------|------:|-----------:|
+| Small | 25 | $15 | $0.60 |
+| Medium | 100 | $45 | $0.45 |
+| Large | 500 | $175 | $0.35 |
 
-### Navigation
+Available on every paid plan (Starter, Pro, Team, Business). Free plan users see an upgrade nudge instead — top-ups don't apply there.
 
-Replace the always-on left sidebar on mobile with a **bottom tab bar** (the canonical mobile pattern), and keep the sidebar exactly as-is on `lg:` and up.
+### What the user sees
 
-```text
-phone (< lg)               desktop (>= lg)
-+--------------------+     +-------+-----------------+
-| top app bar (56px) |     | side  |  top bar        |
-|                    |     | bar   +-----------------+
-|     content        |     |       |                 |
-|                    |     |       |   content       |
-+--------------------+     |       |                 |
-| ⌂  📥  📚  ⚙  + |     +-------+-----------------+
-+--------------------+
-```
+1. **Billing page → new "Top-up credits" section** below the plan switcher: 3 pack cards, current top-up balance, and a list of the last few purchases.
+2. **At-limit moments** (Create Request, Dashboard at-cap banner, Inbox empty state): existing "PLAN_LIMIT_REACHED" toast/card gains a secondary "Buy a credit pack" button alongside "Upgrade plan".
+3. **Usage meter** on Billing + Dashboard: when a top-up is active, shows `12 / 150 + 25 top-up` and the meter fills proportionally so people see the buffer.
+4. **Stripe Embedded Checkout** in a Dialog (same pattern as plan upgrades) — one-time payment, no subscription.
 
-Bottom bar items: **Dashboard · Requests · Guides · Settings**, plus a centered raised **+ New request** FAB. Settings opens a full-screen sheet listing the current sidebar settings group (Brand / Team / Templates / SMS / Billing). Workspace switcher and notifications move into a top-bar overflow menu on mobile.
+### Technical changes
 
-`DashboardLayout` changes:
-- Hide `<AppSidebar />` below `lg` (`hidden lg:flex`).
-- Render new `<MobileTabBar />` only below `lg` (`lg:hidden`), fixed bottom, with `safe-area-inset-bottom`.
-- Main `<main>` gets `pb-20 lg:pb-0` so content clears the tab bar.
-- Top bar: keep "+ New request" only on `sm:` and up (the FAB covers mobile); always show notifications + avatar.
+**Database (migration)**
+- New table `request_credit_packs` (id, workspace_id, plan_at_purchase, pack_size, amount_cents, currency, environment, stripe_payment_intent_id, stripe_checkout_session_id, status [`pending`|`active`|`refunded`], remaining int, period_end timestamptz, created_at).
+- New `usage_event_type` value `topup_request_used` — logged each time a request is created while the user is over their plan cap, decrementing `remaining` on the oldest active pack via trigger.
+- Update `enforce_request_limit()`: if plan cap reached, check `SUM(remaining) FROM request_credit_packs WHERE workspace_id = ws AND status='active' AND period_end > now()`. If > 0, allow insert and consume one credit (oldest pack first). Otherwise, raise `PLAN_LIMIT_REACHED` as today.
+- New SQL helper `current_topup_balance(_workspace_id uuid)` returning `{ remaining int, expires_at timestamptz }` for the UI.
+- RLS: members read their workspace's packs; only service role writes (webhook + checkout function).
 
-Marketing nav: turn the `hidden sm:flex` desktop nav into a hamburger sheet on mobile (Use cases / How it works / Pricing / Sign in / Try Free).
+**Stripe products** (one-time, USD, single-purchase qty 1/1)
+- `topup_25` — Top-up: 25 requests — $15
+- `topup_100` — Top-up: 100 requests — $45
+- `topup_500` — Top-up: 500 requests — $175
 
-### Page-level mobile patterns
+**Edge functions**
+- `create-topup-checkout`: mirrors `create-checkout` but uses `mode: "payment"`, `ui_mode: "embedded"`, looks up the topup price by `lookup_keys`, stamps metadata `{ workspace_id, user_id, pack_size, kind: "topup" }`. `verify_jwt = false`.
+- Extend `payments-webhook`: on `checkout.session.completed` where `metadata.kind === "topup"`, insert a row in `request_credit_packs` with `remaining = pack_size`, `period_end = subscriptions.current_period_end` (or now() + 30d if no sub), `status = "active"`.
 
-**Dashboard** (`DashboardPage.tsx`)
-- Metric grid: keep `grid gap-3 grid-cols-2 sm:grid-cols-2 lg:grid-cols-5`. Tighten `MetricCard` padding on mobile (`p-3 sm:p-4`) and let value text stay readable (`text-xl sm:text-2xl`).
-- Two list cards stack 1-col by default and become 2-col at `lg:` (already partly true). Make each list row a full-width tappable card on mobile with the status badge wrapping under the title rather than crowding the right edge.
-- Assistant panel: on mobile, open as a bottom sheet (Drawer) instead of a side column.
-- "Assistant" / "New request" actions in the page header collapse into the FAB + a single Assistant icon button on mobile.
+**Frontend**
+- `src/config/topupPacks.ts` — single source of truth for the 3 packs.
+- `src/components/billing/TopupPackCards.tsx` — mobile-first vertical stack (3 cards), `sm:grid-cols-3`, "Buy pack" button per card.
+- `src/components/billing/TopupCheckoutDialog.tsx` — wraps `StripeEmbeddedCheckout` with `priceId={topup_NN}`.
+- `src/hooks/useTopupBalance.ts` — calls `current_topup_balance` RPC, exposes `{ remaining, expiresAt, refetch }`.
+- Update `BillingSettingsPage`: render `<TopupPackCards />` after the plan switcher; add "Top-up balance" line to the usage card.
+- Update `useUsage` to include `topupRemaining` and a derived `effectiveRequestsRemaining`. Update `requestsAtLimit` so it stays `false` while top-up balance > 0.
+- Update at-limit error UI in `CreateRequestPage` and the dashboard banner: show the new "Buy a credit pack" CTA opening the topup dialog.
+- Update `PaymentTestModeBanner` coverage — already global, no change.
 
-**Requests Inbox** (`RequestsInboxPage.tsx`)
-- Below `md:`, replace the table with a stacked card list (one card per request: name, guide, status pill, readiness, last activity, kebab menu). Filter chips become a horizontally scrollable row (`overflow-x-auto snap-x`).
-- Search input becomes full-width and sticky just under the top bar.
-- From `md:` up, the existing table layout is unchanged.
-
-**Create Request** (`CreateRequestPage.tsx`)
-- Stack the two-column layout vertically on mobile (already is — verify gap). Move the "Send request" CTA to a sticky bottom bar (`fixed bottom-16 lg:static`) so it's always reachable above the tab bar.
-- Template picker grid → 1-col on mobile, 2-col `sm:`.
-
-**Submission Review** (`SubmissionReviewPage.tsx`)
-- Header summary card collapses to a single column with shot thumbnails in a horizontally snapping row.
-- Approve / Request resubmission actions become a sticky bottom bar on mobile (with their existing styling).
-- Right-rail metadata moves below the shot grid on mobile (`order-last lg:order-none`).
-
-**Settings pages** (Brand / Team / Templates / SMS / Billing)
-- Collapse the right-rail preview/help cards under the form on mobile.
-- Form rows: full-width inputs, labels stacked above (already mostly true).
-- Sticky "Save changes" footer bar on mobile for any page with unsaved-changes state.
-
-**Guides Library**
-- Card grid already responsive; ensure cards have `min-h` consistency and "New guide" CTA appears in the FAB / sticky header on mobile.
-
-**Public recipient page** (`/r/:token`)
-- Already chat-first, so it's mostly mobile-correct. Audit for: keyboard-safe input bar (`pb-[env(safe-area-inset-bottom)]`), prevent body scroll behind the keyboard, ensure single-column.
-
-**Landing / Pricing / Auth**
-- Landing hero font sizes already scale (`text-4xl sm:text-5xl lg:text-6xl`) — keep.
-- `PricingCardGrid` should stack to 1-col with horizontal snap-scroll on mobile so users can swipe between plans.
-- Auth form: ensure inputs are `text-base` (prevents iOS zoom-on-focus), button is full-width on mobile.
-
-### New / changed files
-
-- **New** `src/components/layout/MobileTabBar.tsx` — bottom nav with NavLinks + central FAB.
-- **New** `src/components/layout/MobileSettingsSheet.tsx` — full-screen sheet listing settings sub-pages (used from the Settings tab).
-- **New** `src/components/layout/MobileTopBar.tsx` (optional split) or fold into `DashboardLayout`.
-- **Edit** `src/components/layout/DashboardLayout.tsx` — gate sidebar behind `lg:`, mount `<MobileTabBar />`, add safe-area padding.
-- **Edit** `src/components/layout/MarketingLayout.tsx` — hamburger sheet for nav links on mobile.
-- **Edit** `src/components/layout/PageHeader.tsx` — allow actions to wrap below the title on mobile cleanly; expose `compact` prop for icon-only action variants.
-- **Edit** `src/components/shared/MetricCard.tsx` — denser mobile padding/typography variant.
-- **Edit** `src/features/requests/pages/RequestsInboxPage.tsx` — render mobile card list below `md:`, table at `md:` and above.
-- **Edit** `src/features/requests/pages/CreateRequestPage.tsx` — sticky mobile submit bar.
-- **Edit** `src/features/submissions/pages/SubmissionReviewPage.tsx` — sticky review actions, reordered sections on mobile.
-- **Edit** `src/features/workspace/pages/DashboardPage.tsx` — Assistant as Drawer on mobile, condensed header actions.
-- **Edit** `src/features/workspace/pages/BrandSettingsPage.tsx`, `TeamSettingsPage.tsx`, `MessageTemplatesPage.tsx`, `BillingSettingsPage.tsx` — sticky save bars, single-column reflow.
-- **Edit** `src/components/pricing/PricingCardGrid.tsx` — snap scroll on mobile.
-- **Edit** `src/index.css` — add safe-area utility helpers (only if not already in Tailwind config).
-- **Edit** `index.html` — add `viewport-fit=cover` to the viewport meta and `theme-color` matching `--background`, so when this is later wrapped in Capacitor the status bar matches.
-
-### What stays the same
-
-- All design tokens, colors, gradients, shadows.
-- Desktop layouts at `lg:` and above are visually unchanged.
-- All routes, data flow, plan gating (`usePlan().can()`), Supabase calls.
-- No new dependencies (we use existing shadcn `Sheet`, `Drawer`, `Sidebar`).
-
-### Out of scope (explicit)
-
-- Capacitor packaging, native plugins, App Store assets — we'll do this as a follow-up once the mobile-web feel is locked.
-- PWA / service worker — skipped per project guidance unless you ask.
-- Rewriting the design system or component library.
-
-### Validation checklist
-
-After implementation I'll spot-check at 360×800 (Android baseline), 390×844 (iPhone 14), 768×1024 (iPad), and 1440×900 (desktop) to confirm:
-- No horizontal scroll on any page below `md:`.
-- Bottom tab bar never overlaps content; FAB is always reachable.
-- Sticky action bars don't double-stack with the tab bar.
-- Tap targets ≥ 44px on all interactive icons.
-- Desktop layouts identical to current.
+### Out of scope (explicitly)
+- Auto-renew / subscription packs (only one-time for now).
+- Refunding unused top-up credits at period end (they expire silently — call this out in the card copy).
+- Top-ups for AI checks or seats (request credits only).
