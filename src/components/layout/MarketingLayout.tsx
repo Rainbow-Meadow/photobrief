@@ -33,6 +33,7 @@ export function MarketingLayout() {
             <a href="/#how-it-works" className="hover:text-foreground">How it works</a>
             <a href="/#use-cases" className="hover:text-foreground">Use cases</a>
             <NavLink to="/pricing" className="hover:text-foreground">Pricing</NavLink>
+            <NavLink to="/help" className="hover:text-foreground">Help</NavLink>
           </nav>
 
           <div className="flex items-center gap-2">
