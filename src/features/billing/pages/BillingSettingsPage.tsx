@@ -113,7 +113,7 @@ export default function BillingSettingsPage() {
   return (
     <div className="space-y-8">
       <PaymentTestModeBanner />
-      <PageHeader title="Billing" description="Plan, usage, and limits." />
+      <PageHeader title="Billing" description="Plan, usage, and limits." bordered={false} />
 
       {/* Current plan + usage --------------------------------------------- */}
       <section className="overflow-hidden rounded-2xl border bg-gradient-to-br from-card to-muted/30 shadow-elev-sm">
