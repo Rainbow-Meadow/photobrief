@@ -1,17 +1,8 @@
 // Live workspace + subscription for the signed-in user.
-// Returns `workspace: null` when the user is unauthenticated or has no
-// default workspace. Callers must handle the null case (loading vs missing).
-//
-// IMPORTANT: PostgREST occasionally returns 503 ("Database client error" /
-// schema cache reload) for a few seconds after auth.users churn. Without
-// retry, useCurrentWorkspace would silently fall back to a null workspace,
-// which downstream causes usePlan() → "free" — meaning paying users would
-// be locked out of their plan features for the duration of the reload.
-// We retry with exponential backoff on transient failures.
-import { useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { withSupabaseRetry as withRetry } from "@/lib/supabaseRetry";
+import { isTransientSupabaseError, withSupabaseRetry as withRetry } from "@/lib/supabaseRetry";
 import type { Plan, BillingInterval } from "@/types/photobrief";
 
 export interface CurrentWorkspace {
@@ -28,26 +19,44 @@ export interface CurrentWorkspace {
   stripeSubscriptionId: string | null;
 }
 
-export function useCurrentWorkspace() {
+interface WorkspaceContextValue {
+  workspace: CurrentWorkspace | null;
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
+
+const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
+
+export function CurrentWorkspaceProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const [workspace, setWorkspace] = useState<CurrentWorkspace | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
     if (!user) {
       setWorkspace(null);
+      setError(null);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    const { data: profile } = await withRetry(async () =>
+    setError(null);
+    const { data: profile, error: profileErr } = await withRetry(async () =>
       await supabase
         .from("profiles")
         .select("default_workspace_id")
         .eq("id", user.id)
         .maybeSingle(),
     );
+    if (profileErr) {
+      if (!isTransientSupabaseError(profileErr)) setWorkspace(null);
+      setError(profileErr.message ?? "Could not load workspace");
+      setLoading(false);
+      return;
+    }
 
     const wsId = (profile as { default_workspace_id?: string } | null)?.default_workspace_id;
     if (!wsId) {
@@ -56,7 +65,7 @@ export function useCurrentWorkspace() {
       return;
     }
 
-    const [{ data: ws }, { data: sub }] = await Promise.all([
+    const [{ data: ws, error: wsErr }, { data: sub, error: subErr }] = await Promise.all([
       withRetry(async () =>
         await supabase
           .from("business_workspaces")
@@ -76,6 +85,14 @@ export function useCurrentWorkspace() {
           .maybeSingle(),
       ),
     ]);
+
+    const loadErr = wsErr ?? subErr;
+    if (loadErr) {
+      if (!isTransientSupabaseError(loadErr)) setWorkspace(null);
+      setError(loadErr.message ?? "Could not load workspace");
+      setLoading(false);
+      return;
+    }
 
     if (ws) {
       const wsTyped = ws as {
@@ -118,5 +135,21 @@ export function useCurrentWorkspace() {
     refetch();
   }, [authLoading, refetch]);
 
-  return { workspace, loading: loading || authLoading, refetch };
+  const value = useMemo(
+    () => ({ workspace, loading: loading || authLoading, error, refetch }),
+    [workspace, loading, authLoading, error, refetch],
+  );
+
+  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
+}
+
+export function useCurrentWorkspace() {
+  const context = useContext(WorkspaceContext);
+  if (context) return context;
+  return {
+    workspace: null,
+    loading: true,
+    error: "Workspace provider is missing",
+    refetch: async () => {},
+  };
 }
