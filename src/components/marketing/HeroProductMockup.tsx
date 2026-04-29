@@ -1,5 +1,19 @@
-import { MessageSquare, Sparkles, CheckCircle2, AlertCircle, Camera, ImageIcon } from "lucide-react";
+import { MessageSquare, Sparkles, CheckCircle2, AlertCircle, Camera } from "lucide-react";
 import leakPhoto from "@/assets/leak-photo.jpg";
+import wideScene from "@/assets/submission/wide-scene.jpg";
+import pipeConnections from "@/assets/submission/pipe-connections.jpg";
+import shutoffValve from "@/assets/submission/shutoff-valve.jpg";
+import waterDamage from "@/assets/submission/water-damage.jpg";
+import blurryRetake from "@/assets/submission/blurry-retake.jpg";
+
+const SHOTS = [
+  { src: wideScene, label: "Wide scene", ok: true },
+  { src: leakPhoto, label: "Close-up of leak", ok: true },
+  { src: pipeConnections, label: "Pipe connections", ok: true },
+  { src: shutoffValve, label: "Shutoff valve", ok: true },
+  { src: blurryRetake, label: "Under-sink area", ok: false },
+  { src: waterDamage, label: "Water damage", ok: true },
+];
 
 /**
  * Decorative product preview — pure CSS, no real product behavior.
