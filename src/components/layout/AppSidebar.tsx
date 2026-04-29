@@ -46,6 +46,11 @@ const settingsItems = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const { plan, loading: planLoading } = usePlan();
+  // Hide the upgrade card for users already on Pro or higher.
+  // Plans below Pro: free, starter. Don't render until plan is resolved
+  // to avoid flashing the wrong CTA during the brief auth/workspace load.
+  const showUpgradeCard = !planLoading && (plan === "free" || plan === "starter");
   const { pathname } = useLocation();
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
