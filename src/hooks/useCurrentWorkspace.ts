@@ -68,8 +68,8 @@ export function useCurrentWorkspace() {
     }
 
     setLoading(true);
-    const { data: profile } = await withRetry(() =>
-      supabase
+    const { data: profile } = await withRetry(async () =>
+      await supabase
         .from("profiles")
         .select("default_workspace_id")
         .eq("id", user.id)
@@ -84,15 +84,15 @@ export function useCurrentWorkspace() {
     }
 
     const [{ data: ws }, { data: sub }] = await Promise.all([
-      withRetry(() =>
-        supabase
+      withRetry(async () =>
+        await supabase
           .from("business_workspaces")
           .select("id, name, industry, plan_tier")
           .eq("id", wsId)
           .maybeSingle(),
       ),
-      withRetry(() =>
-        supabase
+      withRetry(async () =>
+        await supabase
           .from("subscriptions")
           .select(
             "plan_tier, billing_interval, current_period_start, current_period_end, cancel_at_period_end, is_founding_pro, stripe_customer_id, stripe_subscription_id",
