@@ -235,7 +235,7 @@ export default function OnboardingPage() {
       if (existErr) throw existErr;
 
       const brandPayload = {
-        workspace_id: workspace.id,
+        workspace_id: wsId,
         primary_color: brand.data.primaryColor,
         intro_message: brand.data.introMessage,
         completion_message: brand.data.completionMessage,
