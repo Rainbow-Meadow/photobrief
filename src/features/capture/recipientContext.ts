@@ -90,6 +90,48 @@ export async function loadRecipientContext(
   const firstName = (req.recipient_name ?? "").split(" ")[0] || "there";
   const businessName = ws?.name ?? "Your business";
 
+  // Look for an in-flight rework: latest submission for this request that
+  // has rejected captured_media rows.
+  let resubmit: ResubmitContext | undefined;
+  const { data: latestSub } = await client
+    .from("submissions")
+    .select("id, first_pass_status, second_pass_status")
+    .eq("request_id", req.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestSub?.id) {
+    const { data: rejected } = await client
+      .from("captured_media")
+      .select("id, step_id, review_comment")
+      .eq("submission_id", latestSub.id)
+      .eq("status", "rejected");
+
+    if (rejected && rejected.length > 0) {
+      const { data: lastReview } = await client
+        .from("submission_reviews")
+        .select("summary_message")
+        .eq("submission_id", latestSub.id)
+        .eq("action", "rejected")
+        .order("round", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      resubmit = {
+        submissionId: latestSub.id,
+        summaryMessage: lastReview?.summary_message ?? undefined,
+        items: rejected
+          .filter((r: any) => r.step_id)
+          .map((r: any) => ({
+            rejectedMediaId: r.id,
+            stepId: r.step_id,
+            comment: r.review_comment ?? "",
+          })),
+      };
+    }
+  }
+
   return {
     requestId: req.id,
     workspaceId: req.workspace_id,
@@ -103,5 +145,6 @@ export async function loadRecipientContext(
       `Hi ${firstName}! ${businessName} here — I'll walk you through a few quick photos.`,
     completionBody: brand?.completion_message ?? undefined,
     guide: guide ?? DEFAULT_GUIDE,
+    resubmit,
   };
 }
