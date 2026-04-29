@@ -445,7 +445,7 @@ export default function SubmissionReviewPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-16 lg:pb-0">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Button variant="ghost" size="sm" className="gap-1 px-2" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-3.5 w-3.5" /> Back
