@@ -184,6 +184,7 @@ export default function BillingSettingsPage() {
           heading="Change plan"
           subheading="Upgrade or downgrade any time. Annual saves 20%."
           pendingPlan={checkout?.plan ?? null}
+          showFoundingBanner={false}
           onSelectPlan={(plan, interval) => {
             if (!isPaymentsConfigured()) {
               toast({

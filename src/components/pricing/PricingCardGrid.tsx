@@ -28,6 +28,8 @@ interface Props {
   className?: string;
   heading?: string;
   subheading?: string;
+  /** Hide the founding-customer banner (only meaningful on the public marketing surface). */
+  showFoundingBanner?: boolean;
 }
 
 function ctaLabel(plan: PlanLimit, currentPlan?: Plan, pending?: boolean): string {
@@ -55,6 +57,7 @@ export function PricingCardGrid({
   className,
   heading,
   subheading,
+  showFoundingBanner = true,
 }: Props) {
   const [interval, setInterval] = useState<BillingInterval>(defaultInterval);
   const onDark = variant === "onDark";
@@ -92,7 +95,7 @@ export function PricingCardGrid({
         <FoundingProBadge variant={onDark ? "onDark" : "default"} />
       </div>
 
-      {!onDark ? (
+      {!onDark && showFoundingBanner ? (
         <div className="mt-8">
           <FoundingCustomerBanner />
         </div>
