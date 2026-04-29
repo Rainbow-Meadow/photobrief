@@ -165,8 +165,15 @@ Deno.serve(async (req) => {
 
     return json({ workspace_id: workspaceId });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("ensure-workspace failed:", message);
-    return json({ error: message }, 500);
+    // Surface the real error: Supabase PostgrestError objects don't extend
+    // Error, so `err.message` is undefined and we'd log "Unknown error".
+    const e = err as { message?: string; code?: string; details?: string; hint?: string };
+    const message =
+      e?.message ||
+      e?.details ||
+      e?.hint ||
+      (typeof err === "string" ? err : JSON.stringify(err));
+    console.error("ensure-workspace failed:", message, "code:", e?.code, "raw:", err);
+    return json({ error: message, code: e?.code ?? null }, 500);
   }
 });
