@@ -49,7 +49,7 @@ export default function PricingPage() {
             Start free. Automate intake with Pro. Coordinate your team with Business. Scale with Enterprise.
           </p>
           <p className="mt-2 text-sm text-primary">
-            All paid plans include a 14-day free trial. No credit card required.
+            Backed by our 30-day money-back guarantee. Cancel anytime.
           </p>
         </div>
       </section>
