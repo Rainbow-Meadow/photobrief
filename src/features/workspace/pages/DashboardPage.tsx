@@ -205,6 +205,23 @@ export default function DashboardPage() {
                         tone: "success",
                       }
               }
+              footnote={
+                refundedThisPeriod !== null && refundedThisPeriod > 0
+                  ? {
+                      label: `↻ ${refundedThisPeriod} ${refundedThisPeriod === 1 ? "request" : "requests"} refunded this period`,
+                      tooltip:
+                        "First-pass guarantee: when a submission needs rework, the request is refunded to your monthly allowance.",
+                      tone: "primary",
+                    }
+                  : refundedThisPeriod === 0
+                    ? {
+                        label: "✓ First-pass guarantee active — no refunds needed",
+                        tooltip:
+                          "Every submission landed on the first try this period. If one ever needs rework, that request is refunded automatically.",
+                        tone: "success",
+                      }
+                    : undefined
+              }
             />
           </div>
 
