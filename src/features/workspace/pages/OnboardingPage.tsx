@@ -229,7 +229,7 @@ export default function OnboardingPage() {
         await supabase
           .from("brand_profiles")
           .select("id")
-          .eq("workspace_id", workspace.id)
+          .eq("workspace_id", wsId)
           .maybeSingle(),
       );
       if (existErr) throw existErr;
