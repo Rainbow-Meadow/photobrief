@@ -198,8 +198,8 @@ export function CurrentWorkspaceProvider({ children }: { children: ReactNode }) 
   }, [authLoading, refetch]);
 
   const value = useMemo(
-    () => ({ workspace, loading: loading || authLoading, error, refetch }),
-    [workspace, loading, authLoading, error, refetch],
+    () => ({ workspace, loading: loading || authLoading, error, backendUnavailable, refetch }),
+    [workspace, loading, authLoading, error, backendUnavailable, refetch],
   );
 
   return createElement(WorkspaceContext.Provider, { value }, children);
@@ -212,6 +212,7 @@ export function useCurrentWorkspace() {
     workspace: null,
     loading: true,
     error: "Workspace provider is missing",
+    backendUnavailable: false,
     refetch: async () => {},
   };
 }
