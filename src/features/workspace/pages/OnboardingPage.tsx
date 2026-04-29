@@ -81,6 +81,9 @@ export default function OnboardingPage() {
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [saving, setSaving] = useState(false);
+  const [repairing, setRepairing] = useState(false);
+  const [finishError, setFinishError] = useState<string | null>(null);
+  const autoRepairTried = useRef(false);
   const [form, setForm] = useState<FormState>({
     workspaceName: "",
     industry: "",
@@ -88,6 +91,34 @@ export default function OnboardingPage() {
     introMessage: "Hi! Help us help you — a few quick photos.",
     completionMessage: "Thanks! We've got everything we need.",
   });
+
+  // Server-side fallback: provision the workspace + bootstrap rows if the
+  // signup trigger somehow skipped them (or a transient Cloud failure left
+  // the user with no default_workspace_id). Idempotent; safe to retry.
+  const repairWorkspace = async (silent = false) => {
+    setRepairing(true);
+    try {
+      const { error } = await supabase.functions.invoke("ensure-workspace", {
+        body: {},
+      });
+      if (error) throw error;
+      await refetch();
+      if (!silent) toast.success("Workspace ready");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not repair workspace";
+      if (!silent) toast.error(msg);
+    } finally {
+      setRepairing(false);
+    }
+  };
+
+  // Auto-repair once if the workspace can't be loaded after auth resolves.
+  useEffect(() => {
+    if (wsLoading || workspace?.id || !user?.id || autoRepairTried.current) return;
+    autoRepairTried.current = true;
+    void repairWorkspace(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wsLoading, workspace?.id, user?.id]);
 
   // Seed initial values from the workspace + brand profile created by the
   // signup trigger so we don't blow away anything the user has already set.
