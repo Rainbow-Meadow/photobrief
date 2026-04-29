@@ -297,22 +297,22 @@ export default function RequestsInboxPage() {
                   const isSel = selected.has(r.id);
                   return (
                     <tr key={r.id} className={isSel ? "bg-primary/5" : "hover:bg-muted/30"}>
-                      <td className="px-3 py-3 align-top">
+                      <td className="px-3 py-3 align-middle">
                         <Checkbox
                           aria-label={`Select request for ${r.recipientName}`}
                           checked={isSel}
                           onCheckedChange={() => toggleOne(r.id)}
                         />
                       </td>
-                      <td className="px-5 py-3 align-top">
+                      <td className="px-5 py-3 align-middle">
                         <p className="font-medium text-foreground">{r.recipientName}</p>
                         <p className="text-xs text-muted-foreground">{r.recipientContact}</p>
                       </td>
-                      <td className="px-5 py-3 align-top text-muted-foreground">{r.guideName}</td>
-                      <td className="px-5 py-3 align-top">
+                      <td className="px-5 py-3 align-middle text-muted-foreground">{r.guideName}</td>
+                      <td className="px-5 py-3 align-middle">
                         <StatusBadge label={status.label} tone={status.tone} />
                       </td>
-                      <td className="px-5 py-3 align-top">
+                      <td className="px-5 py-3 align-middle">
                         {r.readinessScore !== undefined ? (
                           <ReadinessScoreBadge score={r.readinessScore} />
                         ) : (
@@ -333,10 +333,10 @@ export default function RequestsInboxPage() {
                           <span className="text-xs text-success">Complete</span>
                         )}
                       </td>
-                      <td className="px-5 py-3 align-top text-xs text-muted-foreground">
+                      <td className="px-5 py-3 align-middle text-xs text-muted-foreground">
                         {r.lastActivityAt ? formatRelativeTime(r.lastActivityAt) : formatRelativeTime(r.createdAt)}
                       </td>
-                      <td className="px-5 py-3 align-top">
+                      <td className="px-5 py-3 align-middle">
                         {r.assigneeName ? (
                           <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-accent-foreground">
@@ -348,7 +348,7 @@ export default function RequestsInboxPage() {
                           <span className="text-xs text-muted-foreground">Unassigned</span>
                         )}
                       </td>
-                      <td className="px-5 py-3 align-top text-right">
+                      <td className="px-5 py-3 align-middle text-right">
                         <div className="flex justify-end gap-1">
                           <Button asChild variant="ghost" size="sm" className="gap-1">
                             <NavLink to={`/requests/${r.id}`}>
