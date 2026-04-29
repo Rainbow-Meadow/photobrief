@@ -192,6 +192,7 @@ export const planLimits: PlanLimit[] = [
       savedTemplates: 0,
     },
     features: [
+      "First-pass guarantee — rejected requests are refunded",
       "3 requests / month",
       "1 user",
       "Built-in templates",
@@ -218,6 +219,7 @@ export const planLimits: PlanLimit[] = [
       savedTemplates: 1,
     },
     features: [
+      "First-pass guarantee — rejected requests are refunded",
       "25 requests / month",
       "1 user",
       "Logo + brand color",
@@ -254,6 +256,7 @@ export const planLimits: PlanLimit[] = [
       savedTemplates: 5,
     },
     features: [
+      "First-pass guarantee — rejected requests are refunded",
       "Everything in Starter",
       "150 requests / month",
       "3 users",
@@ -299,6 +302,7 @@ export const planLimits: PlanLimit[] = [
       savedTemplates: "unlimited",
     },
     features: [
+      "First-pass guarantee — rejected requests are refunded",
       "Everything in Pro",
       "500 requests / month",
       "10 users",
@@ -347,6 +351,7 @@ export const planLimits: PlanLimit[] = [
       savedTemplates: "unlimited",
     },
     features: [
+      "First-pass guarantee — rejected requests are refunded",
       "Everything in Team",
       "1,500+ requests / month",
       "25+ users",

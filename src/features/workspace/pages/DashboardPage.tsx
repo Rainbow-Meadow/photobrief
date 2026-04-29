@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   CheckCircle2,
@@ -17,6 +17,8 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ReadinessScoreBadge } from "@/components/shared/ReadinessScoreBadge";
 import { Button } from "@/components/ui/button";
 import { useRequests } from "@/hooks/useRequests";
+import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
+import { supabase } from "@/integrations/supabase/client";
 import { requestStatusOptions } from "@/config/statusOptions";
 import { formatRelativeTime } from "@/utils/format";
 import { AssistantPanel } from "@/features/workspace/components/AssistantPanel";
@@ -48,7 +50,35 @@ export default function DashboardPage() {
   const requests = useRequests();
   const [assistantOpen, setAssistantOpen] = useState(false);
   const { can } = usePlan();
+  const { workspace } = useCurrentWorkspace();
   const canRemind = can("reminders");
+
+  // Count refunds (request_credit usage events) granted this billing
+  // period — the visible payoff of the First-pass guarantee.
+  const [refundedThisPeriod, setRefundedThisPeriod] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const wsId = workspace?.id;
+    if (!wsId) {
+      setRefundedThisPeriod(null);
+      return;
+    }
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    supabase
+      .from("usage_events")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", wsId)
+      .eq("event_type", "request_credit")
+      .gte("created_at", monthStart.toISOString())
+      .then(({ count }) => {
+        if (!cancelled) setRefundedThisPeriod(count ?? 0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workspace?.id]);
 
   const metrics = useMemo(() => {
     const readyToReview = requests.filter((r) => r.status === "submitted").length;
@@ -174,6 +204,23 @@ export default function DashboardPage() {
                         label: `${metrics.secondPassPct}% accepted on second pass · ${metrics.secondAccepted} of ${metrics.secondDecidedCount}`,
                         tone: "success",
                       }
+              }
+              footnote={
+                refundedThisPeriod !== null && refundedThisPeriod > 0
+                  ? {
+                      label: `↻ ${refundedThisPeriod} ${refundedThisPeriod === 1 ? "request" : "requests"} refunded this period`,
+                      tooltip:
+                        "First-pass guarantee: when a submission needs rework, the request is refunded to your monthly allowance.",
+                      tone: "primary",
+                    }
+                  : refundedThisPeriod === 0
+                    ? {
+                        label: "✓ First-pass guarantee active — no refunds needed",
+                        tooltip:
+                          "Every submission landed on the first try this period. If one ever needs rework, that request is refunded automatically.",
+                        tone: "success",
+                      }
+                    : undefined
               }
             />
           </div>

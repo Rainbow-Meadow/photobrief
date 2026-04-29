@@ -146,6 +146,15 @@ export default function AuthPage() {
             ? "Sign up to start sending photo briefs."
             : "Sign in to your PhotoBrief workspace."}
         </p>
+        {mode === "signup" && (
+          <p className="mt-3 inline-flex items-start gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1.5 text-xs text-primary">
+            <span aria-hidden>✓</span>
+            <span>
+              Includes the <span className="font-semibold">First-pass guarantee</span> —
+              rework requests are always refunded.
+            </span>
+          </p>
+        )}
 
         {mode === "signin" && (
           <div className="mt-6 rounded-lg border border-primary/30 bg-primary/5 p-4">

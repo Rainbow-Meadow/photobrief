@@ -253,7 +253,19 @@ export function PricingCardGrid({
 
       <p
         className={cn(
-          "mt-8 text-center text-xs",
+          "mt-8 text-center text-sm font-medium",
+          onDark ? "text-white/85" : "text-foreground",
+        )}
+      >
+        ✓ <span className="font-semibold">First-pass guarantee included on every plan.</span>{" "}
+        <span className={onDark ? "text-white/65" : "text-muted-foreground"}>
+          Rejected submissions are refunded — they don't count against your
+          monthly request allowance.
+        </span>
+      </p>
+      <p
+        className={cn(
+          "mt-3 text-center text-xs",
           onDark ? "text-white/55" : "text-muted-foreground",
         )}
       >

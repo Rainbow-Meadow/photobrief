@@ -2,7 +2,7 @@ const stats = [
   { value: "40%", label: "Fewer wasted service calls" },
   { value: "8 min", label: "Avg. customer completion time" },
   { value: "3×", label: "Faster listing sell-through" },
-  { value: "94%", label: "Submission readiness score" },
+  { value: "100%", label: "Refunded on rework — every time" },
 ];
 
 export function StatsBand() {
