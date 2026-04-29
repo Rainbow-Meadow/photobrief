@@ -67,6 +67,15 @@ export default function LandingPage() {
             <p className="mt-4 text-xs text-muted-foreground">
               Free plan includes 5 requests/month · No install for your customers
             </p>
+            <a
+              href="#first-pass-guarantee"
+              onClick={() =>
+                trackEvent("cta_click", { location: "hero", label: "first_pass_pill" })
+              }
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-xs font-medium text-primary transition hover:bg-primary/10"
+            >
+              ✓ First-pass guarantee — rework? request refunded
+            </a>
           </div>
 
           <div className="mt-14 sm:mt-16 lg:mt-20">
