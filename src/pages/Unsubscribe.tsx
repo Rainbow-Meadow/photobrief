@@ -82,8 +82,8 @@ export default function UnsubscribePage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-16">
-      <div className="w-full max-w-md rounded-2xl border bg-card p-8 shadow-elev-sm">
-        <h1 className="text-xl font-semibold text-foreground">Email preferences</h1>
+      <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-elev-md">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Email preferences</h1>
 
         {state.status === "loading" || state.status === "submitting" ? (
           <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">

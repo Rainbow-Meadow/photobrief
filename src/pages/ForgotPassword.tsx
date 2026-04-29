@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
         <BrandMark variant="stacked" tone="color" size={120} eager withGlow />
       </div>
       <div className="rounded-lg border bg-card p-6 shadow-elev-md">
-        <h1 className="text-xl font-semibold text-foreground">Reset your password</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Reset your password</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Enter your email and we'll send you a link to choose a new password.
         </p>
