@@ -24,6 +24,10 @@ interface WorkspaceContextValue {
   workspace: CurrentWorkspace | null;
   loading: boolean;
   error: string | null;
+  /** True when the last lookup failed with a transient backend error
+   *  (PGRST001/PGRST002/503/network). Distinguishes "we couldn't reach
+   *  the backend" from "the user genuinely has no workspace yet". */
+  backendUnavailable: boolean;
   refetch: () => Promise<void>;
 }
 
