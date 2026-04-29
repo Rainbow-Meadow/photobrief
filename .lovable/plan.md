@@ -1,92 +1,118 @@
-## Goal
+## Mobile-first UI overhaul
 
-Promote the rejection-refund rule — *"if we make you ask twice, the request is on us"* — as a top-tier trust signal. It's a rare, defensible promise (most competitors charge per send regardless of quality) and it pairs naturally with the new first-pass acceptance metric.
+Goal: every screen feels native-quality on a phone (≤640px) while preserving the existing desktop experience pixel-for-pixel above `lg`. Same components, same design tokens — just reflowed and density-tuned per breakpoint.
 
-## Positioning
+We are **not** packaging this as Capacitor yet. This pass makes the web app look and feel like a mobile app inside the browser so a future Capacitor wrapper "just works". I'll flag the install/native step as a separate follow-up.
 
-**Headline phrase (locked):** **"First-pass guarantee"**
+### Design principles applied everywhere
 
-**Promise sentence:** *"If a submission needs rework, the request is refunded. You only pay for briefs that land right the first time."*
+- **Mobile-first defaults** — base classes target phones; `sm:` / `lg:` layer on tablet/desktop refinements. No `hidden lg:block` content that disappears on mobile without a mobile equivalent.
+- **Tap targets ≥ 44px** — icon buttons get `h-11 w-11` on mobile, shrink to `h-9 w-9` from `sm:` up.
+- **Thumb-zone primary actions** — sticky bottom action bars on long forms (Create Request, Brand Settings, Submission Review).
+- **Safe areas** — root layouts add `pb-[env(safe-area-inset-bottom)]` and `pt-[env(safe-area-inset-top)]` so the UI doesn't sit under iOS home indicator / notch when wrapped natively later.
+- **No horizontal scroll** — replace tables on mobile with stacked cards; tables stay on `md:` and up.
+- **Single source of truth** — semantic tokens from `index.css` only; no new colors, no per-screen overrides.
 
-This phrase appears verbatim in every surface so it becomes a recognizable feature name.
+### Navigation
 
-## Surfaces to update
-
-### 1. Landing page hero — sub-CTA badge
-Add a small inline pill directly under the existing CTA buttons, above the "Free plan includes…" line:
-
-```text
-✓ First-pass guarantee — rework? request refunded
-```
-
-Links to `#first-pass-guarantee` anchor further down the page.
-
-### 2. New "First-pass guarantee" feature band
-A dedicated section between **StatsBand** and **IndustryGrid** (id `first-pass-guarantee`). Layout:
+Replace the always-on left sidebar on mobile with a **bottom tab bar** (the canonical mobile pattern), and keep the sidebar exactly as-is on `lg:` and up.
 
 ```text
-┌──────────────────────────────────────────────────────┐
-│  [icon] First-pass guarantee                         │
-│                                                      │
-│  Most tools charge whether the photos are usable     │
-│  or not. We don't. If you have to send the           │
-│  customer back for a redo, that request is           │
-│  refunded to your monthly allowance — automatically. │
-│                                                      │
-│  [How it works]      [See your acceptance rate →]    │
-└──────────────────────────────────────────────────────┘
+phone (< lg)               desktop (>= lg)
++--------------------+     +-------+-----------------+
+| top app bar (56px) |     | side  |  top bar        |
+|                    |     | bar   +-----------------+
+|     content        |     |       |                 |
+|                    |     |       |   content       |
++--------------------+     |       |                 |
+| ⌂  📥  📚  ⚙  + |     +-------+-----------------+
++--------------------+
 ```
 
-Three short bullets to the right (or below on mobile):
-- **Auto-credited** — fires the moment a reviewer rejects
-- **One credit per request** — guaranteed by a DB constraint
-- **Visible on your dashboard** — tracked as first-pass acceptance %
+Bottom bar items: **Dashboard · Requests · Guides · Settings**, plus a centered raised **+ New request** FAB. Settings opens a full-screen sheet listing the current sidebar settings group (Brand / Team / Templates / SMS / Billing). Workspace switcher and notifications move into a top-bar overflow menu on mobile.
 
-New file: `src/components/marketing/FirstPassGuaranteeBand.tsx`. Use `bg-card` with a soft primary accent border and the `ShieldCheck` lucide icon. Track `cta_click` with `location: "guarantee_band"`.
+`DashboardLayout` changes:
+- Hide `<AppSidebar />` below `lg` (`hidden lg:flex`).
+- Render new `<MobileTabBar />` only below `lg` (`lg:hidden`), fixed bottom, with `safe-area-inset-bottom`.
+- Main `<main>` gets `pb-20 lg:pb-0` so content clears the tab bar.
+- Top bar: keep "+ New request" only on `sm:` and up (the FAB covers mobile); always show notifications + avatar.
 
-### 3. StatsBand — replace one stat
-Swap the weakest stat (`94% Submission readiness score` — duplicates the metric concept) with:
+Marketing nav: turn the `hidden sm:flex` desktop nav into a hamburger sheet on mobile (Use cases / How it works / Pricing / Sign in / Try Free).
 
-```text
-100%   Refunded on rework — every time
-```
+### Page-level mobile patterns
 
-### 4. Pricing page — feature row + per-card line
-- Add `"First-pass guarantee — rejected requests are refunded"` to the **top** of the feature list of every plan in `src/config/planLimits.ts` (so it shows in `features.slice(0, 7)`).
-- Add a small footnote below the `PricingCardGrid` grid:
-  > **Included on every plan.** Reviews that need rework don't count against your monthly request allowance.
+**Dashboard** (`DashboardPage.tsx`)
+- Metric grid: keep `grid gap-3 grid-cols-2 sm:grid-cols-2 lg:grid-cols-5`. Tighten `MetricCard` padding on mobile (`p-3 sm:p-4`) and let value text stay readable (`text-xl sm:text-2xl`).
+- Two list cards stack 1-col by default and become 2-col at `lg:` (already partly true). Make each list row a full-width tappable card on mobile with the status badge wrapping under the title rather than crowding the right edge.
+- Assistant panel: on mobile, open as a bottom sheet (Drawer) instead of a side column.
+- "Assistant" / "New request" actions in the page header collapse into the FAB + a single Assistant icon button on mobile.
 
-### 5. Dashboard metric card — surface the refund
-The `First-pass acceptance` `MetricCard` on `DashboardPage` already exists. Add a third line under the sub-stat showing **"X requests refunded this period"**, computed from `usage_events` where `event_type = 'request_credit'` within the current billing window. Tooltip explains the guarantee.
+**Requests Inbox** (`RequestsInboxPage.tsx`)
+- Below `md:`, replace the table with a stacked card list (one card per request: name, guide, status pill, readiness, last activity, kebab menu). Filter chips become a horizontally scrollable row (`overflow-x-auto snap-x`).
+- Search input becomes full-width and sticky just under the top bar.
+- From `md:` up, the existing table layout is unchanged.
 
-Query approach (workspace-scoped, no new RPCs needed):
-```ts
-const { count } = await supabase
-  .from("usage_events")
-  .select("id", { count: "exact", head: true })
-  .eq("workspace_id", wsId)
-  .eq("event_type", "request_credit")
-  .gte("created_at", periodStart);
-```
+**Create Request** (`CreateRequestPage.tsx`)
+- Stack the two-column layout vertically on mobile (already is — verify gap). Move the "Send request" CTA to a sticky bottom bar (`fixed bottom-16 lg:static`) so it's always reachable above the tab bar.
+- Template picker grid → 1-col on mobile, 2-col `sm:`.
 
-### 6. Auth signup page — trust line
-Append a single line to the signup-form sub-text:
-> *Includes the first-pass guarantee — rework requests are always refunded.*
+**Submission Review** (`SubmissionReviewPage.tsx`)
+- Header summary card collapses to a single column with shot thumbnails in a horizontally snapping row.
+- Approve / Request resubmission actions become a sticky bottom bar on mobile (with their existing styling).
+- Right-rail metadata moves below the shot grid on mobile (`order-last lg:order-none`).
 
-## Files touched
-- `src/pages/Landing.tsx` — hero pill + insert new band
-- `src/components/marketing/FirstPassGuaranteeBand.tsx` *(new)*
-- `src/components/marketing/StatsBand.tsx` — swap one stat
-- `src/components/pricing/PricingCardGrid.tsx` — footnote
-- `src/config/planLimits.ts` — prepend feature line on each plan
-- `src/features/workspace/pages/DashboardPage.tsx` — load refund count, pass to MetricCard
-- `src/components/shared/MetricCard.tsx` — minor: support an optional third "footnote" line if not already supported
-- `src/pages/Auth.tsx` — trust line under signup form
+**Settings pages** (Brand / Team / Templates / SMS / Billing)
+- Collapse the right-rail preview/help cards under the form on mobile.
+- Form rows: full-width inputs, labels stacked above (already mostly true).
+- Sticky "Save changes" footer bar on mobile for any page with unsaved-changes state.
 
-## Out of scope
-- No new DB work — the refund mechanism is already live and idempotent.
-- No copy variants/A-B testing harness — this is a single, confident phrasing.
-- No changes to email templates (can follow up if you want it in transactional emails too).
+**Guides Library**
+- Card grid already responsive; ensure cards have `min-h` consistency and "New guide" CTA appears in the FAB / sticky header on mobile.
 
-## Approve to proceed
-Once approved I'll implement all 8 file changes in one pass.
+**Public recipient page** (`/r/:token`)
+- Already chat-first, so it's mostly mobile-correct. Audit for: keyboard-safe input bar (`pb-[env(safe-area-inset-bottom)]`), prevent body scroll behind the keyboard, ensure single-column.
+
+**Landing / Pricing / Auth**
+- Landing hero font sizes already scale (`text-4xl sm:text-5xl lg:text-6xl`) — keep.
+- `PricingCardGrid` should stack to 1-col with horizontal snap-scroll on mobile so users can swipe between plans.
+- Auth form: ensure inputs are `text-base` (prevents iOS zoom-on-focus), button is full-width on mobile.
+
+### New / changed files
+
+- **New** `src/components/layout/MobileTabBar.tsx` — bottom nav with NavLinks + central FAB.
+- **New** `src/components/layout/MobileSettingsSheet.tsx` — full-screen sheet listing settings sub-pages (used from the Settings tab).
+- **New** `src/components/layout/MobileTopBar.tsx` (optional split) or fold into `DashboardLayout`.
+- **Edit** `src/components/layout/DashboardLayout.tsx` — gate sidebar behind `lg:`, mount `<MobileTabBar />`, add safe-area padding.
+- **Edit** `src/components/layout/MarketingLayout.tsx` — hamburger sheet for nav links on mobile.
+- **Edit** `src/components/layout/PageHeader.tsx` — allow actions to wrap below the title on mobile cleanly; expose `compact` prop for icon-only action variants.
+- **Edit** `src/components/shared/MetricCard.tsx` — denser mobile padding/typography variant.
+- **Edit** `src/features/requests/pages/RequestsInboxPage.tsx` — render mobile card list below `md:`, table at `md:` and above.
+- **Edit** `src/features/requests/pages/CreateRequestPage.tsx` — sticky mobile submit bar.
+- **Edit** `src/features/submissions/pages/SubmissionReviewPage.tsx` — sticky review actions, reordered sections on mobile.
+- **Edit** `src/features/workspace/pages/DashboardPage.tsx` — Assistant as Drawer on mobile, condensed header actions.
+- **Edit** `src/features/workspace/pages/BrandSettingsPage.tsx`, `TeamSettingsPage.tsx`, `MessageTemplatesPage.tsx`, `BillingSettingsPage.tsx` — sticky save bars, single-column reflow.
+- **Edit** `src/components/pricing/PricingCardGrid.tsx` — snap scroll on mobile.
+- **Edit** `src/index.css` — add safe-area utility helpers (only if not already in Tailwind config).
+- **Edit** `index.html` — add `viewport-fit=cover` to the viewport meta and `theme-color` matching `--background`, so when this is later wrapped in Capacitor the status bar matches.
+
+### What stays the same
+
+- All design tokens, colors, gradients, shadows.
+- Desktop layouts at `lg:` and above are visually unchanged.
+- All routes, data flow, plan gating (`usePlan().can()`), Supabase calls.
+- No new dependencies (we use existing shadcn `Sheet`, `Drawer`, `Sidebar`).
+
+### Out of scope (explicit)
+
+- Capacitor packaging, native plugins, App Store assets — we'll do this as a follow-up once the mobile-web feel is locked.
+- PWA / service worker — skipped per project guidance unless you ask.
+- Rewriting the design system or component library.
+
+### Validation checklist
+
+After implementation I'll spot-check at 360×800 (Android baseline), 390×844 (iPhone 14), 768×1024 (iPad), and 1440×900 (desktop) to confirm:
+- No horizontal scroll on any page below `md:`.
+- Bottom tab bar never overlaps content; FAB is always reachable.
+- Sticky action bars don't double-stack with the tab bar.
+- Tap targets ≥ 44px on all interactive icons.
+- Desktop layouts identical to current.

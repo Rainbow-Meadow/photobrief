@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { requestStatusOptions } from "@/config/statusOptions";
 import { formatRelativeTime } from "@/utils/format";
 import { AssistantPanel } from "@/features/workspace/components/AssistantPanel";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { messagingService } from "@/services/messagingService";
@@ -145,12 +146,16 @@ export default function DashboardPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant={assistantOpen ? "secondary" : "outline"}
+              size="sm"
               className="gap-1.5"
               onClick={() => setAssistantOpen((o) => !o)}
+              aria-label="Toggle assistant"
             >
-              <Sparkles className="h-4 w-4" /> Assistant
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">Assistant</span>
             </Button>
-            <Button asChild className="gap-1.5">
+            {/* New request lives in the bottom-bar FAB on mobile. */}
+            <Button asChild size="sm" className="hidden gap-1.5 sm:inline-flex">
               <NavLink to="/requests/new">
                 <Plus className="h-4 w-4" /> New request
               </NavLink>
@@ -161,7 +166,7 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className={cn("space-y-6", assistantOpen ? "lg:col-span-2" : "lg:col-span-3")}>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-3 grid-cols-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <MetricCard
               label="Ready to review"
               value={metrics.readyToReview}
@@ -187,6 +192,7 @@ export default function DashboardPage() {
               hint="Sent since the 1st"
             />
             <MetricCard
+              className="col-span-2 lg:col-span-1"
               label="First-pass acceptance"
               value={metrics.firstPassPct === null ? "—" : `${metrics.firstPassPct}%`}
               icon={ShieldCheck}
@@ -245,13 +251,20 @@ export default function DashboardPage() {
         </div>
 
         {assistantOpen ? (
-          <div className="lg:col-span-1">
+          <div className="hidden lg:col-span-1 lg:block">
             <div className="sticky top-4 h-[calc(100vh-6rem)]">
               <AssistantPanel open onClose={() => setAssistantOpen(false)} />
             </div>
           </div>
         ) : null}
       </div>
+
+      {/* Mobile: same panel rendered as a bottom sheet so it doesn't push page content. */}
+      <Sheet open={assistantOpen} onOpenChange={setAssistantOpen}>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0 lg:hidden">
+          <AssistantPanel open onClose={() => setAssistantOpen(false)} />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -445,7 +445,7 @@ export default function SubmissionReviewPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-16 lg:pb-0">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Button variant="ghost" size="sm" className="gap-1 px-2" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-3.5 w-3.5" /> Back
@@ -669,7 +669,7 @@ export default function SubmissionReviewPage() {
         </div>
 
         {/* Right rail */}
-        <aside className="space-y-6">
+        <aside className="order-last space-y-6 lg:order-none">
           <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
             <h2 className="text-sm font-semibold text-foreground">Extracted details</h2>
             {submission.extractedDetails && submission.extractedDetails.length > 0 ? (
@@ -738,6 +738,22 @@ export default function SubmissionReviewPage() {
         recipientName={submission.recipientName}
         onSend={handleAskForMore}
       />
+
+      {/* Mobile sticky review bar — sits above the bottom tab bar (which is 4rem tall + safe area). */}
+      <div className="fixed inset-x-0 bottom-16 z-30 border-t bg-background/95 backdrop-blur pb-safe lg:hidden">
+        <div className="mx-auto flex max-w-2xl items-center gap-2 px-4 py-2">
+          <Button
+            variant="outline"
+            className="flex-1 gap-1.5"
+            onClick={() => setAskOpen(true)}
+          >
+            <HelpCircle className="h-4 w-4" /> Ask for more
+          </Button>
+          <Button className="flex-1 gap-1.5" onClick={handleMarkReviewed}>
+            <CheckCircle2 className="h-4 w-4" /> Mark reviewed
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
