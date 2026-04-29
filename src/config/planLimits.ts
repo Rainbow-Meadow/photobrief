@@ -302,6 +302,7 @@ export const planLimits: PlanLimit[] = [
       savedTemplates: "unlimited",
     },
     features: [
+      "First-pass guarantee — rejected requests are refunded",
       "Everything in Pro",
       "500 requests / month",
       "10 users",
