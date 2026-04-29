@@ -12,6 +12,13 @@ import { aiService } from "@/services/aiService";
 import type { AICheckSeverity } from "@/types/photobrief";
 import { microcopy } from "@/config/microcopy";
 
+interface ResubmitConfig {
+  /** Map of stepId → reviewer comment for rejected shots. */
+  commentsByStepId: Record<string, string>;
+  /** Optional aggregated reviewer message shown at the top of the chat. */
+  summaryMessage?: string;
+}
+
 interface UseChatFlowArgs {
   guide: PhotoGuide;
   businessName: string;
@@ -27,27 +34,51 @@ interface UseChatFlowArgs {
     blob: Blob;
     ext: string;
   }) => Promise<{ publicUrl: string; storagePath: string; capturedMediaId: string }>;
+  /**
+   * When set, the flow runs in "resubmit" mode: only the listed steps are
+   * shown, prefaced by the reviewer's per-shot comments, and questions are
+   * skipped entirely.
+   */
+  resubmit?: ResubmitConfig;
 }
 
 let idCounter = 0;
 const nextId = () => `m_${Date.now()}_${++idCounter}`;
 
-export function useChatFlow({ guide, businessName, introBody, uploadCapture }: UseChatFlowArgs) {
+export function useChatFlow({ guide, businessName, introBody, uploadCapture, resubmit }: UseChatFlowArgs) {
+  // In resubmit mode, narrow the guide to only rejected steps.
+  const effectiveGuide = useMemo<PhotoGuide>(() => {
+    if (!resubmit) return guide;
+    const filteredSteps = guide.steps.filter((s) => resubmit.commentsByStepId[s.id] !== undefined);
+    return { ...guide, steps: filteredSteps, questions: [] };
+  }, [guide, resubmit]);
+
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    const introText = resubmit
+      ? `${businessName} reviewed your photos and asked for a quick redo on ${effectiveGuide.steps.length} ${effectiveGuide.steps.length === 1 ? "shot" : "shots"}.${resubmit.summaryMessage ? `\n\n"${resubmit.summaryMessage}"` : ""}`
+      : `Hi! ${businessName} here. ${introBody ?? microcopy.recipient.introBody}`;
     const intro: ChatMessage = {
       id: nextId(),
       kind: "assistant_text",
-      text: `Hi! ${businessName} here. ${introBody ?? microcopy.recipient.introBody}`,
+      text: introText,
     };
-    const first = guide.steps[0];
+    const first = effectiveGuide.steps[0];
     const initial: ChatMessage[] = [intro];
     if (first) {
+      const comment = resubmit?.commentsByStepId[first.id];
+      if (comment) {
+        initial.push({
+          id: nextId(),
+          kind: "assistant_text",
+          text: `Reviewer note: ${comment}`,
+        });
+      }
       initial.push({
         id: nextId(),
         kind: "photo_prompt",
         step: first,
         index: 1,
-        total: guide.steps.length,
+        total: effectiveGuide.steps.length,
       });
       initial.push({
         id: nextId(),
