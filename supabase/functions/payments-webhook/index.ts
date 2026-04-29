@@ -79,6 +79,61 @@ async function upsertSubscription(subscription: any, env: StripeEnv) {
   }
 }
 
+async function handleTopupCheckoutCompleted(session: any, env: StripeEnv) {
+  const md = session.metadata ?? {};
+  if (md.kind !== "topup") return;
+
+  const workspaceId: string | undefined = md.workspace_id;
+  const priceId: string | undefined = md.price_id;
+  const packSize = Number(md.pack_size ?? 0);
+  if (!workspaceId || !priceId || !packSize) {
+    console.error("topup checkout missing metadata", session.id, md);
+    return;
+  }
+
+  // Idempotency: bail if we already recorded this session.
+  const { data: existing } = await getSupabase()
+    .from("request_credit_packs")
+    .select("id")
+    .eq("stripe_checkout_session_id", session.id)
+    .maybeSingle();
+  if (existing) {
+    console.log("topup pack already recorded for session", session.id);
+    return;
+  }
+
+  // Period end: align to current subscription period end if there is one,
+  // otherwise expire 30 days from now.
+  const { data: sub } = await getSupabase()
+    .from("subscriptions")
+    .select("current_period_end")
+    .eq("workspace_id", workspaceId)
+    .eq("environment", env)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const periodEnd =
+    sub?.current_period_end ??
+    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  await getSupabase().from("request_credit_packs").insert({
+    workspace_id: workspaceId,
+    pack_size: packSize,
+    remaining: packSize,
+    amount_cents: session.amount_total ?? 0,
+    currency: session.currency ?? "usd",
+    environment: env,
+    status: "active",
+    stripe_checkout_session_id: session.id,
+    stripe_payment_intent_id: session.payment_intent ?? null,
+    plan_at_purchase: (md.plan_at_purchase ?? null) as never,
+    period_end: periodEnd,
+  });
+
+  console.log("topup pack credited:", workspaceId, priceId, packSize);
+}
+
 async function markCanceled(subscription: any, env: StripeEnv) {
   await getSupabase()
     .from("subscriptions")
@@ -123,6 +178,9 @@ Deno.serve(async (req) => {
         break;
       case "customer.subscription.deleted":
         await markCanceled(event.data.object, env);
+        break;
+      case "checkout.session.completed":
+        await handleTopupCheckoutCompleted(event.data.object, env);
         break;
       default:
         console.log("Unhandled event:", event.type);
