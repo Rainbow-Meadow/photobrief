@@ -1,5 +1,19 @@
-import { MessageSquare, Sparkles, CheckCircle2, AlertCircle, Camera, ImageIcon } from "lucide-react";
+import { MessageSquare, Sparkles, CheckCircle2, AlertCircle, Camera } from "lucide-react";
 import leakPhoto from "@/assets/leak-photo.jpg";
+import wideScene from "@/assets/submission/wide-scene.jpg";
+import pipeConnections from "@/assets/submission/pipe-connections.jpg";
+import shutoffValve from "@/assets/submission/shutoff-valve.jpg";
+import waterDamage from "@/assets/submission/water-damage.jpg";
+import blurryRetake from "@/assets/submission/blurry-retake.jpg";
+
+const SHOTS = [
+  { src: wideScene, label: "Wide scene", ok: true },
+  { src: leakPhoto, label: "Close-up of leak", ok: true },
+  { src: pipeConnections, label: "Pipe connections", ok: true },
+  { src: shutoffValve, label: "Shutoff valve", ok: true },
+  { src: blurryRetake, label: "Under-sink area", ok: false },
+  { src: waterDamage, label: "Water damage", ok: true },
+];
 
 /**
  * Decorative product preview — pure CSS, no real product behavior.
@@ -139,32 +153,31 @@ export function HeroProductMockup() {
 
             {/* Shot grid */}
             <div className="mt-3 grid grid-cols-3 gap-1.5">
-              {[true, true, true, true, false, true].map((ok, i) => (
+              {SHOTS.map((shot, i) => (
                 <div
                   key={i}
                   className="relative aspect-square overflow-hidden rounded-md border bg-muted"
                 >
-                  {i === 1 ? (
-                    <img
-                      src={leakPhoto}
-                      alt=""
-                      className="absolute inset-0 h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <ImageIcon className="h-4 w-4 text-muted-foreground/60" />
-                    </div>
+                  <img
+                    src={shot.src}
+                    alt={shot.label}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    loading="lazy"
+                    width={256}
+                    height={256}
+                  />
+                  {!shot.ok && (
+                    <div className="absolute inset-0 bg-warning/10" aria-hidden />
                   )}
                   <span
                     className={
-                      "absolute right-1 top-1 inline-flex h-4 w-4 items-center justify-center rounded-full " +
-                      (ok
+                      "absolute right-1 top-1 inline-flex h-4 w-4 items-center justify-center rounded-full shadow-elev-sm " +
+                      (shot.ok
                         ? "bg-success text-success-foreground"
                         : "bg-warning text-warning-foreground")
                     }
                   >
-                    {ok ? (
+                    {shot.ok ? (
                       <CheckCircle2 className="h-3 w-3" />
                     ) : (
                       <AlertCircle className="h-3 w-3" />
