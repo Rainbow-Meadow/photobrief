@@ -5,7 +5,7 @@ import {
   AlertCircle,
   Clock,
   Inbox,
-  Gauge,
+  ShieldCheck,
   Plus,
   Sparkles,
   Bell,
@@ -62,12 +62,18 @@ export default function DashboardPage() {
       (r) => new Date(r.createdAt).getTime() >= monthStart.getTime(),
     ).length;
 
+    // First-pass acceptance: of submissions we've scored, how many arrived
+    // complete enough that no resubmission was needed.
     const scored = requests.filter((r) => typeof r.readinessScore === "number");
-    const avgReadiness = scored.length
-      ? Math.round(scored.reduce((sum, r) => sum + (r.readinessScore ?? 0), 0) / scored.length)
-      : 0;
+    const accepted = scored.filter(
+      (r) => (r.readinessScore ?? 0) >= 80 && (!r.missingItems || r.missingItems.length === 0),
+    );
+    const needsRework = scored.length - accepted.length;
+    const firstPassPct = scored.length
+      ? Math.round((accepted.length / scored.length) * 100)
+      : null;
 
-    return { readyToReview, needsCustomer, inProgress, requestsThisMonth, avgReadiness };
+    return { readyToReview, needsCustomer, inProgress, requestsThisMonth, firstPassPct, needsRework };
   }, [requests]);
 
   const readyList = useMemo(
@@ -130,10 +136,14 @@ export default function DashboardPage() {
               hint="Sent since the 1st"
             />
             <MetricCard
-              label="Avg. readiness"
-              value={metrics.avgReadiness}
-              icon={Gauge}
-              hint="Across scored briefs"
+              label="First-pass acceptance"
+              value={metrics.firstPassPct === null ? "—" : `${metrics.firstPassPct}%`}
+              icon={ShieldCheck}
+              hint={
+                metrics.firstPassPct === null
+                  ? "No submissions yet"
+                  : `${metrics.needsRework} need${metrics.needsRework === 1 ? "s" : ""} resubmission`
+              }
             />
           </div>
 
