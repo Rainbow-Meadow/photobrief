@@ -65,10 +65,11 @@ const featureRows: FeatureKey[] = [
 
 export default function BillingSettingsPage() {
   const { workspace, loading: wsLoading, refetch: refetchWorkspace } = useCurrentWorkspace();
-  const { usage, loading: usageLoading, refetch: refetchUsage } = useUsage();
+  const { usage, loading: usageLoading, refetch: refetchUsage, topup } = useUsage();
   const current = planLimits.find((p) => p.id === workspace?.plan) ?? planLimits[0];
   const [opening, setOpening] = useState<"portal" | null>(null);
   const [checkout, setCheckout] = useState<{ plan: Plan; interval: BillingInterval } | null>(null);
+  const [topupCheckout, setTopupCheckout] = useState<TopupPack | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
   // After Stripe Checkout returns, refetch and clear the URL flag.
@@ -82,6 +83,20 @@ export default function BillingSettingsPage() {
       refetchUsage();
       const next = new URLSearchParams(searchParams);
       next.delete("checkout");
+      next.delete("session_id");
+      setSearchParams(next, { replace: true });
+    }
+    if (searchParams.get("topup") === "success") {
+      toast({
+        title: "Top-up purchased",
+        description: "Your extra request credits will appear within a few seconds.",
+      });
+      setTopupCheckout(null);
+      // Webhook may take a moment — refetch a couple of times.
+      refetchUsage();
+      setTimeout(() => refetchUsage(), 2500);
+      const next = new URLSearchParams(searchParams);
+      next.delete("topup");
       next.delete("session_id");
       setSearchParams(next, { replace: true });
     }
