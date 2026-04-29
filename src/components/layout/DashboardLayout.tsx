@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, LifeBuoy } from "lucide-react";
 
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
@@ -63,6 +63,16 @@ export function DashboardLayout() {
             </main>
           </div>
         </div>
+
+        {/* Floating Help button — visible on every authenticated screen.
+            Positioned above the MobileTabBar on phones, bottom-right on desktop. */}
+        <NavLink
+          to="/app/help"
+          aria-label="Open help and beta guide"
+          className="fixed right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-6"
+        >
+          <LifeBuoy className="h-5 w-5" />
+        </NavLink>
 
         {/* Mobile bottom navigation — replaces the desktop sidebar on phones/tablets. */}
         <MobileTabBar />

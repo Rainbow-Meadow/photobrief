@@ -36,6 +36,7 @@ import GuideDetailPage from "@/features/guides/pages/GuideDetailPage";
 import PublicRecipientPage from "@/features/capture/pages/PublicRecipientPage";
 import RecipientConfirmationPage from "@/features/capture/pages/RecipientConfirmationPage";
 import AcceptInvitePage from "@/features/workspace/pages/AcceptInvitePage";
+import BetaGuidePage from "@/features/help/pages/BetaGuidePage";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/unsubscribe" element={<UnsubscribePage />} />
+            <Route path="/help" element={<BetaGuidePage />} />
           </Route>
 
           {/* Onboarding + invite acceptance (no sidebar, but still auth-only).
@@ -94,6 +96,7 @@ const App = () => (
             <Route path="/settings/templates" element={<MessageTemplatesPage />} />
             <Route path="/settings/sms" element={<SmsSettingsPage />} />
             <Route path="/settings/billing" element={<BillingSettingsPage />} />
+            <Route path="/app/help" element={<BetaGuidePage />} />
           </Route>
 
           {/* Public recipient (chat-first, no auth) */}

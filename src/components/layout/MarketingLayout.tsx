@@ -33,6 +33,7 @@ export function MarketingLayout() {
             <a href="/#how-it-works" className="hover:text-foreground">How it works</a>
             <a href="/#use-cases" className="hover:text-foreground">Use cases</a>
             <NavLink to="/pricing" className="hover:text-foreground">Pricing</NavLink>
+            <NavLink to="/help" className="hover:text-foreground">Help</NavLink>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -92,6 +93,15 @@ export function MarketingLayout() {
                 className="block px-5 py-4 text-base font-medium text-foreground active:bg-muted"
               >
                 Pricing
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/help"
+                onClick={() => setMenuOpen(false)}
+                className="block px-5 py-4 text-base font-medium text-foreground active:bg-muted"
+              >
+                Help
               </NavLink>
             </li>
             <li>
