@@ -12,12 +12,17 @@ interface OnboardingStatus {
  * Reads `profiles.onboarded_at` for the signed-in user. Used by route guards
  * to send first-run users through /onboarding before the dashboard.
  */
-export function useOnboardingStatus(): OnboardingStatus {
+export function useOnboardingStatus(enabled = true): OnboardingStatus {
   const { user, loading: authLoading } = useAuth();
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!enabled) {
+      setOnboarded(null);
+      setLoading(false);
+      return;
+    }
     if (authLoading) return;
     if (!user) {
       setOnboarded(null);
@@ -45,7 +50,7 @@ export function useOnboardingStatus(): OnboardingStatus {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, user]);
+  }, [authLoading, enabled, user]);
 
   return { loading: loading || authLoading, onboarded };
 }
