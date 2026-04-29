@@ -36,6 +36,7 @@ import GuideDetailPage from "@/features/guides/pages/GuideDetailPage";
 import PublicRecipientPage from "@/features/capture/pages/PublicRecipientPage";
 import RecipientConfirmationPage from "@/features/capture/pages/RecipientConfirmationPage";
 import AcceptInvitePage from "@/features/workspace/pages/AcceptInvitePage";
+import BetaGuidePage from "@/features/help/pages/BetaGuidePage";
 
 const queryClient = new QueryClient();
 
