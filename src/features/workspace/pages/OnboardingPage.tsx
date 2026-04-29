@@ -78,7 +78,7 @@ const STEPS = [
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { workspace, loading: wsLoading, refetch } = useCurrentWorkspace();
+  const { workspace, loading: wsLoading, refetch, backendUnavailable } = useCurrentWorkspace();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [saving, setSaving] = useState(false);
@@ -154,13 +154,17 @@ export default function OnboardingPage() {
     }
   };
 
-  // Auto-repair once if the workspace can't be loaded after auth resolves.
+  // Auto-repair once if the workspace truly can't be loaded (genuinely
+  // missing default_workspace_id), but NOT during a transient backend
+  // outage — calling ensure-workspace then would amplify the outage and
+  // still fail.
   useEffect(() => {
     if (wsLoading || workspace?.id || !user?.id || autoRepairTried.current) return;
+    if (backendUnavailable) return;
     autoRepairTried.current = true;
     void repairWorkspace(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wsLoading, workspace?.id, user?.id]);
+  }, [wsLoading, workspace?.id, user?.id, backendUnavailable]);
 
   // Seed initial values from the workspace + brand profile created by the
   // signup trigger so we don't blow away anything the user has already set.
@@ -552,26 +556,34 @@ export default function OnboardingPage() {
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
           <div className="flex-1 space-y-2">
             <p className="font-medium text-foreground">
-              We can't reach your workspace right now
+              {backendUnavailable
+                ? "We can't reach the backend right now"
+                : "We can't reach your workspace right now"}
             </p>
             <p className="text-muted-foreground">
-              This usually clears in a few seconds. You can keep filling in the form
-              and we'll save it once the connection recovers.
+              {backendUnavailable
+                ? "Our database is temporarily unavailable. This is a service-side issue — your account is safe. Wait a moment and retry; please don't repeatedly refresh."
+                : "This usually clears in a few seconds. You can keep filling in the form and we'll save it once the connection recovers."}
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               <Button type="button" size="sm" variant="outline" onClick={() => void refetch()} disabled={repairing}>
                 Retry
               </Button>
-              <Button type="button" size="sm" onClick={() => void repairWorkspace(false)} disabled={repairing}>
-                {repairing ? (
-                  <span className="inline-flex items-center">
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                    Repairing…
-                  </span>
-                ) : (
-                  "Repair workspace"
-                )}
-              </Button>
+              {/* Only offer Repair when we know the workspace is genuinely
+                  missing — never during a transient outage, because the
+                  edge function would just fail and add backend load. */}
+              {!backendUnavailable ? (
+                <Button type="button" size="sm" onClick={() => void repairWorkspace(false)} disabled={repairing}>
+                  {repairing ? (
+                    <span className="inline-flex items-center">
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      Repairing…
+                    </span>
+                  ) : (
+                    "Repair workspace"
+                  )}
+                </Button>
+              ) : null}
             </div>
           </div>
         </div>
