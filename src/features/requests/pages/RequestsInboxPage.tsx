@@ -264,7 +264,121 @@ export default function RequestsInboxPage() {
             </span>
           </div>
         )}
-        <div className="overflow-x-auto">
+        {/* Mobile: stacked card list. */}
+        <ul className="divide-y md:hidden">
+          {filtered.length === 0 ? (
+            <li className="px-5 py-10 text-center text-sm text-muted-foreground">
+              No requests match these filters.
+            </li>
+          ) : (
+            filtered.map((r) => {
+              const status = requestStatusOptions[r.status];
+              const isSel = selected.has(r.id);
+              return (
+                <li
+                  key={r.id}
+                  className={isSel ? "bg-primary/5 px-4 py-3" : "px-4 py-3 active:bg-muted/40"}
+                >
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      aria-label={`Select request for ${r.recipientName}`}
+                      checked={isSel}
+                      onCheckedChange={() => toggleOne(r.id)}
+                      className="mt-1"
+                    />
+                    <NavLink
+                      to={`/requests/${r.id}`}
+                      className="flex min-w-0 flex-1 flex-col gap-1.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {r.recipientName}
+                        </p>
+                        <StatusBadge label={status.label} tone={status.tone} />
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {r.guideName} ·{" "}
+                        {r.lastActivityAt
+                          ? formatRelativeTime(r.lastActivityAt)
+                          : formatRelativeTime(r.createdAt)}
+                      </p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                        {r.readinessScore !== undefined ? (
+                          <ReadinessScoreBadge score={r.readinessScore} />
+                        ) : null}
+                        {r.missingItems && r.missingItems.length > 0 ? (
+                          <span className="text-[11px] text-muted-foreground">
+                            {r.missingItems.length} missing
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-success">Complete</span>
+                        )}
+                        {r.assigneeName ? (
+                          <span className="text-[11px] text-muted-foreground">
+                            · {r.assigneeName.split(" ")[0]}
+                          </span>
+                        ) : null}
+                      </div>
+                    </NavLink>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="More actions"
+                          className="h-10 w-10 shrink-0"
+                        >
+                          <MoreHorizontal className="h-5 w-5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <NavLink to={`/requests/${r.id}`}>
+                            <Eye className="mr-2 h-3.5 w-3.5" /> Open
+                          </NavLink>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={async () => {
+                            if (!canRemind) {
+                              const plan = minPlanFor("reminders");
+                              toast.error(
+                                `Reminders are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`,
+                              );
+                              return;
+                            }
+                            const t = toast.loading(`Sending reminder to ${r.recipientName}…`);
+                            try {
+                              await messagingService.send({ requestId: r.id, kind: "reminder" });
+                              toast.dismiss(t);
+                              toast.success(`Reminder sent to ${r.recipientName}`);
+                            } catch (err: any) {
+                              toast.dismiss(t);
+                              toast.error(err?.message ?? "Could not send reminder");
+                            }
+                          }}
+                        >
+                          <Bell className="mr-2 h-3.5 w-3.5" /> Send reminder
+                          {!canRemind ? <PlanTag plan="pro" alignRight /> : null}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            navigator.clipboard?.writeText(`${window.location.origin}/r/${r.token}`);
+                            toast.success("Link copied");
+                          }}
+                        >
+                          <Send className="mr-2 h-3.5 w-3.5" /> Copy link
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </li>
+              );
+            })
+          )}
+        </ul>
+
+        {/* Desktop / tablet: full table. */}
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
