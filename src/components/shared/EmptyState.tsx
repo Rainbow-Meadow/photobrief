@@ -8,6 +8,8 @@ interface EmptyStateProps {
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
+  /** Use inside an already-bordered card to avoid double padding. */
+  compact?: boolean;
   className?: string;
 }
 
@@ -17,12 +19,14 @@ export function EmptyState({
   description,
   actionLabel,
   onAction,
+  compact = false,
   className,
 }: EmptyStateProps) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-lg border border-dashed bg-card/50 px-6 py-14 text-center",
+        "flex flex-col items-center justify-center rounded-lg border border-dashed bg-card/50 text-center",
+        compact ? "px-5 py-10" : "px-6 py-14",
         className,
       )}
     >

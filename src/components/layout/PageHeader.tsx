@@ -5,14 +5,20 @@ interface PageHeaderProps {
   title: string;
   description?: string;
   actions?: ReactNode;
+  /**
+   * Render the bottom border + padding. Default true (matches Dashboard / Inbox / Detail).
+   * Set to false on settings-style pages where the next element is itself a bordered card.
+   */
+  bordered?: boolean;
   className?: string;
 }
 
-export function PageHeader({ title, description, actions, className }: PageHeaderProps) {
+export function PageHeader({ title, description, actions, bordered = true, className }: PageHeaderProps) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 border-b pb-5 sm:flex-row sm:items-center sm:justify-between",
+        "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
+        bordered ? "border-b pb-5" : "pb-1",
         className,
       )}
     >
