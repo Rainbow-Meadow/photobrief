@@ -45,14 +45,17 @@ async function withRetry<T>(
   fn: () => Promise<{ data: T | null; error: { code?: string; message?: string } | null }>,
   maxAttempts = 4,
 ): Promise<{ data: T | null; error: { code?: string; message?: string } | null }> {
-  let lastResult: Awaited<ReturnType<typeof fn>> | undefined;
+  let lastResult: { data: T | null; error: { code?: string; message?: string } | null } = {
+    data: null,
+    error: null,
+  };
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     lastResult = await fn();
     if (!lastResult.error || !isTransient(lastResult.error)) return lastResult;
     // 250ms, 750ms, 2.25s
     await new Promise((r) => setTimeout(r, 250 * Math.pow(3, attempt)));
   }
-  return lastResult!;
+  return lastResult;
 }
 
 export function useCurrentWorkspace() {
