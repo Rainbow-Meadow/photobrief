@@ -26,6 +26,7 @@ import {
 import { BrandMark } from "@/components/layout/BrandMark";
 import { UpgradePromptCard } from "@/components/shared/UpgradePromptCard";
 import { WorkspaceSwitcher } from "@/features/workspace/components/WorkspaceSwitcher";
+import { usePlan } from "@/hooks/usePlan";
 import { cn } from "@/lib/utils";
 
 const mainItems = [
@@ -45,6 +46,11 @@ const settingsItems = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const { plan, loading: planLoading } = usePlan();
+  // Hide the upgrade card for users already on Pro or higher.
+  // Plans below Pro: free, starter. Don't render until plan is resolved
+  // to avoid flashing the wrong CTA during the brief auth/workspace load.
+  const showUpgradeCard = !planLoading && (plan === "free" || plan === "starter");
   const { pathname } = useLocation();
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
@@ -110,7 +116,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {!collapsed ? (
+      {!collapsed && showUpgradeCard ? (
         <SidebarFooter className="p-2">
           <UpgradePromptCard />
         </SidebarFooter>
