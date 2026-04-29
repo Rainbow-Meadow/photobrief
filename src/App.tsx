@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { AuthProvider } from "@/hooks/useAuth";
+import { CurrentWorkspaceProvider } from "@/hooks/useCurrentWorkspace";
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PublicRequestLayout } from "@/components/layout/PublicRequestLayout";
@@ -47,8 +48,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-        <RouteTracker />
-        <Routes>
+        <CurrentWorkspaceProvider>
+          <RouteTracker />
+          <Routes>
           {/* Marketing + auth */}
           <Route element={<MarketingLayout />}>
             <Route path="/" element={<LandingPage />} />
@@ -106,7 +108,8 @@ const App = () => (
           </Route>
 
           <Route path="*" element={<NotFound />} />
-        </Routes>
+          </Routes>
+        </CurrentWorkspaceProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
