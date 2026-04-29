@@ -93,6 +93,8 @@ export const requestsService = {
       lastActivityAt: row.last_activity_at ?? row.updated_at,
       assigneeId: row.assigned_to ?? undefined,
       assigneeName: row.assignee_name ?? undefined,
+      firstPassStatus: row.submission_first_pass_status ?? undefined,
+      secondPassStatus: row.submission_second_pass_status ?? undefined,
     }));
   },
 

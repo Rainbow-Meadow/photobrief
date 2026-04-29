@@ -51,7 +51,9 @@ import { getPlanLimit, minPlanFor } from "@/config/planLimits";
 import type {
   ActivityEvent,
   InternalNote,
+  ShotReviewStatus,
   Submission,
+  SubmissionShot,
   SubmissionStatus,
 } from "@/types/photobrief";
 
@@ -59,6 +61,15 @@ import { ShotCard } from "@/features/submissions/components/ShotCard";
 import { ActivityTimeline } from "@/features/submissions/components/ActivityTimeline";
 import { AskForMorePhotosDialog } from "@/features/submissions/components/AskForMorePhotosDialog";
 import { InternalNotesPanel } from "@/features/submissions/components/InternalNotesPanel";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 function buildSummaryText(s: Submission): string {
   const lines: string[] = [];
@@ -102,11 +113,21 @@ export default function SubmissionReviewPage() {
   const [extraNotes, setExtraNotes] = useState<InternalNote[]>([]);
   const [askOpen, setAskOpen] = useState(false);
 
+  // Pending per-shot decisions (mediaId -> approve/reject + comment).
+  // Only persisted when the reviewer hits "Send back for resubmission".
+  const [pending, setPending] = useState<
+    Record<string, { status: ShotReviewStatus; comment?: string }>
+  >({});
+  const [confirmRejectOpen, setConfirmRejectOpen] = useState(false);
+  const [rejectMessage, setRejectMessage] = useState("");
+  const [rejecting, setRejecting] = useState(false);
+
   // Reset overlays when the submission id changes.
   useEffect(() => {
     setOverlay({});
     setExtraActivity([]);
     setExtraNotes([]);
+    setPending({});
   }, [id]);
 
   if (!id) {
@@ -137,6 +158,69 @@ export default function SubmissionReviewPage() {
   const orderedShots = [...(submission.shots ?? [])].sort(
     (a, b) => a.orderIndex - b.orderIndex,
   );
+
+  const rejectedEntries = Object.entries(pending).filter(([, d]) => d.status === "rejected");
+  const rejectedCount = rejectedEntries.length;
+
+  function setShotDecision(mediaId: string, decision: { status: ShotReviewStatus; comment?: string } | null) {
+    setPending((prev) => {
+      const next = { ...prev };
+      if (decision === null) delete next[mediaId];
+      else next[mediaId] = decision;
+      return next;
+    });
+  }
+
+  function buildRejectMessage(shots: SubmissionShot[]): string {
+    const firstName = submission.recipientName.split(" ")[0] || "there";
+    const lines = [
+      `Hi ${firstName}, thanks for sending these in! We need a few photos retaken before we can move forward:`,
+      "",
+    ];
+    for (const [mediaId, d] of rejectedEntries) {
+      const shot = shots.find((s) => s.id === mediaId);
+      lines.push(`• ${shot?.title ?? "Photo"}${d.comment ? ` — ${d.comment}` : ""}`);
+    }
+    lines.push("", "Tap your original link to retake just these.");
+    return lines.join("\n");
+  }
+
+  async function handleSendRejections() {
+    if (!workspace?.id || rejectedCount === 0) return;
+    setRejecting(true);
+    try {
+      await submissionsService.rejectShots({
+        submissionId: submission.id,
+        workspaceId: workspace.id,
+        items: rejectedEntries.map(([mediaId, d]) => ({ mediaId, comment: d.comment ?? "" })),
+        summaryMessage: rejectMessage,
+      });
+      try {
+        await messagingService.send({
+          requestId: submission.requestId,
+          kind: "followup",
+          body: rejectMessage,
+        });
+      } catch (e) {
+        console.warn("followup send failed", e);
+      }
+      pushActivity({
+        type: "more_photos_requested",
+        label: `Sent ${rejectedCount} photo${rejectedCount === 1 ? "" : "s"} back for retake`,
+        detail: rejectMessage.slice(0, 140),
+        actor: "You",
+      });
+      setOverlay((prev) => ({ ...prev, status: "needs_more" }));
+      setPending({});
+      setConfirmRejectOpen(false);
+      toast.success("Sent back for resubmission");
+      invalidate();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not send rejections");
+    } finally {
+      setRejecting(false);
+    }
+  }
 
   function pushActivity(event: Omit<ActivityEvent, "id" | "at"> & { at?: string }) {
     setExtraActivity((prev) => [
@@ -532,7 +616,14 @@ export default function SubmissionReviewPage() {
             ) : (
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 {orderedShots.map((shot) => (
-                  <ShotCard key={shot.id} shot={shot} />
+                  <ShotCard
+                    key={shot.id}
+                    shot={shot}
+                    pendingDecision={pending[shot.id]}
+                    onApprove={() => setShotDecision(shot.id, { status: "approved" })}
+                    onReject={(comment) => setShotDecision(shot.id, { status: "rejected", comment })}
+                    onClearDecision={() => setShotDecision(shot.id, null)}
+                  />
                 ))}
               </div>
             )}

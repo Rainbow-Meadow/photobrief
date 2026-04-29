@@ -62,18 +62,39 @@ export default function DashboardPage() {
       (r) => new Date(r.createdAt).getTime() >= monthStart.getTime(),
     ).length;
 
-    // First-pass acceptance: of submissions we've scored, how many arrived
-    // complete enough that no resubmission was needed.
-    const scored = requests.filter((r) => typeof r.readinessScore === "number");
-    const accepted = scored.filter(
-      (r) => (r.readinessScore ?? 0) >= 80 && (!r.missingItems || r.missingItems.length === 0),
+    // First-pass acceptance: of submissions that have reached a first-pass
+    // verdict (accepted on first review, or sent back for rework), how many
+    // were accepted on the first attempt.
+    const firstDecided = requests.filter(
+      (r) => r.firstPassStatus === "accepted" || r.firstPassStatus === "rework",
     );
-    const needsRework = scored.length - accepted.length;
-    const firstPassPct = scored.length
-      ? Math.round((accepted.length / scored.length) * 100)
+    const firstAccepted = firstDecided.filter((r) => r.firstPassStatus === "accepted").length;
+    const reworked = firstDecided.length - firstAccepted;
+    const firstPassPct = firstDecided.length
+      ? Math.round((firstAccepted / firstDecided.length) * 100)
       : null;
 
-    return { readyToReview, needsCustomer, inProgress, requestsThisMonth, firstPassPct, needsRework };
+    // Second-pass acceptance: of submissions that failed first pass *and*
+    // have been re-reviewed, how many landed on the second look.
+    const secondDecided = requests.filter(
+      (r) => r.secondPassStatus === "accepted" || r.secondPassStatus === "rework",
+    );
+    const secondAccepted = secondDecided.filter((r) => r.secondPassStatus === "accepted").length;
+    const secondPassPct = secondDecided.length
+      ? Math.round((secondAccepted / secondDecided.length) * 100)
+      : null;
+
+    return {
+      readyToReview,
+      needsCustomer,
+      inProgress,
+      requestsThisMonth,
+      firstPassPct,
+      reworked,
+      secondPassPct,
+      secondAccepted,
+      secondDecidedCount: secondDecided.length,
+    };
   }, [requests]);
 
   const readyList = useMemo(
@@ -141,8 +162,18 @@ export default function DashboardPage() {
               icon={ShieldCheck}
               hint={
                 metrics.firstPassPct === null
-                  ? "No submissions yet"
-                  : `${metrics.needsRework} need${metrics.needsRework === 1 ? "s" : ""} resubmission`
+                  ? "No reviews yet"
+                  : `${metrics.reworked} sent back for resubmission`
+              }
+              subStat={
+                metrics.firstPassPct === null
+                  ? undefined
+                  : metrics.secondPassPct === null
+                    ? { label: "No second-pass reviews yet", tone: "muted" }
+                    : {
+                        label: `${metrics.secondPassPct}% accepted on second pass · ${metrics.secondAccepted} of ${metrics.secondDecidedCount}`,
+                        tone: "success",
+                      }
               }
             />
           </div>

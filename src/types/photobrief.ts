@@ -182,6 +182,8 @@ export interface TeamMember {
   initials: string;
 }
 
+export type PassStatus = "pending" | "accepted" | "rework" | "n_a";
+
 export interface PhotoBriefRequest {
   id: string;
   workspaceId: string;
@@ -199,6 +201,10 @@ export interface PhotoBriefRequest {
   lastActivityAt?: string;
   assigneeId?: string;
   assigneeName?: string;
+  /** Latest submission's first-pass acceptance state. */
+  firstPassStatus?: PassStatus;
+  /** Latest submission's second-pass acceptance state. */
+  secondPassStatus?: PassStatus;
 }
 
 export type ShotFeedbackSeverity = "pass" | "warn" | "fail";
@@ -209,6 +215,8 @@ export interface ShotAIFeedback {
   detail?: string;
   checks?: { type: AICheckType; severity: ShotFeedbackSeverity; label: string }[];
 }
+
+export type ShotReviewStatus = "pending" | "approved" | "rejected" | "resubmitted";
 
 export interface SubmissionShot {
   id: string;
@@ -221,6 +229,12 @@ export interface SubmissionShot {
   missing?: boolean;
   capturedAt?: string;
   feedback?: ShotAIFeedback;
+  /** Per-photo reviewer state. Defaults to "pending" for newly captured shots. */
+  reviewStatus?: ShotReviewStatus;
+  /** Reviewer's note explaining a rejection (only present when reviewStatus === "rejected"). */
+  reviewComment?: string;
+  /** When the reviewer made their last decision on this shot. */
+  reviewedAt?: string;
 }
 
 export interface ExtractedDetail {
