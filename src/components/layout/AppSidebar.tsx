@@ -116,7 +116,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {!collapsed ? (
+      {!collapsed && showUpgradeCard ? (
         <SidebarFooter className="p-2">
           <UpgradePromptCard />
         </SidebarFooter>
