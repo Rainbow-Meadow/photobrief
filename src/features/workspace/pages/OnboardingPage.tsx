@@ -454,6 +454,27 @@ export default function OnboardingPage() {
           </div>
         ) : null}
 
+        {finishError ? (
+          <div
+            role="alert"
+            className="mt-5 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs text-foreground"
+          >
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+            <div className="flex-1 space-y-1.5">
+              <p>{finishError}</p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void handleFinish()}
+                disabled={saving}
+              >
+                Try again
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         <div className="mt-6 flex items-center justify-between">
           <Button
             type="button"
@@ -473,7 +494,14 @@ export default function OnboardingPage() {
             <Button
               type="button"
               onClick={handleFinish}
-              disabled={saving || wsLoading}
+              disabled={saving || wsLoading || !workspace?.id}
+              title={
+                wsLoading
+                  ? "Loading workspace…"
+                  : !workspace?.id
+                    ? "Workspace unavailable — tap Repair above"
+                    : undefined
+              }
               className="gap-1.5"
             >
               {saving ? (
