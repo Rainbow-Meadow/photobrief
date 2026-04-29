@@ -6,6 +6,13 @@ interface MetricSubStat {
   tone?: "default" | "success" | "muted";
 }
 
+interface MetricFootnote {
+  label: string;
+  /** Native tooltip shown on hover — keep it short. */
+  tooltip?: string;
+  tone?: "default" | "success" | "muted" | "primary";
+}
+
 interface MetricCardProps {
   label: string;
   value: string | number;
@@ -17,6 +24,11 @@ interface MetricCardProps {
    * border. Used e.g. for showing second-pass acceptance under first-pass.
    */
   subStat?: MetricSubStat;
+  /**
+   * Optional tertiary line rendered below the sub-stat. Used to surface a
+   * supporting business signal (e.g. "X requests refunded this period").
+   */
+  footnote?: MetricFootnote;
 }
 
 export function MetricCard({
@@ -26,6 +38,7 @@ export function MetricCard({
   icon: Icon,
   className,
   subStat,
+  footnote,
 }: MetricCardProps) {
   return (
     <div
@@ -54,6 +67,20 @@ export function MetricCard({
           )}
         >
           {subStat.label}
+        </p>
+      ) : null}
+      {footnote ? (
+        <p
+          title={footnote.tooltip}
+          className={cn(
+            "mt-1.5 text-xs font-medium",
+            footnote.tone === "success" && "text-success",
+            footnote.tone === "primary" && "text-primary",
+            footnote.tone === "muted" && "text-muted-foreground",
+            (!footnote.tone || footnote.tone === "default") && "text-foreground",
+          )}
+        >
+          {footnote.label}
         </p>
       ) : null}
     </div>
