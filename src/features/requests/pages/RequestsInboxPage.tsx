@@ -185,7 +185,7 @@ export default function RequestsInboxPage() {
         title="Requests"
         description="Every link you've sent and every brief you've received."
         actions={
-          <Button asChild className="gap-1.5">
+          <Button asChild className="hidden gap-1.5 sm:inline-flex">
             <NavLink to="/requests/new">
               <Plus className="h-4 w-4" /> New request
             </NavLink>
