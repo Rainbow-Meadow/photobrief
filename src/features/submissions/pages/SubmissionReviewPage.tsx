@@ -51,7 +51,9 @@ import { getPlanLimit, minPlanFor } from "@/config/planLimits";
 import type {
   ActivityEvent,
   InternalNote,
+  ShotReviewStatus,
   Submission,
+  SubmissionShot,
   SubmissionStatus,
 } from "@/types/photobrief";
 
@@ -59,6 +61,15 @@ import { ShotCard } from "@/features/submissions/components/ShotCard";
 import { ActivityTimeline } from "@/features/submissions/components/ActivityTimeline";
 import { AskForMorePhotosDialog } from "@/features/submissions/components/AskForMorePhotosDialog";
 import { InternalNotesPanel } from "@/features/submissions/components/InternalNotesPanel";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 function buildSummaryText(s: Submission): string {
   const lines: string[] = [];
