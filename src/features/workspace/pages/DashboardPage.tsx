@@ -145,12 +145,16 @@ export default function DashboardPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant={assistantOpen ? "secondary" : "outline"}
+              size="sm"
               className="gap-1.5"
               onClick={() => setAssistantOpen((o) => !o)}
+              aria-label="Toggle assistant"
             >
-              <Sparkles className="h-4 w-4" /> Assistant
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">Assistant</span>
             </Button>
-            <Button asChild className="gap-1.5">
+            {/* New request lives in the bottom-bar FAB on mobile. */}
+            <Button asChild size="sm" className="hidden gap-1.5 sm:inline-flex">
               <NavLink to="/requests/new">
                 <Plus className="h-4 w-4" /> New request
               </NavLink>
