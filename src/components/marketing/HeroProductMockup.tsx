@@ -31,7 +31,7 @@ export function HeroProductMockup() {
         <div className="grid gap-px bg-border md:grid-cols-2">
           {/* CUSTOMER SEES */}
           <div className="bg-card p-5 sm:p-6">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               Customer sees →
             </p>
             <div className="mt-4 rounded-xl border bg-background p-4">
@@ -78,7 +78,7 @@ export function HeroProductMockup() {
 
           {/* YOU SEE */}
           <div className="bg-card p-5 sm:p-6">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               You see →
             </p>
             <div className="mt-4 flex items-start justify-between gap-3">
