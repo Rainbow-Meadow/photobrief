@@ -61,16 +61,26 @@ Deno.serve(async (req) => {
       (user.user_metadata?.full_name as string | undefined) ||
       (user.email ? user.email.split("@")[0] : "User");
 
-    // 1. Profile — ensure row exists; read existing default_workspace_id.
-    const { data: profile, error: profErr } = await admin
+    // 1. Profile — read existing row; insert if missing. Avoid upsert because
+    //    PostgREST's onConflict requires a matching unique constraint name and
+    //    can fail silently with the service-role client.
+    const { data: existingProfile, error: profReadErr } = await admin
       .from("profiles")
-      .upsert(
-        { id: user.id, email: user.email ?? null, name: displayName },
-        { onConflict: "id" },
-      )
       .select("id, default_workspace_id")
+      .eq("id", user.id)
       .maybeSingle();
-    if (profErr) throw profErr;
+    if (profReadErr) throw profReadErr;
+
+    let profile = existingProfile;
+    if (!profile) {
+      const { data: inserted, error: profInsErr } = await admin
+        .from("profiles")
+        .insert({ id: user.id, email: user.email ?? null, name: displayName })
+        .select("id, default_workspace_id")
+        .maybeSingle();
+      if (profInsErr) throw profInsErr;
+      profile = inserted;
+    }
 
     let workspaceId = profile?.default_workspace_id ?? null;
 
@@ -155,8 +165,15 @@ Deno.serve(async (req) => {
 
     return json({ workspace_id: workspaceId });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("ensure-workspace failed:", message);
-    return json({ error: message }, 500);
+    // Surface the real error: Supabase PostgrestError objects don't extend
+    // Error, so `err.message` is undefined and we'd log "Unknown error".
+    const e = err as { message?: string; code?: string; details?: string; hint?: string };
+    const message =
+      e?.message ||
+      e?.details ||
+      e?.hint ||
+      (typeof err === "string" ? err : JSON.stringify(err));
+    console.error("ensure-workspace failed:", message, "code:", e?.code, "raw:", err);
+    return json({ error: message, code: e?.code ?? null }, 500);
   }
 });
