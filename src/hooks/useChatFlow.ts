@@ -114,23 +114,33 @@ export function useChatFlow({ guide, businessName, introBody, uploadCapture, res
   // After the recipient resolves a step (accept or use-anyway), advance.
   const advanceAfterStep = useCallback(() => {
     const nextIdx = stepIndex + 1;
-    if (nextIdx < guide.steps.length) {
-      const next = guide.steps[nextIdx];
+    if (nextIdx < effectiveGuide.steps.length) {
+      const next = effectiveGuide.steps[nextIdx];
       setStepIndex(nextIdx);
-      append(
+      const nextMsgs: ChatMessage[] = [];
+      const comment = resubmit?.commentsByStepId[next.id];
+      if (comment) {
+        nextMsgs.push({
+          id: nextId(),
+          kind: "assistant_text",
+          text: `Reviewer note: ${comment}`,
+        });
+      }
+      nextMsgs.push(
         {
           id: nextId(),
           kind: "photo_prompt",
           step: next,
           index: nextIdx + 1,
-          total: guide.steps.length,
+          total: effectiveGuide.steps.length,
         },
         { id: nextId(), kind: "capture_card", step: next, pending: false },
       );
+      append(...nextMsgs);
       return;
     }
     // No more photos — go to questions or review.
-    if (guide.questions.length > 0) {
+    if (effectiveGuide.questions.length > 0) {
       setPhase("questions");
       setQuestionIndex(0);
       append({
@@ -138,17 +148,17 @@ export function useChatFlow({ guide, businessName, introBody, uploadCapture, res
         kind: "assistant_text",
         text: "Great photos. Just a couple of quick questions and we're done.",
       });
-      append({ id: nextId(), kind: "question", question: guide.questions[0] });
+      append({ id: nextId(), kind: "question", question: effectiveGuide.questions[0] });
     } else {
       setPhase("review");
       append({ id: nextId(), kind: "review_summary" });
     }
-  }, [stepIndex, guide.steps, guide.questions, append]);
+  }, [stepIndex, effectiveGuide.steps, effectiveGuide.questions, append, resubmit]);
 
   /** Recipient submitted a photo for the current step. */
   const submitPhoto = useCallback(
     async (previewUrl: string, file?: File | null) => {
-      const step = guide.steps[stepIndex];
+      const step = effectiveGuide.steps[stepIndex];
       if (!step) return;
 
       markCaptureCardPending(step.id);
@@ -200,18 +210,18 @@ export function useChatFlow({ guide, businessName, introBody, uploadCapture, res
         append({ id: nextId(), kind: "retake_decision", photo, step });
       }
     },
-    [stepIndex, guide.steps, append, markCaptureCardPending, advanceAfterStep, uploadCapture],
+    [stepIndex, effectiveGuide.steps, append, markCaptureCardPending, advanceAfterStep, uploadCapture],
   );
 
   /** Recipient chose "Retake" — re-show capture card for same step. */
   const retake = useCallback(() => {
-    const step = guide.steps[stepIndex];
+    const step = effectiveGuide.steps[stepIndex];
     if (!step) return;
     append(
       { id: nextId(), kind: "user_text", text: microcopy.recipient.retake },
       { id: nextId(), kind: "capture_card", step, pending: false },
     );
-  }, [stepIndex, guide.steps, append]);
+  }, [stepIndex, effectiveGuide.steps, append]);
 
   /** Recipient chose "Use anyway" despite warnings/fails. */
   const useAnyway = useCallback(
@@ -227,15 +237,15 @@ export function useChatFlow({ guide, businessName, introBody, uploadCapture, res
   /** Recipient answered the current question. */
   const answerQuestion = useCallback(
     (answer: string) => {
-      const q = guide.questions[questionIndex];
+      const q = effectiveGuide.questions[questionIndex];
       if (!q) return;
       answersRef.current.push({ questionId: q.id, prompt: q.prompt, answer });
       append({ id: nextId(), kind: "user_text", text: answer });
 
       const nextQ = questionIndex + 1;
-      if (nextQ < guide.questions.length) {
+      if (nextQ < effectiveGuide.questions.length) {
         setQuestionIndex(nextQ);
-        append({ id: nextId(), kind: "question", question: guide.questions[nextQ] });
+        append({ id: nextId(), kind: "question", question: effectiveGuide.questions[nextQ] });
       } else {
         setPhase("review");
         append(
@@ -244,7 +254,7 @@ export function useChatFlow({ guide, businessName, introBody, uploadCapture, res
         );
       }
     },
-    [guide.questions, questionIndex, append],
+    [effectiveGuide.questions, questionIndex, append],
   );
 
   /** Recipient pressed Submit on the review card. */
@@ -257,12 +267,12 @@ export function useChatFlow({ guide, businessName, introBody, uploadCapture, res
   const answers = answersRef.current;
 
   const progress = useMemo(() => {
-    const totalSteps = guide.steps.length + guide.questions.length;
+    const totalSteps = effectiveGuide.steps.length + effectiveGuide.questions.length;
     const done =
       photos.length +
-      (phase === "questions" ? questionIndex : phase === "review" || phase === "submitted" ? guide.questions.length : 0);
+      (phase === "questions" ? questionIndex : phase === "review" || phase === "submitted" ? effectiveGuide.questions.length : 0);
     return { done, total: totalSteps };
-  }, [photos.length, guide.steps.length, guide.questions.length, phase, questionIndex]);
+  }, [photos.length, effectiveGuide.steps.length, effectiveGuide.questions.length, phase, questionIndex]);
 
   return {
     messages,
