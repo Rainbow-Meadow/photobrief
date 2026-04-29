@@ -152,23 +152,31 @@ export default function OnboardingPage() {
     }
 
     setSaving(true);
+    setFinishError(null);
     try {
       // Workspace name + industry
-      const { error: wsErr } = await supabase
-        .from("business_workspaces")
-        .update({
-          name: basics.data.workspaceName,
-          industry: basics.data.industry,
-        })
-        .eq("id", workspace.id);
+      const { error: wsErr } = await withSupabaseRetry(async () =>
+        await supabase
+          .from("business_workspaces")
+          .update({
+            name: basics.data.workspaceName,
+            industry: basics.data.industry,
+          })
+          .eq("id", workspace.id)
+          .select("id")
+          .maybeSingle(),
+      );
       if (wsErr) throw wsErr;
 
       // Brand profile (a row was seeded by handle_new_user; update in place).
-      const { data: existing } = await supabase
-        .from("brand_profiles")
-        .select("id")
-        .eq("workspace_id", workspace.id)
-        .maybeSingle();
+      const { data: existing, error: existErr } = await withSupabaseRetry(async () =>
+        await supabase
+          .from("brand_profiles")
+          .select("id")
+          .eq("workspace_id", workspace.id)
+          .maybeSingle(),
+      );
+      if (existErr) throw existErr;
 
       const brandPayload = {
         workspace_id: workspace.id,
@@ -176,23 +184,44 @@ export default function OnboardingPage() {
         intro_message: brand.data.introMessage,
         completion_message: brand.data.completionMessage,
       };
-      const { error: bpErr } = existing?.id
-        ? await supabase.from("brand_profiles").update(brandPayload).eq("id", existing.id)
-        : await supabase.from("brand_profiles").insert(brandPayload);
+      const existingId = (existing as { id?: string } | null)?.id;
+      const { error: bpErr } = await withSupabaseRetry(async () =>
+        existingId
+          ? await supabase
+              .from("brand_profiles")
+              .update(brandPayload)
+              .eq("id", existingId)
+              .select("id")
+              .maybeSingle()
+          : await supabase
+              .from("brand_profiles")
+              .insert(brandPayload)
+              .select("id")
+              .maybeSingle(),
+      );
       if (bpErr) throw bpErr;
 
       // Mark onboarding as complete.
-      const { error: profErr } = await supabase
-        .from("profiles")
-        .update({ onboarded_at: new Date().toISOString() })
-        .eq("id", user.id);
+      const { error: profErr } = await withSupabaseRetry(async () =>
+        await supabase
+          .from("profiles")
+          .update({ onboarded_at: new Date().toISOString() })
+          .eq("id", user.id)
+          .select("id")
+          .maybeSingle(),
+      );
       if (profErr) throw profErr;
 
       await refetch();
       toast.success("You're all set");
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Could not save your workspace";
+      const errObj = err as { code?: string; message?: string } | undefined;
+      const transient = isTransientSupabaseError(errObj);
+      const msg = transient
+        ? "We're having trouble reaching the backend. Wait a moment and try again."
+        : errObj?.message ?? "Could not save your workspace";
+      setFinishError(msg);
       toast.error(msg);
     } finally {
       setSaving(false);
