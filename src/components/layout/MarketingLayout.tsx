@@ -97,6 +97,15 @@ export function MarketingLayout() {
             </li>
             <li>
               <NavLink
+                to="/help"
+                onClick={() => setMenuOpen(false)}
+                className="block px-5 py-4 text-base font-medium text-foreground active:bg-muted"
+              >
+                Help
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
                 to="/auth"
                 onClick={() => setMenuOpen(false)}
                 className="block px-5 py-4 text-base font-medium text-foreground active:bg-muted"
