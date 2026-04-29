@@ -1,15 +1,32 @@
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
+interface MetricSubStat {
+  label: string;
+  tone?: "default" | "success" | "muted";
+}
+
 interface MetricCardProps {
   label: string;
   value: string | number;
   hint?: string;
   icon?: LucideIcon;
   className?: string;
+  /**
+   * Optional secondary stat rendered under the hint, separated by a thin
+   * border. Used e.g. for showing second-pass acceptance under first-pass.
+   */
+  subStat?: MetricSubStat;
 }
 
-export function MetricCard({ label, value, hint, icon: Icon, className }: MetricCardProps) {
+export function MetricCard({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  className,
+  subStat,
+}: MetricCardProps) {
   return (
     <div
       className={cn(
@@ -27,6 +44,18 @@ export function MetricCard({ label, value, hint, icon: Icon, className }: Metric
       </div>
       <p className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{value}</p>
       {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
+      {subStat ? (
+        <p
+          className={cn(
+            "mt-3 border-t pt-2 text-xs",
+            subStat.tone === "success" && "text-success",
+            subStat.tone === "muted" && "text-muted-foreground",
+            (!subStat.tone || subStat.tone === "default") && "text-foreground",
+          )}
+        >
+          {subStat.label}
+        </p>
+      ) : null}
     </div>
   );
 }
