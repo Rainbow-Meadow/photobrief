@@ -315,8 +315,34 @@ export default function OnboardingPage() {
         />
       </div>
 
+      {!wsLoading && !workspace?.id ? (
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+          <div className="flex-1 space-y-2">
+            <p className="font-medium text-foreground">
+              We can't reach your workspace right now
+            </p>
+            <p className="text-muted-foreground">
+              This usually clears in a few seconds. You can keep filling in the form
+              and we'll save it once the connection recovers.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button type="button" size="sm" variant="outline" onClick={() => void refetch()} disabled={repairing}>
+                Retry
+              </Button>
+              <Button type="button" size="sm" onClick={() => void repairWorkspace(false)} disabled={repairing}>
+                {repairing ? (<><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Repairing…</>) : "Repair workspace"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="rounded-xl border bg-card p-6 shadow-elev-sm">
-        {step === 1 ? (
+
           <div className="space-y-5">
             <div className="space-y-1.5">
               <Label htmlFor="workspaceName">Business name</Label>
