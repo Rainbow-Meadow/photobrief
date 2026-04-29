@@ -29,6 +29,7 @@ import { requestsService } from "@/services/requestsService";
 import { usePlan } from "@/hooks/usePlan";
 import { getPlanLimit, minPlanFor } from "@/config/planLimits";
 import { supabase } from "@/integrations/supabase/client";
+import { PlanTag } from "@/components/shared/PlanTag";
 import {
   InboxFilters,
   applyInboxFilters,
@@ -213,13 +214,13 @@ export default function RequestsInboxPage() {
               disabled={bulkBusy}
             >
               <Archive className="h-3.5 w-3.5" /> Archive
-              {!canBulk ? <span className="ml-1 text-[10px] uppercase text-primary">Pro</span> : null}
+              {!canBulk ? <PlanTag plan="pro" className="ml-1" /> : null}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-7 gap-1" disabled={bulkBusy}>
                   <UserPlus className="h-3.5 w-3.5" /> Assign
-                  {!canAssign ? <span className="ml-1 text-[10px] uppercase text-primary">Pro</span> : null}
+                  {!canAssign ? <PlanTag plan="pro" className="ml-1" /> : null}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
@@ -297,22 +298,22 @@ export default function RequestsInboxPage() {
                   const isSel = selected.has(r.id);
                   return (
                     <tr key={r.id} className={isSel ? "bg-primary/5" : "hover:bg-muted/30"}>
-                      <td className="px-3 py-3 align-top">
+                      <td className="px-3 py-3 align-middle">
                         <Checkbox
                           aria-label={`Select request for ${r.recipientName}`}
                           checked={isSel}
                           onCheckedChange={() => toggleOne(r.id)}
                         />
                       </td>
-                      <td className="px-5 py-3 align-top">
+                      <td className="px-5 py-3 align-middle">
                         <p className="font-medium text-foreground">{r.recipientName}</p>
                         <p className="text-xs text-muted-foreground">{r.recipientContact}</p>
                       </td>
-                      <td className="px-5 py-3 align-top text-muted-foreground">{r.guideName}</td>
-                      <td className="px-5 py-3 align-top">
+                      <td className="px-5 py-3 align-middle text-muted-foreground">{r.guideName}</td>
+                      <td className="px-5 py-3 align-middle">
                         <StatusBadge label={status.label} tone={status.tone} />
                       </td>
-                      <td className="px-5 py-3 align-top">
+                      <td className="px-5 py-3 align-middle">
                         {r.readinessScore !== undefined ? (
                           <ReadinessScoreBadge score={r.readinessScore} />
                         ) : (
@@ -333,10 +334,10 @@ export default function RequestsInboxPage() {
                           <span className="text-xs text-success">Complete</span>
                         )}
                       </td>
-                      <td className="px-5 py-3 align-top text-xs text-muted-foreground">
+                      <td className="px-5 py-3 align-middle text-xs text-muted-foreground">
                         {r.lastActivityAt ? formatRelativeTime(r.lastActivityAt) : formatRelativeTime(r.createdAt)}
                       </td>
-                      <td className="px-5 py-3 align-top">
+                      <td className="px-5 py-3 align-middle">
                         {r.assigneeName ? (
                           <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-accent-foreground">
@@ -348,7 +349,7 @@ export default function RequestsInboxPage() {
                           <span className="text-xs text-muted-foreground">Unassigned</span>
                         )}
                       </td>
-                      <td className="px-5 py-3 align-top text-right">
+                      <td className="px-5 py-3 align-middle text-right">
                         <div className="flex justify-end gap-1">
                           <Button asChild variant="ghost" size="sm" className="gap-1">
                             <NavLink to={`/requests/${r.id}`}>
@@ -393,7 +394,7 @@ export default function RequestsInboxPage() {
                               >
                                 <Bell className="mr-2 h-3.5 w-3.5" /> Send reminder
                                 {!canRemind ? (
-                                  <span className="ml-auto text-[10px] uppercase tracking-wide text-primary">Pro</span>
+                                  <PlanTag plan="pro" alignRight />
                                 ) : null}
                               </DropdownMenuItem>
                               <DropdownMenuItem

@@ -138,7 +138,7 @@ export default function AuthPage() {
         <BrandMark variant="stacked" tone="color" size={120} eager withGlow />
       </div>
       <div className="rounded-lg border bg-card p-6 shadow-elev-md">
-        <h1 className="text-xl font-semibold text-foreground">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           {mode === "signup" ? "Create your workspace" : "Welcome back"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">

@@ -182,7 +182,7 @@ function DashboardList({ title, emptyLabel, items, ctaLabel, ctaHref, showRemind
     <section className="rounded-lg border bg-card shadow-elev-sm">
       <header className="flex items-center justify-between border-b px-5 py-4">
         <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-        <Button asChild variant="ghost" size="sm" className="gap-1">
+        <Button asChild variant="ghost" size="sm" className="-mr-2 gap-1">
           <NavLink to={ctaHref}>
             {ctaLabel} <ArrowRight className="h-3.5 w-3.5" />
           </NavLink>

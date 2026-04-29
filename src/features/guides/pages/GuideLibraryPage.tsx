@@ -14,6 +14,7 @@ import { UpgradePromptCard } from "@/components/shared/UpgradePromptCard";
 import { usePlan } from "@/hooks/usePlan";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
+import { PlanTag } from "@/components/shared/PlanTag";
 
 const iconMap = { Wrench, Home, PackageCheck, Megaphone, Heart };
 
@@ -54,7 +55,7 @@ export default function GuideLibraryPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
         title="Guide library"
         description="Curated, launch-ready guides organized by what your business needs to capture."
@@ -84,9 +85,7 @@ export default function GuideLibraryPage() {
               }}
             >
               <Sparkles className="h-3.5 w-3.5" /> Draft with AI
-              {!canAiGuides ? (
-                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Pro</span>
-              ) : null}
+              {!canAiGuides ? <PlanTag plan="pro" className="ml-1" /> : null}
             </Button>
             {canCustomGuides ? (
               <Button asChild className="gap-1.5">
@@ -100,7 +99,7 @@ export default function GuideLibraryPage() {
                 onClick={() => toast.error("Custom guides are on Pro", { description: "Upgrade to build your own." })}
               >
                 <Plus className="h-4 w-4" /> New guide
-                <span className="ml-1 text-[10px] uppercase tracking-wide opacity-80">Pro</span>
+                <PlanTag plan="pro" className="ml-1 bg-white/15 text-primary-foreground" />
               </Button>
             )}
           </div>
@@ -112,12 +111,12 @@ export default function GuideLibraryPage() {
       {workspaceGuides.length > 0 ? (
         <section className="space-y-4">
           <div className="flex items-start gap-3">
-            <span className="rounded-md bg-primary/10 p-2 text-primary">
+            <span className="rounded-lg bg-primary/10 p-2 text-primary">
               <Plus className="h-4 w-4" />
             </span>
             <div>
-              <h2 className="text-base font-semibold text-foreground">Your guides</h2>
-              <p className="text-sm text-muted-foreground">
+              <h2 className="text-sm font-semibold text-foreground">Your guides</h2>
+              <p className="text-xs text-muted-foreground">
                 Custom guides built by your team.
               </p>
             </div>
@@ -143,12 +142,12 @@ export default function GuideLibraryPage() {
         return (
           <section key={cat.id} className="space-y-4">
             <div className="flex items-start gap-3">
-              <span className="rounded-md bg-accent p-2 text-accent-foreground">
+              <span className="rounded-lg bg-accent p-2 text-accent-foreground">
                 <Icon className="h-4 w-4" />
               </span>
               <div>
-                <h2 className="text-base font-semibold text-foreground">{cat.label}</h2>
-                <p className="text-sm text-muted-foreground">{cat.blurb}</p>
+                <h2 className="text-sm font-semibold text-foreground">{cat.label}</h2>
+                <p className="text-xs text-muted-foreground">{cat.blurb}</p>
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

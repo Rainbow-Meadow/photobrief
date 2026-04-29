@@ -105,6 +105,7 @@ export default function MessageTemplatesPage() {
       <PageHeader
         title="Message templates"
         description={`Reusable outreach copy for requests, reminders, and follow-ups. Plan: ${plan}.`}
+        bordered={false}
       />
 
       {!canTemplates ? (
@@ -191,17 +192,18 @@ export default function MessageTemplatesPage() {
                   icon={FileText}
                   title="No templates yet"
                   description="Save your best outreach copy and reuse it on every request."
+                  compact
                 />
               ) : (
                 items.map((t) => (
                   <div
                     key={t.id}
-                    className="rounded-md border bg-card p-3 text-sm"
+                    className="rounded-md border bg-card px-4 py-3 text-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-medium text-foreground">{t.name}</p>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           {t.kind}
                         </p>
                       </div>
