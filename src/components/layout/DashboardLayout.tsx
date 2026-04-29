@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, LifeBuoy } from "lucide-react";
 
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
