@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   planLimits,
@@ -15,6 +15,8 @@ import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
 import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
 import { FoundingProBadge } from "@/components/pricing/FoundingProBadge";
 import { StripeEmbeddedCheckout } from "@/components/billing/StripeEmbeddedCheckout";
+import { StripeTopupCheckout } from "@/components/billing/StripeTopupCheckout";
+import { TopupPackCards } from "@/components/billing/TopupPackCards";
 import { PaymentTestModeBanner } from "@/components/billing/PaymentTestModeBanner";
 import {
   Dialog,
@@ -26,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { isPaymentsConfigured } from "@/lib/stripe";
 import type { Plan, BillingInterval } from "@/types/photobrief";
+import type { TopupPack } from "@/config/topupPacks";
 import { cn } from "@/lib/utils";
 
 function formatQuota(q: Quota): string {
