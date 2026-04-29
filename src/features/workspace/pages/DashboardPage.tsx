@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   CheckCircle2,
@@ -17,6 +17,8 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ReadinessScoreBadge } from "@/components/shared/ReadinessScoreBadge";
 import { Button } from "@/components/ui/button";
 import { useRequests } from "@/hooks/useRequests";
+import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
+import { supabase } from "@/integrations/supabase/client";
 import { requestStatusOptions } from "@/config/statusOptions";
 import { formatRelativeTime } from "@/utils/format";
 import { AssistantPanel } from "@/features/workspace/components/AssistantPanel";
