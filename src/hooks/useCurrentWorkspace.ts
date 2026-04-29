@@ -3,6 +3,7 @@ import { createContext, createElement, useContext, useEffect, useMemo, useState,
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { isTransientSupabaseError, withSupabaseRetry as withRetry } from "@/lib/supabaseRetry";
+import { onboardingDebug, supabaseErrorDebug } from "@/lib/onboardingDebug";
 import type { Plan, BillingInterval } from "@/types/photobrief";
 
 export interface CurrentWorkspace {
@@ -36,6 +37,7 @@ export function CurrentWorkspaceProvider({ children }: { children: ReactNode }) 
 
   const refetch = useCallback(async () => {
     if (!user) {
+      onboardingDebug("workspace.no_user", { sessionPresent: false });
       setWorkspace(null);
       setError(null);
       setLoading(false);
@@ -44,6 +46,14 @@ export function CurrentWorkspaceProvider({ children }: { children: ReactNode }) 
 
     setLoading(true);
     setError(null);
+    onboardingDebug("workspace.profile_lookup.start", {
+      sessionPresent: true,
+      currentUserId: user.id,
+      currentUserEmail: user.email ?? null,
+      requestName: "profiles.default_workspace_id",
+      urlPath: "public.profiles",
+      method: "select",
+    });
     const { data: profile, error: profileErr } = await withRetry(async () =>
       await supabase
         .from("profiles")
@@ -51,6 +61,17 @@ export function CurrentWorkspaceProvider({ children }: { children: ReactNode }) 
         .eq("id", user.id)
         .maybeSingle(),
     );
+    onboardingDebug("workspace.profile_lookup.done", {
+      sessionPresent: true,
+      currentUserId: user.id,
+      currentUserEmail: user.email ?? null,
+      requestName: "profiles.default_workspace_id",
+      urlPath: "public.profiles",
+      method: "select",
+      profileFound: !!profile,
+      workspaceFound: !!(profile as { default_workspace_id?: string } | null)?.default_workspace_id,
+      error: supabaseErrorDebug(profileErr),
+    });
     if (profileErr) {
       if (!isTransientSupabaseError(profileErr)) setWorkspace(null);
       setError(profileErr.message ?? "Could not load workspace");
@@ -60,11 +81,27 @@ export function CurrentWorkspaceProvider({ children }: { children: ReactNode }) 
 
     const wsId = (profile as { default_workspace_id?: string } | null)?.default_workspace_id;
     if (!wsId) {
+      onboardingDebug("workspace.no_default_workspace", {
+        sessionPresent: true,
+        currentUserId: user.id,
+        currentUserEmail: user.email ?? null,
+        profileFound: !!profile,
+        workspaceFound: false,
+      });
       setWorkspace(null);
       setLoading(false);
       return;
     }
 
+    onboardingDebug("workspace.details_lookup.start", {
+      sessionPresent: true,
+      currentUserId: user.id,
+      currentUserEmail: user.email ?? null,
+      requestName: "business_workspaces + subscriptions",
+      urlPath: "public.business_workspaces/public.subscriptions",
+      method: "select",
+      workspaceId: wsId,
+    });
     const [{ data: ws, error: wsErr }, { data: sub, error: subErr }] = await Promise.all([
       withRetry(async () =>
         await supabase
@@ -85,6 +122,19 @@ export function CurrentWorkspaceProvider({ children }: { children: ReactNode }) 
           .maybeSingle(),
       ),
     ]);
+    onboardingDebug("workspace.details_lookup.done", {
+      sessionPresent: true,
+      currentUserId: user.id,
+      currentUserEmail: user.email ?? null,
+      requestName: "business_workspaces + subscriptions",
+      urlPath: "public.business_workspaces/public.subscriptions",
+      method: "select",
+      workspaceId: wsId,
+      workspaceFound: !!ws,
+      subscriptionFound: !!sub,
+      workspaceError: supabaseErrorDebug(wsErr),
+      subscriptionError: supabaseErrorDebug(subErr),
+    });
 
     const loadErr = wsErr ?? subErr;
     if (loadErr) {

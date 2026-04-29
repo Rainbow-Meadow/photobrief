@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { withSupabaseRetry } from "@/lib/supabaseRetry";
+import { onboardingDebug, supabaseErrorDebug } from "@/lib/onboardingDebug";
 
 interface OnboardingStatus {
   loading: boolean;
@@ -19,18 +20,31 @@ export function useOnboardingStatus(enabled = true): OnboardingStatus {
 
   useEffect(() => {
     if (!enabled) {
+      onboardingDebug("onboarding_status.disabled", { sessionPresent: !!user, currentUserId: user?.id ?? null, currentUserEmail: user?.email ?? null });
       setOnboarded(null);
       setLoading(false);
       return;
     }
-    if (authLoading) return;
+    if (authLoading) {
+      onboardingDebug("onboarding_status.wait_auth", { sessionPresent: !!user });
+      return;
+    }
     if (!user) {
+      onboardingDebug("onboarding_status.no_user", { sessionPresent: false });
       setOnboarded(null);
       setLoading(false);
       return;
     }
     let cancelled = false;
     setLoading(true);
+    onboardingDebug("onboarding_status.profile_lookup.start", {
+      sessionPresent: true,
+      currentUserId: user.id,
+      currentUserEmail: user.email ?? null,
+      requestName: "profiles.onboarded_at",
+      urlPath: "public.profiles",
+      method: "select",
+    });
     withSupabaseRetry(async () =>
       await supabase
         .from("profiles")
@@ -39,6 +53,17 @@ export function useOnboardingStatus(enabled = true): OnboardingStatus {
         .maybeSingle(),
     ).then(({ data, error }) => {
         if (cancelled) return;
+        onboardingDebug("onboarding_status.profile_lookup.done", {
+          sessionPresent: true,
+          currentUserId: user.id,
+          currentUserEmail: user.email ?? null,
+          requestName: "profiles.onboarded_at",
+          urlPath: "public.profiles",
+          method: "select",
+          profileFound: !!data,
+          onboardingStatus: data?.onboarded_at ? "complete" : data ? "incomplete" : "missing_profile",
+          error: supabaseErrorDebug(error),
+        });
         if (error) {
           setOnboarded(false);
           setLoading(false);

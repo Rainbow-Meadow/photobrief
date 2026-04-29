@@ -9,6 +9,7 @@ import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
+import { onboardingDebug, edgeFunctionErrorDebug, supabaseErrorDebug } from "@/lib/onboardingDebug";
 
 export default function AuthPage() {
   const [params] = useSearchParams();
@@ -27,6 +28,13 @@ export default function AuthPage() {
     if (!authLoading && session) {
       const next = params.get("next");
       const target = next ? decodeURIComponent(next) : "/dashboard";
+      onboardingDebug("auth.redirect_authenticated", {
+        sessionPresent: true,
+        currentUserId: session.user.id,
+        currentUserEmail: session.user.email ?? null,
+        redirectDestination: target,
+        triggeredBy: "AuthPage.session_present",
+      });
       navigate(target, { replace: true });
     }
   }, [authLoading, session, navigate, params]);
@@ -45,6 +53,14 @@ export default function AuthPage() {
             data: { name },
           },
         });
+        onboardingDebug("auth.email_signup.done", {
+          sessionPresent: !!session,
+          currentUserEmail: email,
+          requestName: "auth.signUp",
+          urlPath: "/auth/v1/signup",
+          method: "POST",
+          error: supabaseErrorDebug(error),
+        });
         if (error) throw error;
         trackEvent("signup_completed", { method: "email" });
         toast({
@@ -53,6 +69,14 @@ export default function AuthPage() {
         });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
+        onboardingDebug("auth.email_signin.done", {
+          sessionPresent: !!session,
+          currentUserEmail: email,
+          requestName: "auth.signInWithPassword",
+          urlPath: "/auth/v1/token?grant_type=password",
+          method: "POST",
+          error: supabaseErrorDebug(error),
+        });
         if (error) throw error;
         trackEvent("login_completed", { method: "email" });
         // Redirect handled by effect
@@ -114,12 +138,28 @@ export default function AuthPage() {
     setSubmitting(true);
     try {
       // Ensure the demo user exists (idempotent), then sign in.
-      await supabase.functions.invoke("ensure-demo-user");
+      const { error: demoErr } = await supabase.functions.invoke("ensure-demo-user");
+      onboardingDebug("auth.edge_function.done", {
+        sessionPresent: !!session,
+        requestName: "ensure-demo-user",
+        urlPath: "/functions/v1/ensure-demo-user",
+        method: "POST",
+        error: await edgeFunctionErrorDebug(demoErr),
+      });
+      if (demoErr) throw demoErr;
       setEmail(DEMO_EMAIL);
       setPassword(DEMO_PASSWORD);
       const { error } = await supabase.auth.signInWithPassword({
         email: DEMO_EMAIL,
         password: DEMO_PASSWORD,
+      });
+      onboardingDebug("auth.demo_signin.done", {
+        sessionPresent: !!session,
+        currentUserEmail: DEMO_EMAIL,
+        requestName: "auth.signInWithPassword",
+        urlPath: "/auth/v1/token?grant_type=password",
+        method: "POST",
+        error: supabaseErrorDebug(error),
       });
       if (error) throw error;
     } catch (err: any) {

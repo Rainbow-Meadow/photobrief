@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
 import { withSupabaseRetry, isTransientSupabaseError } from "@/lib/supabaseRetry";
+import { onboardingDebug, edgeFunctionErrorDebug, supabaseErrorDebug } from "@/lib/onboardingDebug";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -92,19 +93,60 @@ export default function OnboardingPage() {
     completionMessage: "Thanks! We've got everything we need.",
   });
 
+  useEffect(() => {
+    onboardingDebug("onboarding.route_mount", {
+      sessionPresent: !!user,
+      currentUserId: user?.id ?? null,
+      currentUserEmail: user?.email ?? null,
+      workspaceFound: !!workspace?.id,
+      onboardingStatus: "onboarding_page_visible",
+    });
+  }, [user?.id, user?.email, workspace?.id]);
+
   // Server-side fallback: provision the workspace + bootstrap rows if the
   // signup trigger somehow skipped them (or a transient Cloud failure left
   // the user with no default_workspace_id). Idempotent; safe to retry.
   const repairWorkspace = async (silent = false) => {
     setRepairing(true);
     try {
-      const { error } = await supabase.functions.invoke("ensure-workspace", {
+      onboardingDebug("onboarding.edge_function.start", {
+        sessionPresent: !!user,
+        currentUserId: user?.id ?? null,
+        currentUserEmail: user?.email ?? null,
+        requestName: "ensure-workspace",
+        urlPath: "/functions/v1/ensure-workspace",
+        method: "POST",
+        triggeredBy: silent ? "auto_repair_once" : "manual_repair",
+      });
+      const { data, error } = await supabase.functions.invoke("ensure-workspace", {
         body: {},
+      });
+      onboardingDebug("onboarding.edge_function.done", {
+        sessionPresent: !!user,
+        currentUserId: user?.id ?? null,
+        currentUserEmail: user?.email ?? null,
+        requestName: "ensure-workspace",
+        urlPath: "/functions/v1/ensure-workspace",
+        method: "POST",
+        workspaceFound: !!(data as { workspace_id?: string } | null)?.workspace_id,
+        responseBody: data ?? null,
+        error: await edgeFunctionErrorDebug(error),
+        triggeredBy: silent ? "auto_repair_once" : "manual_repair",
       });
       if (error) throw error;
       await refetch();
       if (!silent) toast.success("Workspace ready");
     } catch (err) {
+      onboardingDebug("onboarding.edge_function.thrown", {
+        sessionPresent: !!user,
+        currentUserId: user?.id ?? null,
+        currentUserEmail: user?.email ?? null,
+        requestName: "ensure-workspace",
+        urlPath: "/functions/v1/ensure-workspace",
+        method: "POST",
+        thrownErrorMessage: err instanceof Error ? err.message : String(err),
+        triggeredBy: silent ? "auto_repair_once" : "manual_repair",
+      });
       const msg = err instanceof Error ? err.message : "Could not repair workspace";
       if (!silent) toast.error(msg);
     } finally {
@@ -172,8 +214,29 @@ export default function OnboardingPage() {
   // on a transient 503 — read directly from profiles, then fall back to
   // the ensure-workspace edge function which will provision one if needed.
   const resolveWorkspaceId = async (): Promise<string | null> => {
-    if (workspace?.id) return workspace.id;
-    if (!user?.id) return null;
+    if (workspace?.id) {
+      onboardingDebug("onboarding.resolve_workspace.cached", {
+        sessionPresent: true,
+        currentUserId: user?.id ?? null,
+        currentUserEmail: user?.email ?? null,
+        workspaceFound: true,
+        workspaceId: workspace.id,
+      });
+      return workspace.id;
+    }
+    if (!user?.id) {
+      onboardingDebug("onboarding.resolve_workspace.no_user", { sessionPresent: false });
+      return null;
+    }
+    onboardingDebug("onboarding.resolve_workspace.profile_lookup.start", {
+      sessionPresent: true,
+      currentUserId: user.id,
+      currentUserEmail: user.email ?? null,
+      requestName: "profiles.default_workspace_id",
+      urlPath: "public.profiles",
+      method: "select",
+      triggeredBy: "finish_setup",
+    });
     const { data: prof } = await withSupabaseRetry(async () =>
       await supabase
         .from("profiles")
@@ -182,13 +245,53 @@ export default function OnboardingPage() {
         .maybeSingle(),
     );
     const profTyped = prof as { default_workspace_id?: string | null } | null;
+    onboardingDebug("onboarding.resolve_workspace.profile_lookup.done", {
+      sessionPresent: true,
+      currentUserId: user.id,
+      currentUserEmail: user.email ?? null,
+      requestName: "profiles.default_workspace_id",
+      urlPath: "public.profiles",
+      method: "select",
+      profileFound: !!profTyped,
+      workspaceFound: !!profTyped?.default_workspace_id,
+      triggeredBy: "finish_setup",
+    });
     if (profTyped?.default_workspace_id) return profTyped.default_workspace_id;
     // Last resort: ask the edge function to provision and return one.
-    const { data: fnData } = await supabase.functions.invoke("ensure-workspace", { body: {} });
+    onboardingDebug("onboarding.resolve_workspace.edge_function.start", {
+      sessionPresent: true,
+      currentUserId: user.id,
+      currentUserEmail: user.email ?? null,
+      requestName: "ensure-workspace",
+      urlPath: "/functions/v1/ensure-workspace",
+      method: "POST",
+      triggeredBy: "finish_setup_missing_workspace",
+    });
+    const { data: fnData, error: fnError } = await supabase.functions.invoke("ensure-workspace", { body: {} });
+    onboardingDebug("onboarding.resolve_workspace.edge_function.done", {
+      sessionPresent: true,
+      currentUserId: user.id,
+      currentUserEmail: user.email ?? null,
+      requestName: "ensure-workspace",
+      urlPath: "/functions/v1/ensure-workspace",
+      method: "POST",
+      workspaceFound: !!(fnData as { workspace_id?: string } | null)?.workspace_id,
+      responseBody: fnData ?? null,
+      error: await edgeFunctionErrorDebug(fnError),
+      triggeredBy: "finish_setup_missing_workspace",
+    });
+    if (fnError) throw fnError;
     return (fnData as { workspace_id?: string } | null)?.workspace_id ?? null;
   };
 
   const handleFinish = async () => {
+    onboardingDebug("onboarding.finish.start", {
+      sessionPresent: !!user,
+      currentUserId: user?.id ?? null,
+      currentUserEmail: user?.email ?? null,
+      workspaceFound: !!workspace?.id,
+      triggeredBy: "Finish setup button",
+    });
     if (!user?.id) {
       toast.error("You need to be signed in.");
       return;
@@ -209,8 +312,24 @@ export default function OnboardingPage() {
       if (!wsId) {
         throw new Error("Couldn't load your workspace — please retry.");
       }
+      onboardingDebug("onboarding.finish.workspace_resolved", {
+        sessionPresent: true,
+        currentUserId: user.id,
+        currentUserEmail: user.email ?? null,
+        workspaceFound: true,
+        workspaceId: wsId,
+      });
 
       // Workspace name + industry
+      onboardingDebug("onboarding.workspace_update.start", {
+        sessionPresent: true,
+        currentUserId: user.id,
+        currentUserEmail: user.email ?? null,
+        requestName: "business_workspaces.update",
+        urlPath: "public.business_workspaces",
+        method: "update",
+        workspaceId: wsId,
+      });
       const { error: wsErr } = await withSupabaseRetry(async () =>
         await supabase
           .from("business_workspaces")
@@ -222,9 +341,28 @@ export default function OnboardingPage() {
           .select("id")
           .maybeSingle(),
       );
+      onboardingDebug("onboarding.workspace_update.done", {
+        sessionPresent: true,
+        currentUserId: user.id,
+        currentUserEmail: user.email ?? null,
+        requestName: "business_workspaces.update",
+        urlPath: "public.business_workspaces",
+        method: "update",
+        workspaceId: wsId,
+        error: supabaseErrorDebug(wsErr),
+      });
       if (wsErr) throw wsErr;
 
       // Brand profile (a row was seeded by handle_new_user; update in place).
+      onboardingDebug("onboarding.brand_profile_lookup.start", {
+        sessionPresent: true,
+        currentUserId: user.id,
+        currentUserEmail: user.email ?? null,
+        requestName: "brand_profiles.select",
+        urlPath: "public.brand_profiles",
+        method: "select",
+        workspaceId: wsId,
+      });
       const { data: existing, error: existErr } = await withSupabaseRetry(async () =>
         await supabase
           .from("brand_profiles")
@@ -232,6 +370,17 @@ export default function OnboardingPage() {
           .eq("workspace_id", wsId)
           .maybeSingle(),
       );
+      onboardingDebug("onboarding.brand_profile_lookup.done", {
+        sessionPresent: true,
+        currentUserId: user.id,
+        currentUserEmail: user.email ?? null,
+        requestName: "brand_profiles.select",
+        urlPath: "public.brand_profiles",
+        method: "select",
+        workspaceId: wsId,
+        profileFound: !!existing,
+        error: supabaseErrorDebug(existErr),
+      });
       if (existErr) throw existErr;
 
       const brandPayload = {
@@ -241,6 +390,15 @@ export default function OnboardingPage() {
         completion_message: brand.data.completionMessage,
       };
       const existingId = (existing as { id?: string } | null)?.id;
+      onboardingDebug("onboarding.brand_profile_write.start", {
+        sessionPresent: true,
+        currentUserId: user.id,
+        currentUserEmail: user.email ?? null,
+        requestName: existingId ? "brand_profiles.update" : "brand_profiles.insert",
+        urlPath: "public.brand_profiles",
+        method: existingId ? "update" : "insert",
+        workspaceId: wsId,
+      });
       const { error: bpErr } = await withSupabaseRetry(async () =>
         existingId
           ? await supabase
@@ -255,9 +413,27 @@ export default function OnboardingPage() {
               .select("id")
               .maybeSingle(),
       );
+      onboardingDebug("onboarding.brand_profile_write.done", {
+        sessionPresent: true,
+        currentUserId: user.id,
+        currentUserEmail: user.email ?? null,
+        requestName: existingId ? "brand_profiles.update" : "brand_profiles.insert",
+        urlPath: "public.brand_profiles",
+        method: existingId ? "update" : "insert",
+        workspaceId: wsId,
+        error: supabaseErrorDebug(bpErr),
+      });
       if (bpErr) throw bpErr;
 
       // Mark onboarding as complete.
+      onboardingDebug("onboarding.profile_complete.start", {
+        sessionPresent: true,
+        currentUserId: user.id,
+        currentUserEmail: user.email ?? null,
+        requestName: "profiles.update.onboarded_at",
+        urlPath: "public.profiles",
+        method: "update",
+      });
       const { error: profErr } = await withSupabaseRetry(async () =>
         await supabase
           .from("profiles")
@@ -266,10 +442,28 @@ export default function OnboardingPage() {
           .select("id")
           .maybeSingle(),
       );
+      onboardingDebug("onboarding.profile_complete.done", {
+        sessionPresent: true,
+        currentUserId: user.id,
+        currentUserEmail: user.email ?? null,
+        requestName: "profiles.update.onboarded_at",
+        urlPath: "public.profiles",
+        method: "update",
+        onboardingStatus: profErr ? "failed" : "complete",
+        error: supabaseErrorDebug(profErr),
+      });
       if (profErr) throw profErr;
 
       await refetch();
       toast.success("You're all set");
+      onboardingDebug("onboarding.redirect", {
+        sessionPresent: true,
+        currentUserId: user.id,
+        currentUserEmail: user.email ?? null,
+        onboardingStatus: "complete",
+        redirectDestination: "/dashboard",
+        triggeredBy: "finish_success",
+      });
       navigate("/dashboard", { replace: true });
     } catch (err) {
       const errObj = err as { code?: string; message?: string } | undefined;
@@ -278,6 +472,16 @@ export default function OnboardingPage() {
         ? "We're having trouble reaching the backend. Wait a moment and try again."
         : errObj?.message ?? "Could not save your workspace";
       setFinishError(msg);
+      onboardingDebug("onboarding.finish.error", {
+        sessionPresent: !!user,
+        currentUserId: user?.id ?? null,
+        currentUserEmail: user?.email ?? null,
+        onboardingStatus: "failed",
+        thrownErrorMessage: errObj?.message ?? String(err),
+        errorCode: errObj?.code ?? null,
+        transient,
+        redirectDestination: null,
+      });
       toast.error(msg);
     } finally {
       setSaving(false);

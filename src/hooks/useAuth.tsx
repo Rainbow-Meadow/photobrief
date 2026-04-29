@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { onboardingDebug, supabaseErrorDebug } from "@/lib/onboardingDebug";
 
 interface AuthContextValue {
   session: Session | null;
@@ -22,12 +23,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Set up listener BEFORE fetching session
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
+      onboardingDebug("auth.state_change", {
+        event,
+        sessionPresent: !!newSession,
+        currentUserId: newSession?.user?.id ?? null,
+        currentUserEmail: newSession?.user?.email ?? null,
+      });
       setSession(newSession);
       setLoading(false);
     });
 
-    supabase.auth.getSession().then(({ data }) => {
+    onboardingDebug("auth.get_session.start", { sessionPresent: false });
+    supabase.auth.getSession().then(({ data, error }) => {
+      onboardingDebug("auth.get_session.done", {
+        sessionPresent: !!data.session,
+        currentUserId: data.session?.user?.id ?? null,
+        currentUserEmail: data.session?.user?.email ?? null,
+        error: supabaseErrorDebug(error),
+      });
       setSession(data.session);
       setLoading(false);
     });

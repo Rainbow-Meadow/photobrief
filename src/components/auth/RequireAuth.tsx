@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { onboardingDebug } from "@/lib/onboardingDebug";
 
 interface RequireAuthProps {
   children: ReactNode;
@@ -32,10 +33,25 @@ export function RequireAuth({ children, requireOnboarding = true }: RequireAuthP
 
   if (!user) {
     const next = encodeURIComponent(location.pathname + location.search);
+    onboardingDebug("route_guard.redirect", {
+      sessionPresent: false,
+      redirectDestination: `/auth?next=${next}`,
+      triggeredBy: "RequireAuth.no_user",
+      requireOnboarding,
+    });
     return <Navigate to={`/auth?next=${next}`} replace />;
   }
 
   if (requireOnboarding && onboarded === false) {
+    onboardingDebug("route_guard.redirect", {
+      sessionPresent: true,
+      currentUserId: user.id,
+      currentUserEmail: user.email ?? null,
+      onboardingStatus: "incomplete_or_lookup_failed",
+      redirectDestination: "/onboarding",
+      triggeredBy: "RequireAuth.onboarded_false",
+      requireOnboarding,
+    });
     return <Navigate to="/onboarding" replace />;
   }
 
