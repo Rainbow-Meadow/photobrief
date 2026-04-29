@@ -214,8 +214,29 @@ export default function OnboardingPage() {
   // on a transient 503 — read directly from profiles, then fall back to
   // the ensure-workspace edge function which will provision one if needed.
   const resolveWorkspaceId = async (): Promise<string | null> => {
-    if (workspace?.id) return workspace.id;
-    if (!user?.id) return null;
+    if (workspace?.id) {
+      onboardingDebug("onboarding.resolve_workspace.cached", {
+        sessionPresent: true,
+        currentUserId: user?.id ?? null,
+        currentUserEmail: user?.email ?? null,
+        workspaceFound: true,
+        workspaceId: workspace.id,
+      });
+      return workspace.id;
+    }
+    if (!user?.id) {
+      onboardingDebug("onboarding.resolve_workspace.no_user", { sessionPresent: false });
+      return null;
+    }
+    onboardingDebug("onboarding.resolve_workspace.profile_lookup.start", {
+      sessionPresent: true,
+      currentUserId: user.id,
+      currentUserEmail: user.email ?? null,
+      requestName: "profiles.default_workspace_id",
+      urlPath: "public.profiles",
+      method: "select",
+      triggeredBy: "finish_setup",
+    });
     const { data: prof } = await withSupabaseRetry(async () =>
       await supabase
         .from("profiles")
@@ -224,9 +245,42 @@ export default function OnboardingPage() {
         .maybeSingle(),
     );
     const profTyped = prof as { default_workspace_id?: string | null } | null;
+    onboardingDebug("onboarding.resolve_workspace.profile_lookup.done", {
+      sessionPresent: true,
+      currentUserId: user.id,
+      currentUserEmail: user.email ?? null,
+      requestName: "profiles.default_workspace_id",
+      urlPath: "public.profiles",
+      method: "select",
+      profileFound: !!profTyped,
+      workspaceFound: !!profTyped?.default_workspace_id,
+      triggeredBy: "finish_setup",
+    });
     if (profTyped?.default_workspace_id) return profTyped.default_workspace_id;
     // Last resort: ask the edge function to provision and return one.
-    const { data: fnData } = await supabase.functions.invoke("ensure-workspace", { body: {} });
+    onboardingDebug("onboarding.resolve_workspace.edge_function.start", {
+      sessionPresent: true,
+      currentUserId: user.id,
+      currentUserEmail: user.email ?? null,
+      requestName: "ensure-workspace",
+      urlPath: "/functions/v1/ensure-workspace",
+      method: "POST",
+      triggeredBy: "finish_setup_missing_workspace",
+    });
+    const { data: fnData, error: fnError } = await supabase.functions.invoke("ensure-workspace", { body: {} });
+    onboardingDebug("onboarding.resolve_workspace.edge_function.done", {
+      sessionPresent: true,
+      currentUserId: user.id,
+      currentUserEmail: user.email ?? null,
+      requestName: "ensure-workspace",
+      urlPath: "/functions/v1/ensure-workspace",
+      method: "POST",
+      workspaceFound: !!(fnData as { workspace_id?: string } | null)?.workspace_id,
+      responseBody: fnData ?? null,
+      error: await edgeFunctionErrorDebug(fnError),
+      triggeredBy: "finish_setup_missing_workspace",
+    });
+    if (fnError) throw fnError;
     return (fnData as { workspace_id?: string } | null)?.workspace_id ?? null;
   };
 
