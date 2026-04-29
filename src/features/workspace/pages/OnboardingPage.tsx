@@ -78,7 +78,7 @@ const STEPS = [
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { workspace, loading: wsLoading, refetch } = useCurrentWorkspace();
+  const { workspace, loading: wsLoading, refetch, backendUnavailable } = useCurrentWorkspace();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [saving, setSaving] = useState(false);
@@ -154,13 +154,17 @@ export default function OnboardingPage() {
     }
   };
 
-  // Auto-repair once if the workspace can't be loaded after auth resolves.
+  // Auto-repair once if the workspace truly can't be loaded (genuinely
+  // missing default_workspace_id), but NOT during a transient backend
+  // outage — calling ensure-workspace then would amplify the outage and
+  // still fail.
   useEffect(() => {
     if (wsLoading || workspace?.id || !user?.id || autoRepairTried.current) return;
+    if (backendUnavailable) return;
     autoRepairTried.current = true;
     void repairWorkspace(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wsLoading, workspace?.id, user?.id]);
+  }, [wsLoading, workspace?.id, user?.id, backendUnavailable]);
 
   // Seed initial values from the workspace + brand profile created by the
   // signup trigger so we don't blow away anything the user has already set.
