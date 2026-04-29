@@ -346,7 +346,7 @@ export const planLimits: PlanLimit[] = [
     priceMonthly: 199,
     priceAnnualMonthly: 150,
     tagline: "Scale and integrate.",
-    purpose: "Multi-location operators who need white-label and integrations.",
+    purpose: "Multi-location operators who need custom domains, API access, and integrations.",
     quotas: {
       requestsPerMonth: 1500,
       users: 25,
