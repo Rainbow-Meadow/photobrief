@@ -95,6 +95,9 @@ export default function LandingPage() {
       {/* STATS BAND ---------------------------------------------------------- */}
       <StatsBand />
 
+      {/* FIRST-PASS GUARANTEE ----------------------------------------------- */}
+      <FirstPassGuaranteeBand />
+
       {/* INDUSTRIES ---------------------------------------------------------- */}
       <IndustryGrid />
 
