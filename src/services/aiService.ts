@@ -25,6 +25,40 @@ import type {
 } from "@/types/photobrief";
 
 // ============================================================
+// Model routing — client-side metadata only.
+// The actual model selection happens server-side in
+// supabase/functions/_shared/aiModelRouter.ts. This client export
+// exists only so analytics / debug surfaces can describe which task
+// tier a call belongs to. UI components MUST NOT use this to pick
+// models — every AI call goes through aiService and the edge router.
+// ============================================================
+
+export type AITask =
+  | "recipient_guidance"
+  | "photo_quality_check"
+  | "detail_extraction"
+  | "readiness_scoring"
+  | "submission_summary"
+  | "guide_generation"
+  | "followup_message"
+  | "admin_review"
+  | "classification";
+
+export type AITier = "default" | "vision" | "escalation" | "cheap";
+
+export const aiModelRouter: Record<AITask, AITier> = {
+  recipient_guidance: "default",
+  guide_generation: "default",
+  followup_message: "default",
+  photo_quality_check: "vision",
+  detail_extraction: "vision",
+  readiness_scoring: "vision",
+  submission_summary: "vision",
+  admin_review: "escalation",
+  classification: "cheap",
+};
+
+// ============================================================
 // Shared types (mirror prompt contract response schemas)
 // ============================================================
 
@@ -37,15 +71,19 @@ export interface AnalyzeMediaInput {
   capturedMediaId?: string;
   /** Optional recipient note attached to the photo. */
   recipientNote?: string;
+  /** When true, route through escalation tier (admin re-runs). */
+  escalate?: boolean;
 }
 
 export interface AnalyzeMediaOutput {
   /** Per-check results matching step.aiChecks. */
   checks: { type: AICheckType; severity: AICheckSeverity; message: string }[];
-  /** Aggregate verdict — worst of any check. */
+  /** Aggregate verdict — worst of any check, or "unavailable" if AI is down. */
   verdict: AICheckSeverity;
   /** Reviewer-facing feedback object usable directly in SubmissionShot.feedback. */
   feedback: ShotAIFeedback;
+  /** True when the edge function returned a graceful AI-unavailable envelope. */
+  unavailable?: boolean;
 }
 
 export interface SubmissionSummaryInput {
@@ -137,6 +175,33 @@ function feedbackHeadline(verdict: AICheckSeverity, stepTitle: string): string {
   return `${stepTitle}: needs a retake`;
 }
 
+/**
+ * Build a graceful "AI review unavailable" result. Submission is NOT blocked
+ * by AI being down — only app-logic gating (required photo missing) blocks.
+ */
+function aiUnavailableResult(stepTitle: string): AnalyzeMediaOutput {
+  const checks = [
+    {
+      type: "manual_review" as unknown as AICheckType,
+      severity: "unavailable" as AICheckSeverity,
+      message: "AI review is temporarily unavailable — you can still submit this photo.",
+      label: "AI review unavailable",
+    },
+  ];
+  const feedback: ShotAIFeedback = {
+    severity: "unavailable",
+    headline: `${stepTitle}: AI review unavailable`,
+    detail: "You can submit it as-is or retake.",
+    checks: checks.map((c) => ({ type: c.type, severity: c.severity, label: c.label })),
+  };
+  return {
+    checks: checks.map(({ type, severity, message }) => ({ type, severity, message })),
+    verdict: "unavailable",
+    feedback,
+    unavailable: true,
+  };
+}
+
 // ============================================================
 // The service
 // ============================================================
@@ -149,7 +214,7 @@ export const aiService = {
    * the caller didn't provide a usable media URL (e.g. blob: previews).
    */
   async analyzeCapturedMedia(input: AnalyzeMediaInput): Promise<AnalyzeMediaOutput> {
-    const { step, mediaUrl, capturedMediaId, recipientNote } = input;
+    const { step, mediaUrl, capturedMediaId, recipientNote, escalate } = input;
     const usableUrl = mediaUrl && /^https?:\/\//.test(mediaUrl) ? mediaUrl : null;
 
     if (usableUrl) {
@@ -165,9 +230,17 @@ export const aiService = {
             imageUrl: usableUrl,
             recipientNote,
             capturedMediaId,
+            priority: escalate ? "admin_review" : undefined,
+            task: "photo_quality_check",
           },
         });
         if (error) throw error;
+
+        // Graceful AI-unavailable envelope from the router (HTTP 200).
+        if (data && data.error === "ai_unavailable") {
+          return aiUnavailableResult(step.title);
+        }
+
         if (data && data.checks) {
           const checks = data.checks.map((c: any) => ({
             type: c.type as AICheckType,
@@ -181,6 +254,10 @@ export const aiService = {
             headline: data.headline ?? feedbackHeadline(verdict, step.title),
             detail: data.detail ?? checks.find((c: any) => c.severity !== "pass")?.message,
             checks: checks.map((c: any) => ({ type: c.type, severity: c.severity, label: c.label })),
+            confidence: typeof data.confidence === "number" ? data.confidence : undefined,
+            flags: Array.isArray(data.flags) ? data.flags : undefined,
+            businessSummary: data.businessSummary ?? undefined,
+            suggestedNextAction: data.suggestedNextAction ?? undefined,
           };
           return {
             checks: checks.map(({ type, severity, message }: any) => ({ type, severity, message })),
@@ -193,29 +270,8 @@ export const aiService = {
       }
     }
 
-    // Honest fallback. We never fabricate a `pass` from random numbers —
-    // if we can't reach the AI (no usable URL, network error, gateway
-    // down) we emit a single neutral `warn` so the recipient can still
-    // submit if they choose.
-    const checks = [
-      {
-        type: "manual_review" as unknown as AICheckType,
-        severity: "warn" as AICheckSeverity,
-        message: "We couldn't check this photo — you can still submit it.",
-        label: "Manual review",
-      },
-    ];
-    const feedback: ShotAIFeedback = {
-      severity: "warn",
-      headline: "We couldn't check this photo",
-      detail: "You can submit it as-is or retake.",
-      checks: checks.map((c) => ({ type: c.type, severity: c.severity, label: c.label })),
-    };
-    return {
-      checks: checks.map(({ type, severity, message }) => ({ type, severity, message })),
-      verdict: "warn",
-      feedback,
-    };
+    // Total failure path (no usable URL, network error, etc.) — graceful state.
+    return aiUnavailableResult(step.title);
   },
 
   /**
@@ -237,6 +293,7 @@ export const aiService = {
             feedbackHeadline: s.feedback?.headline,
           })),
           customerAnswers: input.customerAnswers,
+          task: "submission_summary",
         },
       });
       if (error) throw error;
@@ -386,7 +443,7 @@ export const aiService = {
     // Try the AI gateway first (Pro+ gated server-side).
     try {
       const { data, error } = await supabase.functions.invoke("ai-generate-guide", {
-        body: { prompt, category: input.category },
+        body: { prompt, category: input.category, task: "guide_generation" },
       });
       if (error) throw error;
       if (data?.draft) {

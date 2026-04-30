@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, AlertTriangle, XCircle, ImageOff, Check, X, Pencil } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, ImageOff, Check, X, Pencil, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,11 +9,12 @@ import type { ShotFeedbackSeverity, ShotReviewStatus, SubmissionShot } from "@/t
 
 const severityMeta: Record<
   ShotFeedbackSeverity,
-  { label: string; tone: "success" | "warning" | "destructive"; Icon: typeof CheckCircle2 }
+  { label: string; tone: "success" | "warning" | "destructive" | "muted"; Icon: typeof CheckCircle2 }
 > = {
   pass: { label: "Looks good", tone: "success", Icon: CheckCircle2 },
   warn: { label: "Needs attention", tone: "warning", Icon: AlertTriangle },
   fail: { label: "Reject / missing", tone: "destructive", Icon: XCircle },
+  unavailable: { label: "AI review unavailable", tone: "muted", Icon: HelpCircle },
 };
 
 interface Props {

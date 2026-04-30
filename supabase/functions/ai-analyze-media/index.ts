@@ -1,21 +1,28 @@
-// ai-analyze-media — runs Lovable AI vision checks on a single captured photo.
-// Contract: 05_AI_System/02_prompt_contracts.md (ai-check-photo).
+// ai-analyze-media — runs vision checks on a single captured photo.
+// Routed via the centralized aiModelRouter (task: photo_quality_check, vision tier).
+//
+// Model selection lives in _shared/aiModelRouter.ts — never hardcode here.
 //
 // Input:
 //  { stepId, stepTitle, instruction, captureType, overlayType,
-//    aiChecks: string[], imageUrl, recipientNote?, capturedMediaId? }
+//    aiChecks: string[], imageUrl, recipientNote?, capturedMediaId?,
+//    priority?: "admin_review" }   // when "admin_review", escalate to premium
 //
-// Output:
-//  { verdict: "pass"|"warn"|"fail",
-//    headline: string, detail?: string,
-//    checks: [{ type, severity, label, message }],
-//    extractedDetails: [{ label, value, confidence }] }
+// Output (success):
+//  { verdict, headline, detail, checks, extractedDetails,
+//    confidence, flags, businessSummary, suggestedNextAction, model }
 //
-// If `capturedMediaId` is provided AND the caller is authenticated as a
-// workspace member of the submission's workspace, the result is also
-// persisted to ai_check_results + captured_media.ai_feedback.
+// Output (graceful failure):  { error: "ai_unavailable", graceful: true }
+//   — HTTP 200, so the client can render the "AI review unavailable" state
+//   without throwing. Submission is never blocked by AI being down.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import {
+  buildEnvelopeTool,
+  callAIWithRouter,
+  routerErrorResponse,
+  type AIEnvelope,
+} from "../_shared/aiModelRouter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,51 +41,56 @@ Reply ONLY by calling the analyze_photo function. Be specific, kind, and actiona
 - "warn": usable but a better retake would help (slight blur, glare, framing).
 - "fail": not usable for this step (wrong subject, too dark, blurry, missing key element).
 
-Per-check messages should be one short sentence the recipient could act on.`;
+Per-check messages should be one short sentence the recipient could act on.
 
-const TOOL = {
-  type: "function",
-  function: {
-    name: "analyze_photo",
-    description: "Return per-check verdicts and reviewer feedback for one photo.",
-    parameters: {
-      type: "object",
-      properties: {
-        verdict: { type: "string", enum: ["pass", "warn", "fail"] },
-        headline: { type: "string", description: "Short reviewer headline (max 60 chars)." },
-        detail: { type: "string", description: "Optional 1-sentence detail." },
-        checks: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              type: { type: "string" },
-              severity: { type: "string", enum: ["pass", "warn", "fail"] },
-              message: { type: "string" },
-            },
-            required: ["type", "severity", "message"],
-            additionalProperties: false,
+Always populate the envelope:
+  result.verdict, result.headline, result.checks[], result.extractedDetails[]
+  confidence (0..1), flags[] (e.g. low_light, ambiguous_label, low_confidence),
+  recipient_feedback (kind sentence to recipient),
+  business_summary (one short sentence for the business owner),
+  missing_items[] (required items still missing — usually empty for a single photo),
+  suggested_next_action (e.g. "Retake closer", "Accept as-is").`;
+
+const TOOL = buildEnvelopeTool({
+  name: "analyze_photo",
+  description: "Return per-check verdicts and reviewer feedback for one photo.",
+  resultSchema: {
+    type: "object",
+    properties: {
+      verdict: { type: "string", enum: ["pass", "warn", "fail"] },
+      headline: { type: "string", description: "Short reviewer headline (max 60 chars)." },
+      detail: { type: "string", description: "Optional 1-sentence detail." },
+      checks: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            type: { type: "string" },
+            severity: { type: "string", enum: ["pass", "warn", "fail"] },
+            message: { type: "string" },
           },
-        },
-        extractedDetails: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              label: { type: "string" },
-              value: { type: "string" },
-              confidence: { type: "number" },
-            },
-            required: ["label", "value"],
-            additionalProperties: false,
-          },
+          required: ["type", "severity", "message"],
+          additionalProperties: false,
         },
       },
-      required: ["verdict", "headline", "checks"],
-      additionalProperties: false,
+      extractedDetails: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            label: { type: "string" },
+            value: { type: "string" },
+            confidence: { type: "number" },
+          },
+          required: ["label", "value"],
+          additionalProperties: false,
+        },
+      },
     },
+    required: ["verdict", "headline", "checks"],
+    additionalProperties: false,
   },
-} as const;
+}) as const;
 
 interface Body {
   stepId?: string;
@@ -90,6 +102,8 @@ interface Body {
   imageUrl: string;
   recipientNote?: string;
   capturedMediaId?: string;
+  /** When "admin_review", router escalates to the premium tier first. */
+  priority?: "admin_review";
 }
 
 Deno.serve(async (req) => {
@@ -120,58 +134,55 @@ Deno.serve(async (req) => {
   ].filter(Boolean).join("\n");
 
   try {
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: userPrompt },
-              { type: "image_url", image_url: { url: body.imageUrl } },
-            ],
-          },
-        ],
-        tools: [TOOL],
-        tool_choice: { type: "function", function: { name: "analyze_photo" } },
-      }),
+    const { envelope, model, attempts } = await callAIWithRouter({
+      task: "photo_quality_check",
+      escalate: body.priority === "admin_review",
+      messages: [
+        { role: "system", content: SYSTEM },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: userPrompt },
+            { type: "image_url", image_url: { url: body.imageUrl } },
+          ],
+        },
+      ],
+      tools: [TOOL],
+      tool_choice: { type: "function", function: { name: "analyze_photo" } },
     });
 
-    if (aiRes.status === 429) return json({ error: "Rate limit reached. Try again in a moment." }, 429);
-    if (aiRes.status === 402) return json({ error: "AI credits exhausted. Add credits in Settings." }, 402);
-    if (!aiRes.ok) {
-      const t = await aiRes.text();
-      console.error("AI gateway error", aiRes.status, t);
-      return json({ error: "AI gateway error" }, 502);
-    }
+    const inner = (envelope.result ?? {}) as {
+      verdict?: "pass" | "warn" | "fail";
+      headline?: string;
+      detail?: string;
+      checks?: Array<{ type: string; severity: string; message: string; label?: string }>;
+      extractedDetails?: Array<{ label: string; value: string; confidence?: number }>;
+    };
 
-    const data = await aiRes.json();
-    const call = data?.choices?.[0]?.message?.tool_calls?.[0];
-    const args = call ? JSON.parse(call.function.arguments) : null;
-    if (!args) return json({ error: "AI returned no analysis" }, 502);
-
-    // Add labels for each check using the requested aiChecks list as fallback.
-    const enrichedChecks = (args.checks ?? []).map((c: any) => ({
+    const enrichedChecks = (inner.checks ?? []).map((c) => ({
       type: c.type,
       severity: c.severity,
       label: c.label ?? prettyLabel(c.type),
       message: c.message,
     }));
+
     const result = {
-      verdict: args.verdict ?? "pass",
-      headline: args.headline ?? "Photo received",
-      detail: args.detail,
+      verdict: inner.verdict ?? "pass",
+      headline: inner.headline ?? "Photo received",
+      detail: inner.detail,
       checks: enrichedChecks,
-      extractedDetails: args.extractedDetails ?? [],
+      extractedDetails: inner.extractedDetails ?? [],
+      // Envelope-level fields exposed to the client.
+      confidence: envelope.confidence,
+      flags: envelope.flags,
+      recipientFeedback: envelope.recipient_feedback,
+      businessSummary: envelope.business_summary,
+      missingItems: envelope.missing_items,
+      suggestedNextAction: envelope.suggested_next_action,
+      model,
+      attempts,
     };
 
-    // Optional persistence (only if caller is an authed workspace member).
     if (body.capturedMediaId) {
       try {
         await persist(req, body.capturedMediaId, result);
@@ -182,6 +193,8 @@ Deno.serve(async (req) => {
 
     return json(result, 200);
   } catch (e) {
+    const mapped = routerErrorResponse(e, corsHeaders);
+    if (mapped) return mapped;
     console.error("ai-analyze-media error", e);
     return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }

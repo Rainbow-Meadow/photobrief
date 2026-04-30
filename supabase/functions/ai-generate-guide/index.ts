@@ -8,6 +8,11 @@
 // Plan gating: requires the caller's workspace to be on Pro+ tier.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import {
+  buildEnvelopeTool,
+  callAIWithRouter,
+  routerErrorResponse,
+} from "../_shared/aiModelRouter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,57 +36,61 @@ Rules:
 - Friendly intro message (1-2 sentences) the recipient reads first.
 - Match the tone the business would use: warm, simple, no jargon.
 
-Always call the build_guide function.`;
+Always call build_guide and populate the full envelope:
+  result.title, result.category, result.introMessage,
+  result.assistantReply, result.steps[], result.questions[]
+  confidence (0..1), flags[] (e.g. low_confidence, ambiguous_request),
+  recipient_feedback (null — this task is for the business owner),
+  business_summary (one short sentence describing the drafted brief),
+  missing_items[] (empty for this task),
+  suggested_next_action (e.g. "Review draft and send").`;
 
-const TOOL = {
-  type: "function",
-  function: {
-    name: "build_guide",
-    description: "Return a complete request draft.",
-    parameters: {
-      type: "object",
-      properties: {
-        title: { type: "string" },
-        category: { type: "string" },
-        introMessage: { type: "string" },
-        assistantReply: { type: "string", description: "Friendly chat reply describing what was drafted." },
-        steps: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              instruction: { type: "string" },
-              captureType: { type: "string", enum: ["photo", "video", "document"] },
-              required: { type: "boolean" },
-            },
-            required: ["title", "instruction", "captureType"],
-            additionalProperties: false,
+const TOOL = buildEnvelopeTool({
+  name: "build_guide",
+  description: "Return a complete request draft.",
+  resultSchema: {
+    type: "object",
+    properties: {
+      title: { type: "string" },
+      category: { type: "string" },
+      introMessage: { type: "string" },
+      assistantReply: { type: "string", description: "Friendly chat reply describing what was drafted." },
+      steps: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            instruction: { type: "string" },
+            captureType: { type: "string", enum: ["photo", "video", "document"] },
+            required: { type: "boolean" },
           },
-        },
-        questions: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              prompt: { type: "string" },
-              inputType: {
-                type: "string",
-                enum: ["short_text", "long_text", "single_select", "multi_select", "yes_no", "number"],
-              },
-              options: { type: "array", items: { type: "string" } },
-              required: { type: "boolean" },
-            },
-            required: ["prompt", "inputType"],
-            additionalProperties: false,
-          },
+          required: ["title", "instruction", "captureType"],
+          additionalProperties: false,
         },
       },
-      required: ["title", "introMessage", "steps", "assistantReply"],
-      additionalProperties: false,
+      questions: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            prompt: { type: "string" },
+            inputType: {
+              type: "string",
+              enum: ["short_text", "long_text", "single_select", "multi_select", "yes_no", "number"],
+            },
+            options: { type: "array", items: { type: "string" } },
+            required: { type: "boolean" },
+          },
+          required: ["prompt", "inputType"],
+          additionalProperties: false,
+        },
+      },
     },
+    required: ["title", "introMessage", "steps", "assistantReply"],
+    additionalProperties: false,
   },
-} as const;
+}) as const;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -120,36 +129,21 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM },
-          {
-            role: "user",
-            content: `Business owner says: "${prompt}"${body.category ? `\nLikely category: ${body.category}` : ""}\n\nDraft the request brief now.`,
-          },
-        ],
-        tools: [TOOL],
-        tool_choice: { type: "function", function: { name: "build_guide" } },
-      }),
+    const { envelope, model, attempts } = await callAIWithRouter({
+      task: "guide_generation",
+      messages: [
+        { role: "system", content: SYSTEM },
+        {
+          role: "user",
+          content: `Business owner says: "${prompt}"${body.category ? `\nLikely category: ${body.category}` : ""}\n\nDraft the request brief now.`,
+        },
+      ],
+      tools: [TOOL],
+      tool_choice: { type: "function", function: { name: "build_guide" } },
     });
 
-    if (aiRes.status === 429) return json({ error: "Rate limit reached." }, 429);
-    if (aiRes.status === 402) return json({ error: "AI credits exhausted." }, 402);
-    if (!aiRes.ok) {
-      console.error("gateway", aiRes.status, await aiRes.text());
-      return json({ error: "AI gateway error" }, 502);
-    }
-    const data = await aiRes.json();
-    const call = data?.choices?.[0]?.message?.tool_calls?.[0];
-    const args = call ? JSON.parse(call.function.arguments) : null;
-    if (!args) return json({ error: "AI returned no draft" }, 502);
+    const args = (envelope.result ?? {}) as any;
+    if (!args.title) return json({ error: "AI returned no draft" }, 502);
 
     return json({
       draft: {
@@ -173,8 +167,17 @@ Deno.serve(async (req) => {
         })),
       },
       assistantReply: args.assistantReply ?? `Drafted "${args.title}".`,
+      // Envelope-level fields:
+      confidence: envelope.confidence,
+      flags: envelope.flags,
+      businessSummary: envelope.business_summary,
+      suggestedNextAction: envelope.suggested_next_action,
+      model,
+      attempts,
     });
   } catch (e) {
+    const mapped = routerErrorResponse(e, corsHeaders);
+    if (mapped) return mapped;
     console.error("ai-generate-guide error", e);
     return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }

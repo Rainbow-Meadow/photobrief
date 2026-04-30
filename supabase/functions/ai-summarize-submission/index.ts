@@ -1,20 +1,26 @@
 // ai-summarize-submission — generates the reviewer-facing AI summary,
-// readiness score (0-100, blended per 05_AI_System/03_readiness_scoring.md),
-// suggested next action, missing items, and extracted details for a submission.
+// readiness score, suggested next action, missing items, and extracted
+// details for a submission.
 //
-// Uses google/gemini-2.5-pro multimodal so the model can actually look at the
-// captured photos when summarising and pulling structured details.
+// Routed via the centralized aiModelRouter (task: submission_summary, vision tier).
+// Auto-escalates one retry to the escalation tier when the model reports
+// low confidence (<0.5) or flags include "low_confidence".
 //
 // Two modes:
 //  1) { submissionId } — reads everything from DB and persists results.
-//  2) { guideName, recipientName, shots, customerAnswers? } — pure compute,
-//     used by client-side hooks during the recipient flow before the
-//     submission row exists.
+//  2) { guideName, recipientName, shots, customerAnswers? } — pure compute.
 //
 // Output: { summary, highlights[], readinessScore, band, nextAction,
-//           missingItems[], extractedDetails[] }
+//           missingItems[], extractedDetails[], confidence, flags,
+//           businessSummary, model }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import {
+  buildEnvelopeTool,
+  callAIWithRouter,
+  routerErrorResponse,
+  AIUnavailableError,
+} from "../_shared/aiModelRouter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,60 +42,60 @@ Tone: clear, professional, no fluff. The reader is a busy small-business owner
 deciding whether to act on this submission. Look at the photos provided and only
 extract details you can actually see — never invent values.
 
-Always call the summarize_submission function exactly once.`;
+Always call summarize_submission exactly once and populate the full envelope:
+  result.summary, result.highlights[], result.nextAction,
+  result.missingItems[], result.extractedDetails[]
+  confidence (0..1), flags[] (e.g. low_confidence, photos_unclear),
+  recipient_feedback (one short kind sentence — null if N/A),
+  business_summary (one short sentence for the business owner),
+  missing_items[] (mirror of result.missingItems for envelope-level consumers),
+  suggested_next_action (e.g. "Mark reviewed", "Ask for retakes").`;
 
-const TOOL = {
-  type: "function",
-  function: {
-    name: "summarize_submission",
-    description: "Summarize a submission for the reviewer.",
-    parameters: {
-      type: "object",
-      properties: {
-        summary: { type: "string", description: "1-3 sentence reviewer summary." },
-        highlights: {
-          type: "array",
-          items: { type: "string" },
-          description: "2-4 short bullet highlights.",
-        },
-        nextAction: {
-          type: "string",
-          description: "One short instruction (e.g. 'Mark as reviewed', 'Ask for more photos').",
-        },
-        missingItems: {
-          type: "array",
-          items: { type: "string" },
-          description:
-            "Titles of required shots that are missing OR present but unusable.",
-        },
-        extractedDetails: {
-          type: "array",
-          description:
-            "Structured details visible in the photos (model #, serial, dimensions, address, brand, date, etc.). Only include details you can directly observe.",
-          items: {
-            type: "object",
-            properties: {
-              label: { type: "string", description: "Human label, e.g. 'Model number'." },
-              value: { type: "string", description: "The observed value." },
-              type: {
-                type: "string",
-                description: "Optional category: model, serial, dimension, address, brand, date, other.",
-              },
-              confidence: {
-                type: "number",
-                description: "0-1 confidence based on legibility.",
-              },
+const TOOL = buildEnvelopeTool({
+  name: "summarize_submission",
+  description: "Summarize a submission for the reviewer.",
+  resultSchema: {
+    type: "object",
+    properties: {
+      summary: { type: "string", description: "1-3 sentence reviewer summary." },
+      highlights: {
+        type: "array",
+        items: { type: "string" },
+        description: "2-4 short bullet highlights.",
+      },
+      nextAction: {
+        type: "string",
+        description: "One short instruction (e.g. 'Mark as reviewed', 'Ask for more photos').",
+      },
+      missingItems: {
+        type: "array",
+        items: { type: "string" },
+        description: "Titles of required shots that are missing OR present but unusable.",
+      },
+      extractedDetails: {
+        type: "array",
+        description:
+          "Structured details visible in the photos (model #, serial, dimensions, address, brand, date, etc.). Only include details you can directly observe.",
+        items: {
+          type: "object",
+          properties: {
+            label: { type: "string", description: "Human label, e.g. 'Model number'." },
+            value: { type: "string", description: "The observed value." },
+            type: {
+              type: "string",
+              description: "Optional category: model, serial, dimension, address, brand, date, other.",
             },
-            required: ["label", "value"],
-            additionalProperties: false,
+            confidence: { type: "number", description: "0-1 confidence based on legibility." },
           },
+          required: ["label", "value"],
+          additionalProperties: false,
         },
       },
-      required: ["summary", "highlights", "nextAction", "missingItems"],
-      additionalProperties: false,
     },
+    required: ["summary", "highlights", "nextAction", "missingItems"],
+    additionalProperties: false,
   },
-} as const;
+}) as const;
 
 interface ShotIn {
   title: string;
@@ -171,49 +177,83 @@ Deno.serve(async (req) => {
       });
     }
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: SYSTEM },
-          { role: "user", content: userContent },
-        ],
+    const messages = [
+      { role: "system", content: SYSTEM },
+      { role: "user", content: userContent },
+    ];
+
+    let routerResult;
+    try {
+      routerResult = await callAIWithRouter({
+        task: "submission_summary",
+        messages,
         tools: [TOOL],
         tool_choice: { type: "function", function: { name: "summarize_submission" } },
-      }),
-    });
-
-    if (aiRes.status === 429) return json({ error: "Rate limit reached." }, 429);
-    if (aiRes.status === 402) return json({ error: "AI credits exhausted." }, 402);
-    if (!aiRes.ok) {
-      console.error("gateway", aiRes.status, await aiRes.text());
-      return json({ error: "AI gateway error" }, 502);
+      });
+    } catch (e) {
+      const mapped = routerErrorResponse(e, corsHeaders);
+      if (mapped) return mapped;
+      throw e;
     }
-    const data = await aiRes.json();
-    const call = data?.choices?.[0]?.message?.tool_calls?.[0];
-    const args = call ? JSON.parse(call.function.arguments) : null;
-    if (!args) return json({ error: "AI returned no summary" }, 502);
 
-    const extractedDetails: ExtractedDetailOut[] = Array.isArray(args.extractedDetails)
-      ? args.extractedDetails
+    // Auto-escalate one retry if confidence is low or model self-flagged it.
+    const lowConf =
+      routerResult.envelope.confidence < 0.5 ||
+      routerResult.envelope.flags.includes("low_confidence");
+    if (lowConf) {
+      try {
+        const escalated = await callAIWithRouter({
+          task: "submission_summary",
+          escalate: true,
+          messages,
+          tools: [TOOL],
+          tool_choice: { type: "function", function: { name: "summarize_submission" } },
+        });
+        // Use escalated only if it actually improved confidence.
+        if (escalated.envelope.confidence > routerResult.envelope.confidence) {
+          routerResult = escalated;
+        }
+      } catch (e) {
+        // Escalation is best-effort; ignore failures and keep first result.
+        if (!(e instanceof AIUnavailableError)) {
+          console.warn("escalation retry failed", e);
+        }
+      }
+    }
+
+    const { envelope, model, attempts } = routerResult;
+    const inner = (envelope.result ?? {}) as {
+      summary?: string;
+      highlights?: string[];
+      nextAction?: string;
+      missingItems?: string[];
+      extractedDetails?: ExtractedDetailOut[];
+    };
+
+    const extractedDetails: ExtractedDetailOut[] = Array.isArray(inner.extractedDetails)
+      ? inner.extractedDetails
       : [];
-    const missingItems: string[] = args.missingItems?.length
-      ? args.missingItems
-      : missingComputed;
+    const missingItems: string[] = inner.missingItems?.length
+      ? inner.missingItems
+      : envelope.missing_items?.length
+        ? envelope.missing_items
+        : missingComputed;
 
     const result = {
-      summary: args.summary,
-      highlights: args.highlights ?? [],
-      nextAction: args.nextAction,
+      summary: inner.summary ?? envelope.business_summary ?? "",
+      highlights: inner.highlights ?? [],
+      nextAction: inner.nextAction ?? envelope.suggested_next_action ?? "",
       missingItems,
       extractedDetails,
       readinessScore,
       band,
+      // Envelope-level fields:
+      confidence: envelope.confidence,
+      flags: envelope.flags,
+      businessSummary: envelope.business_summary,
+      suggestedNextAction: envelope.suggested_next_action,
+      model,
+      attempts,
     };
 
     if (persistTo) {
@@ -245,6 +285,8 @@ Deno.serve(async (req) => {
 
     return json(result);
   } catch (e) {
+    const mapped = routerErrorResponse(e, corsHeaders);
+    if (mapped) return mapped;
     console.error("ai-summarize-submission error", e);
     return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }
