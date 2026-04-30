@@ -13,6 +13,13 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  build: {
+    // Emit source maps for production bundles so Lighthouse / DevTools can
+    // map minified JS back to original source. Source maps are served as
+    // separate .map files referenced via sourceMappingURL — they do not
+    // affect runtime performance or UX.
+    sourcemap: true,
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
