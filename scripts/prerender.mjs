@@ -31,7 +31,7 @@ const DIST_DIR = join(__dirname, "..", "dist");
 // Routes to prerender. Keep in sync with the Cloudflare Worker allow-list
 // (workers/router/index.ts) — anything listed here MUST be routed to Pages,
 // and anything routed to Pages MUST be listed here.
-const ROUTES = ["/", "/pricing", "/help", "/for-ai-agents"];
+const ROUTES = ["/", "/pricing", "/help", "/for-ai-agents", "/waitlist"];
 
 // Origin the Cloudflare-hosted prerender will be served from in production.
 // Used for canonical link tags injected during prerender.

@@ -37,6 +37,7 @@ const MARKETING_PATHS = new Set<string>([
   "/pricing",
   "/help",
   "/for-ai-agents",
+  "/waitlist",
 ]);
 
 // Path prefixes for static files emitted by the Pages build, including
