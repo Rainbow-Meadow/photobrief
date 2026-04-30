@@ -57,6 +57,19 @@ export function BrandMark({
 
   const loading = eager ? "eager" : "lazy";
   const style = { height: size, width: "auto" as const };
+  // Intrinsic aspect ratios for each variant (width:height) so we can emit
+  // explicit width/height attributes — prevents CLS and satisfies the
+  // Lighthouse "unsized-images" audit without changing displayed size.
+  const aspectByVariant: Record<BrandVariant, number> = {
+    horizontal: 378 / 126, // 3:1
+    stacked: 1, // square-ish stacked lockup
+    wordmark: 628 / 209, // ~3:1
+    mark: 1,
+    primary: 1,
+  };
+  const aspect = aspectByVariant[resolvedVariant];
+  const intrinsicHeight = size;
+  const intrinsicWidth = Math.round(size * aspect);
   const imgClass = cn(
     "block select-none",
     withGlow && "drop-shadow-[0_8px_28px_hsl(var(--primary)/0.45)]",
