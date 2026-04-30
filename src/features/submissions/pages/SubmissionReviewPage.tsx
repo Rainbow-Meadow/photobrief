@@ -589,14 +589,13 @@ export default function SubmissionReviewPage() {
         shots={orderedShots}
         pending={pending}
         missingItemsCount={submission.missingItems?.length ?? 0}
-        onFocusShot={(shotId) => {
-          const el = document.querySelector<HTMLElement>(`[data-shot-id="${shotId}"]`);
-          if (el) {
-            el.scrollIntoView({ behavior: "smooth", block: "center" });
-            el.classList.add("ring-2", "ring-primary");
-            window.setTimeout(() => el.classList.remove("ring-2", "ring-primary"), 1600);
-          }
-        }}
+        onFocusShot={focusShot}
+      />
+
+      <EscalationQueue
+        shots={orderedShots}
+        onFocusShot={focusShot}
+        onRerunShot={() => navigate("/admin/ai-rerun")}
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
