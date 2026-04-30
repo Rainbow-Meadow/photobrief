@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, NavLink } from "react-router-dom";
 import { CheckCircle2, MailCheck, Sparkles } from "lucide-react";
-import { Helmet } from "react-helmet-async";
+import { SEOHead } from "@/components/seo/SEOHead";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,13 +121,11 @@ export default function WaitlistPage() {
 
   return (
     <div className="relative isolate overflow-hidden">
-      <Helmet>
-        <title>Join the PhotoBrief beta waitlist</title>
-        <meta
-          name="description"
-          content="PhotoBrief is invite-only while we onboard beta businesses. Join the waitlist and we'll reach out when your workspace is ready."
-        />
-      </Helmet>
+      <SEOHead
+        title="Join the PhotoBrief beta waitlist"
+        description="PhotoBrief is invite-only while we onboard beta businesses. Join the waitlist and we'll reach out when your workspace is ready."
+        canonicalPath="/waitlist"
+      />
       <div className="pointer-events-none absolute inset-0 -z-10 bg-ambient-mesh" aria-hidden />
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[60vh] bg-ambient-sky" aria-hidden />
 
