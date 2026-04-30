@@ -30,6 +30,7 @@ import PublicRecipientPage from "@/features/capture/pages/PublicRecipientPage";
 import RecipientConfirmationPage from "@/features/capture/pages/RecipientConfirmationPage";
 
 import { RequirePlatformAdmin } from "@/components/auth/RequirePlatformAdmin";
+import { InviteAcceptanceGuard } from "@/components/auth/InviteAcceptanceGuard";
 
 // Lazy: authenticated business app + onboarding + help. These pages are only
 // reachable after sign-in, so splitting them out of the initial bundle removes
