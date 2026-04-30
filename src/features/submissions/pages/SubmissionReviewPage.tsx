@@ -58,6 +58,7 @@ import type {
 } from "@/types/photobrief";
 
 import { ShotCard } from "@/features/submissions/components/ShotCard";
+import { ReviewProgressSummary } from "@/features/submissions/components/ReviewProgressSummary";
 import { ActivityTimeline } from "@/features/submissions/components/ActivityTimeline";
 import { AskForMorePhotosDialog } from "@/features/submissions/components/AskForMorePhotosDialog";
 import { InternalNotesPanel } from "@/features/submissions/components/InternalNotesPanel";
@@ -583,6 +584,20 @@ export default function SubmissionReviewPage() {
         </div>
       </section>
 
+      <ReviewProgressSummary
+        shots={orderedShots}
+        pending={pending}
+        missingItemsCount={submission.missingItems?.length ?? 0}
+        onFocusShot={(shotId) => {
+          const el = document.querySelector<HTMLElement>(`[data-shot-id="${shotId}"]`);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            el.classList.add("ring-2", "ring-primary");
+            window.setTimeout(() => el.classList.remove("ring-2", "ring-primary"), 1600);
+          }
+        }}
+      />
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           {/* AI summary + readiness */}
@@ -616,28 +631,29 @@ export default function SubmissionReviewPage() {
             ) : (
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 {orderedShots.map((shot) => (
-                  <ShotCard
-                    key={shot.id}
-                    shot={shot}
-                    pendingDecision={pending[shot.id]}
-                    onApprove={() => setShotDecision(shot.id, { status: "approved" })}
-                    onReject={(comment) => setShotDecision(shot.id, { status: "rejected", comment })}
-                    onClearDecision={() => setShotDecision(shot.id, null)}
-                    onEditFeedback={async (patch) => {
-                      try {
-                        await submissionsService.updateShotFeedbackText({
-                          mediaId: shot.id,
-                          ...patch,
-                        });
-                        invalidate();
-                        toast.success("AI wording updated");
-                      } catch (e) {
-                        toast.error(e instanceof Error ? e.message : "Couldn't save edit");
-                        throw e;
-                      }
-                    }}
-                    onAddNote={(body) => handleAddNote(body)}
-                  />
+                  <div key={shot.id} data-shot-id={shot.id} className="rounded-md transition">
+                    <ShotCard
+                      shot={shot}
+                      pendingDecision={pending[shot.id]}
+                      onApprove={() => setShotDecision(shot.id, { status: "approved" })}
+                      onReject={(comment) => setShotDecision(shot.id, { status: "rejected", comment })}
+                      onClearDecision={() => setShotDecision(shot.id, null)}
+                      onEditFeedback={async (patch) => {
+                        try {
+                          await submissionsService.updateShotFeedbackText({
+                            mediaId: shot.id,
+                            ...patch,
+                          });
+                          invalidate();
+                          toast.success("AI wording updated");
+                        } catch (e) {
+                          toast.error(e instanceof Error ? e.message : "Couldn't save edit");
+                          throw e;
+                        }
+                      }}
+                      onAddNote={(body) => handleAddNote(body)}
+                    />
+                  </div>
                 ))}
               </div>
             )}
