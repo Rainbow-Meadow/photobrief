@@ -173,6 +173,14 @@ export default function SubmissionReviewPage() {
     });
   }
 
+  function focusShot(shotId: string) {
+    const el = document.querySelector<HTMLElement>(`[data-shot-id="${shotId}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("ring-2", "ring-primary");
+    window.setTimeout(() => el.classList.remove("ring-2", "ring-primary"), 1600);
+  }
+
   function buildRejectMessage(shots: SubmissionShot[]): string {
     const firstName = submission.recipientName.split(" ")[0] || "there";
     const lines = [
