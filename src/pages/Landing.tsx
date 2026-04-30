@@ -42,6 +42,12 @@ const LANDING_JSONLD = [
 export default function LandingPage() {
   return (
     <>
+      <SEOHead
+        title="PhotoBrief | Take the right photos, every time."
+        description="PhotoBrief turns vague customer photos into business-ready briefs. Chat-guided capture, AI quality checks, clean summaries — every time."
+        canonicalPath="/"
+        jsonLd={LANDING_JSONLD}
+      />
       {/* HERO ---------------------------------------------------------------- */}
       <section className="relative overflow-hidden bg-gradient-subtle">
         <div
