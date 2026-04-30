@@ -1,74 +1,71 @@
-## Goal
+# Replace landing hero example with a Junk Removal brief
 
-Upgrade the 22 beta business accounts that signed up on 2026-04-29 from Free to **comped Pro with the Founding Pro flag** — no Stripe charge, no trial expiry — and clean up their auto-generated workspace names (currently "info's workspace", "contact's workspace", etc.) to the real business name derived from their email domain.
+The landing page hero (`HeroGlassStory`) currently shows a plumbing leak example: a customer-side chat with a leak close-up, plus a 6-shot business "brief" panel. I'll swap it for a junk removal request with brand-new, fully photorealistic, visually consistent images that depict a *well-completed* brief (all six shots pass, no retake warning).
 
-Note: you said 21, but there are actually **22** real beta business profiles in the DB (the count excludes `demo@photobrief.app` and all `seed.*@photobrief.test` accounts). I'll confirm this count before running anything destructive.
+## Scenario
 
-## The 22 accounts
+**Customer:** Marcus T. — Garage Cleanout
+**Job:** ~½ truckload of household junk in a single-car garage, ready for pickup
+**Critical photos (6 of 6, all green):**
+1. Wide shot of the garage from the open door (scale + access)
+2. Close-up of the main pile (volume estimate)
+3. Old mattress + box spring leaning against wall (oversize item)
+4. Small appliance pile — broken microwave + mini-fridge (special handling)
+5. Driveway / truck access view (where the truck will park)
+6. Stair / threshold check at garage entry (no stairs, ground level)
 
-All created 2026-04-29 14:34–14:58 UTC, currently `plan_tier=free` / `subscription.plan_tier=free` / `is_founding_pro=false`.
+The right-hand "AI summary" will read like a real dispatcher-ready brief: estimated volume, oversize items flagged, truck access confirmed, no stairs.
 
-| Email | Current workspace name | Proposed workspace name |
-|---|---|---|
-| hello@rainbow-meadow.org | Patrick Berthiaume's workspace | Rainbow Meadow |
-| info@eliteappliancehvac.com | info's workspace | Elite Appliance HVAC |
-| info@apexappliancema.com | info's workspace | Apex Appliance MA |
-| info@smartfixappliancema.com | info's workspace | SmartFix Appliance MA |
-| contact@applianceprocare.com | contact's workspace | Appliance Pro Care |
-| info@brightappliancerepair.com | info's workspace | Bright Appliance Repair |
-| info@worcestermaplumber.com | info's workspace | Worcester MA Plumber |
-| info@fresoloplumbing.com | info's workspace | Fresolo Plumbing |
-| cnunes@pipeandplumber.com | cnunes's workspace | Pipe and Plumber |
-| matt@plumbing-solutions-inc.com | matt's workspace | Plumbing Solutions Inc |
-| info@bigbluebug.com | info's workspace | Big Blue Bug |
-| info@fordshometown.com | info's workspace | Ford's Hometown |
-| info@johnslandscape.com | info's workspace | John's Landscape |
-| service@mottalandscaping.com | service's workspace | Motta Landscaping |
-| info@nlcinc.net | info's workspace | NLC Inc |
-| info@masslandscapinginc.com | info's workspace | Mass Landscaping Inc |
-| ken@junkremovalinc.com | ken's workspace | Junk Removal Inc |
-| greenteamops@gmail.com | greenteamops's workspace | Green Team Ops |
-| info@trashloversjunkremoval.com | info's workspace | Trash Lovers Junk Removal |
-| contact@junkunderjunk.com | contact's workspace | Junk Under Junk |
-| info@yardsmartlawncare.com | info's workspace | Yard Smart Lawn Care |
-| junkpireremoval@gmail.com | junkpireremoval's workspace | Junkpire Removal |
+## Image generation
 
-I'll derive each workspace name from the email domain (or local part for gmail) using simple title-casing. **You can edit any name post-run** from Settings → Workspace, or tell me before I run if you'd rather provide an exact list.
+Generate 6 photorealistic JPGs via the Lovable AI image model (`google/gemini-3-pro-image-preview` for hero quality), with a shared style spec to guarantee consistency:
 
-## Changes
+- Same suburban single-car garage, same daylight (overcast late afternoon, soft shadows)
+- Same homeowner-phone perspective (handheld, ~chest height, slight wide-angle)
+- Same color palette: warm beige garage walls, gray concrete floor, muted browns/blues in the junk pile
+- No text, no watermarks, no people's faces
+- Realistic camera grain, natural color, no HDR look
+- Square crop friendly (the brief grid renders them as squares)
 
-For each of the 22 workspaces, in a single migration:
+Files written to `src/assets/junk-removal/`:
+- `wide-garage.jpg` — hero "close-up" used in the chat bubble + grid slot 1
+- `pile-closeup.jpg`
+- `mattress.jpg`
+- `appliances.jpg`
+- `driveway-access.jpg`
+- `threshold.jpg`
 
-1. **Workspace** — `business_workspaces`
-   - `plan_tier = 'pro'`
-   - `name = '<derived business name>'`
-   - leave `industry` alone (already null; can be set later in Settings)
+After generation, I'll visually QA each image (open and inspect) and re-generate any that drift in style or look obviously AI before wiring them in.
 
-2. **Subscription** — `subscriptions` (one row already exists per workspace)
-   - `plan_tier = 'pro'`
-   - `is_founding_pro = true`
-   - `status = 'active'`
-   - `billing_interval = 'monthly'`
-   - `stripe_customer_id = NULL`, `stripe_subscription_id = NULL`, `price_id = NULL` (comped, no Stripe link)
-   - `current_period_start = now()`, `current_period_end = now() + interval '100 years'` (effectively non-expiring; webhook can override later if they ever attach a card)
-   - `cancel_at_period_end = false`
+## Code changes
 
-3. **Founding Pro claim** — `founding_pro_claims`
-   - Insert `(workspace_id, claimed_by=owner_id, claimed_at=now())` for each.
-   - This drains the public 50-slot Founding Pro counter by 22, so the landing-page banner reflects ~28 remaining. Confirm that's intended (alternative: bypass the claim row and just set the flag on the subscription, leaving the public counter untouched).
+**`src/components/marketing/HeroGlassStory.tsx`** — rewrite the example content:
+- Swap all 6 image imports to the new junk-removal assets
+- Update `SHOTS` array labels (Wide garage, Main pile, Mattress, Appliances, Driveway access, Threshold) and set **all six `ok: true`** so the brief reads as fully complete
+- Update the chat bubbles:
+  - Assistant prompt: "Photo 2 of 6 — Close-up of the main pile" / "Stand about 6 feet back so we can see the full volume."
+  - User photo bubble uses `pile-closeup.jpg`
+  - AI feedback: "Looks great — clear view of the pile. One more — the driveway where our truck will park."
+- Update the brief panel:
+  - Title: "Marcus T. — Garage Cleanout"
+  - Subtitle: "Submitted 2 min ago · 6 of 6 photos"
+  - Readiness ring: bump to **94** (fully complete brief), recompute the `stroke-dashoffset` accordingly
+  - Footer counter: "6 pass · 0 retakes"
+  - AI summary: "Single-car garage cleanout, ~½ truckload. Mattress + box spring and a mini-fridge flagged for oversize/appliance handling. Ground-level access, driveway fits a 16-ft truck — ready to dispatch."
+  - Extracted card: "Volume: ~½ truck · Oversize: mattress, mini-fridge"
+  - Quote-ready card copy unchanged ("First-pass guarantee active")
 
-## Out of scope (can be follow-ups)
+**`HeroProductMockup.tsx`** is not imported by Landing — leave it alone to avoid scope creep, but note in the response that it still references the leak photos in case the user wants that updated too.
 
-- No Stripe customers are created — these are internal/beta comps. If a beta user later self-subscribes, the existing webhook will create their Stripe customer and overwrite the row.
-- No emails are sent. If you want a welcome / "you've been upgraded" email, say the word and I'll trigger `notify-event` per workspace.
-- Workspace logos, brand colors, and seeded guides are left untouched.
+**`Landing.tsx`** — no change (already imports `HeroGlassStory`).
 
-## Verification after migration
+## Out of scope
 
-I'll run a single SELECT showing all 22 rows with their new `ws.name`, `ws.plan_tier`, `sub.plan_tier`, `sub.is_founding_pro`, `sub.current_period_end`, and a count check on `founding_pro_claims` to confirm 22 new rows. Result will be pasted in chat.
+- The PublicRecipientPage / SubmissionReviewPage product flows — only the marketing mockup changes
+- The `leak-photo.jpg` and `submission/*.jpg` assets stay on disk (still used by the unused `HeroProductMockup`)
 
-## Open questions before I run
+## QA
 
-1. **Count**: confirmed 22 (not 21) — OK to proceed with all 22?
-2. **Workspace names**: OK to auto-derive from email domain as listed above, or do you want to provide an exact mapping?
-3. **Founding Pro claim row**: insert into `founding_pro_claims` (decrements the public 50 counter to 28) — yes/no?
+After the edit:
+1. View each generated image to confirm photorealism and visual consistency (same garage, lighting, perspective)
+2. Load `/` in the preview at 1313×887 and confirm the hero panels render with the new images, no broken layouts, all six shot tiles green
