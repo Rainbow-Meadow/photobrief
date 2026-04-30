@@ -129,36 +129,21 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM },
-          {
-            role: "user",
-            content: `Business owner says: "${prompt}"${body.category ? `\nLikely category: ${body.category}` : ""}\n\nDraft the request brief now.`,
-          },
-        ],
-        tools: [TOOL],
-        tool_choice: { type: "function", function: { name: "build_guide" } },
-      }),
+    const { envelope, model, attempts } = await callAIWithRouter({
+      task: "guide_generation",
+      messages: [
+        { role: "system", content: SYSTEM },
+        {
+          role: "user",
+          content: `Business owner says: "${prompt}"${body.category ? `\nLikely category: ${body.category}` : ""}\n\nDraft the request brief now.`,
+        },
+      ],
+      tools: [TOOL],
+      tool_choice: { type: "function", function: { name: "build_guide" } },
     });
 
-    if (aiRes.status === 429) return json({ error: "Rate limit reached." }, 429);
-    if (aiRes.status === 402) return json({ error: "AI credits exhausted." }, 402);
-    if (!aiRes.ok) {
-      console.error("gateway", aiRes.status, await aiRes.text());
-      return json({ error: "AI gateway error" }, 502);
-    }
-    const data = await aiRes.json();
-    const call = data?.choices?.[0]?.message?.tool_calls?.[0];
-    const args = call ? JSON.parse(call.function.arguments) : null;
-    if (!args) return json({ error: "AI returned no draft" }, 502);
+    const args = (envelope.result ?? {}) as any;
+    if (!args.title) return json({ error: "AI returned no draft" }, 502);
 
     return json({
       draft: {
@@ -182,8 +167,17 @@ Deno.serve(async (req) => {
         })),
       },
       assistantReply: args.assistantReply ?? `Drafted "${args.title}".`,
+      // Envelope-level fields:
+      confidence: envelope.confidence,
+      flags: envelope.flags,
+      businessSummary: envelope.business_summary,
+      suggestedNextAction: envelope.suggested_next_action,
+      model,
+      attempts,
     });
   } catch (e) {
+    const mapped = routerErrorResponse(e, corsHeaders);
+    if (mapped) return mapped;
     console.error("ai-generate-guide error", e);
     return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }
