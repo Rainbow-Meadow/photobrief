@@ -109,7 +109,7 @@ export default function AdminAIRerunPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-6">
       <PageHeader
-        icon={<FlaskConical className="h-5 w-5" />}
+        eyebrow="Platform admin"
         title="AI rerun & escalation diff"
         description="Re-run guide or summary tasks through the model router and compare baseline vs. escalated envelope outputs."
       />
