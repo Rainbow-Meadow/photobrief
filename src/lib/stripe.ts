@@ -9,7 +9,8 @@
 // With `/pure`, the script is only fetched when `loadStripe()` is actually
 // called — i.e. when the user opens an embedded checkout. Behavior is
 // otherwise identical.
-import { loadStripe, type Stripe } from "@stripe/stripe-js/pure";
+import { loadStripe } from "@stripe/stripe-js/pure";
+import type { Stripe } from "@stripe/stripe-js";
 
 type StripeEnv = "sandbox" | "live";
 
