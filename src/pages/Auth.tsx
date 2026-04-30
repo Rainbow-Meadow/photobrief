@@ -327,9 +327,15 @@ export default function AuthPage() {
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           {mode === "signup" ? "Already have an account?" : "New to PhotoBrief?"}{" "}
-          <NavLink to={`/auth?mode=${otherMode}`} className="font-medium text-primary hover:underline">
-            {otherMode === "signup" ? "Create one" : "Sign in"}
-          </NavLink>
+          {mode === "signin" && !signupAllowed ? (
+            <NavLink to="/waitlist" className="font-medium text-primary hover:underline">
+              Join the waitlist
+            </NavLink>
+          ) : (
+            <NavLink to={`/auth?mode=${otherMode}`} className="font-medium text-primary hover:underline">
+              {otherMode === "signup" ? "Create one" : "Sign in"}
+            </NavLink>
+          )}
         </p>
       </div>
       </div>
