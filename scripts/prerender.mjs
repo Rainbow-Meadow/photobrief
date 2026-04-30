@@ -124,9 +124,11 @@ async function main() {
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
+  const routes = await loadRoutesFromSitemap();
+  console.log(`[prerender] routes from sitemap: ${routes.join(", ")}`);
+
   try {
-    for (const route of ROUTES) {
-      const url = `http://127.0.0.1:${port}${route}`;
+    for (const route of routes) {
       console.log(`[prerender] rendering ${route}`);
       const page = await browser.newPage();
       await page.setViewport({ width: 1280, height: 900 });
