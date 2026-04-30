@@ -1,0 +1,43 @@
+{
+  "schema_version": "0.1",
+  "name": "PhotoBrief",
+  "description": "AI-guided visual intake. Convert a shareable link into an AI-quality-checked photo brief.",
+  "url": "https://photobrief.ai",
+  "documentation_url": "https://photobrief.ai/for-ai-agents",
+  "contact_email": "hello@photobrief.ai",
+  "auth": {
+    "type": "bearer_token",
+    "instructions": "API keys (prefix pb_) are issued on the Business plan from Settings → Team → API Keys. Pass as `Authorization: Bearer <key>`."
+  },
+  "capabilities": [
+    {
+      "id": "create_request",
+      "name": "Create photo request",
+      "description": "Create a new photo request for a named recipient and return a shareable URL.",
+      "endpoint": "https://app.photobrief.ai/functions/v1/api-create-request",
+      "method": "POST",
+      "input_schema": "https://photobrief.ai/openapi.json#/components/schemas/CreateRequestBody",
+      "output_schema": "https://photobrief.ai/openapi.json#/components/schemas/CreateRequestResponse"
+    },
+    {
+      "id": "lookup_pricing",
+      "name": "Lookup pricing and plan limits",
+      "description": "Retrieve current PhotoBrief plans, prices, request quotas, and feature availability.",
+      "source": "https://photobrief.ai/llms-full.txt"
+    },
+    {
+      "id": "read_faq",
+      "name": "Read PhotoBrief FAQ",
+      "description": "Retrieve canonical answers to common questions for businesses and recipients.",
+      "source": "https://photobrief.ai/llms-full.txt"
+    }
+  ],
+  "discovery": {
+    "openapi": "https://photobrief.ai/openapi.json",
+    "ai_plugin": "https://photobrief.ai/.well-known/ai-plugin.json",
+    "mcp": "https://photobrief.ai/mcp.json",
+    "llms_txt": "https://photobrief.ai/llms.txt",
+    "llms_full": "https://photobrief.ai/llms-full.txt",
+    "sitemap": "https://photobrief.ai/sitemap.xml"
+  }
+}

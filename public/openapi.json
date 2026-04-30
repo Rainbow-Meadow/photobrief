@@ -1,0 +1,141 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PhotoBrief Public API",
+    "version": "1.0.0",
+    "summary": "Programmatically create AI-guided photo requests.",
+    "description": "Public API for PhotoBrief. Currently exposes the request-creation endpoint used by integrations and AI agents to send a branded photo request to a customer. API keys are issued on the Business plan.",
+    "contact": {
+      "name": "PhotoBrief",
+      "email": "hello@photobrief.ai",
+      "url": "https://photobrief.ai/for-ai-agents"
+    },
+    "license": { "name": "Proprietary" }
+  },
+  "servers": [
+    {
+      "url": "https://app.photobrief.ai/functions/v1",
+      "description": "Production"
+    }
+  ],
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/api-create-request": {
+      "post": {
+        "operationId": "createRequest",
+        "summary": "Create a photo request",
+        "description": "Creates a photo request and returns a recipient URL the business can forward via SMS or email. The recipient opens the URL and walks through the AI-guided capture flow.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateRequestBody" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Request created.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateRequestResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (e.g. missing recipient_name, or neither email nor phone provided).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "403": {
+            "description": "guide_id is not accessible to the authenticated workspace.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "405": {
+            "description": "Method not allowed (only POST is accepted).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "500": {
+            "description": "Server error.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Opaque (prefix: pb_)",
+        "description": "Workspace API key issued from Settings → Team → API Keys (Business plan)."
+      }
+    },
+    "schemas": {
+      "CreateRequestBody": {
+        "type": "object",
+        "required": ["recipient_name"],
+        "properties": {
+          "recipient_name": {
+            "type": "string",
+            "description": "Display name shown to the recipient.",
+            "example": "Jane Smith"
+          },
+          "recipient_email": {
+            "type": "string",
+            "format": "email",
+            "description": "Recipient email. Either recipient_email or recipient_phone is required.",
+            "example": "jane@example.com"
+          },
+          "recipient_phone": {
+            "type": "string",
+            "description": "Recipient phone in E.164. Either recipient_email or recipient_phone is required.",
+            "example": "+15555550123"
+          },
+          "guide_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional. ID of a workspace photo guide or a built-in global template."
+          },
+          "custom_message": {
+            "type": "string",
+            "description": "Optional intro message shown to the recipient at the top of the chat.",
+            "example": "Hi Jane — please grab a few photos so we can quote your roof repair."
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Optional ISO 8601 due date.",
+            "example": "2026-05-15"
+          }
+        }
+      },
+      "CreateRequestResponse": {
+        "type": "object",
+        "required": ["request_id", "token", "recipient_url"],
+        "properties": {
+          "request_id": { "type": "string", "format": "uuid" },
+          "token": { "type": "string", "description": "Opaque recipient token." },
+          "recipient_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to forward to the recipient — opens the AI-guided capture flow.",
+            "example": "https://photobrief.ai/r/abc123"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": { "type": "string" }
+        }
+      }
+    }
+  }
+}

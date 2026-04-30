@@ -2,6 +2,35 @@ export type FaqItem = { id: string; q: string; a: React.ReactNode; audience: "bu
 
 export const faqItems: FaqItem[] = [
   {
+    id: "switch-plans",
+    audience: "business",
+    q: "Can I switch plans later?",
+    a: <>Yes. Upgrade or downgrade any time — we prorate the difference automatically.</>,
+  },
+  {
+    id: "monthly-limit",
+    audience: "business",
+    q: "What happens if I hit my monthly request limit?",
+    a: (
+      <>
+        We’ll let you know before you hit it. You can upgrade in one click or buy a one-off
+        top-up pack on the same Billing page.
+      </>
+    ),
+  },
+  {
+    id: "recipient-account",
+    audience: "business",
+    q: "Do recipients need an account?",
+    a: <>Never. They open a link, follow the chat, and submit. PhotoBrief handles the rest.</>,
+  },
+  {
+    id: "annual-discount",
+    audience: "business",
+    q: "Is annual really 20% off?",
+    a: <>Yes — pay yearly and the effective monthly price drops by 20%, on every paid plan.</>,
+  },
+  {
     id: "what-photo",
     audience: "recipient",
     q: "I don’t know what photo to take",

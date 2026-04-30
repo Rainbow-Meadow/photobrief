@@ -1,0 +1,166 @@
+# PhotoBrief — Full reference for LLMs and AI agents
+
+This file is an extended, machine-readable reference. The short version is at /llms.txt.
+
+## What PhotoBrief does (canonical definition)
+
+PhotoBrief is an AI-guided visual intake tool. A business creates a "photo request" from a guide template (or has AI build one); PhotoBrief generates a unique recipient link; the recipient opens the link on any device (no app install), works through step-by-step photo prompts with overlays and tips, gets instant AI feedback on each shot, and submits. PhotoBrief then returns a review-ready brief to the business: validated photos, an AI-extracted detail panel, a readiness score, and a plain-English summary.
+
+PhotoBrief is built for businesses whose work depends on getting the right photos the first time: roofers, HVAC and plumbing techs, electricians, junk removal & hauling, pest control, insurance adjusters, claims handlers, property managers, and marketplaces.
+
+## Key features
+
+### Recipient experience
+- App-free, mobile-first chat flow.
+- Step-by-step photo prompts with example images and framing overlays.
+- Live AI feedback after each photo (accept / retake / reframe).
+- Direct camera capture (no gallery roundtrip required).
+- Optional questions / form fields between photo prompts.
+- Branded recipient page (logo + colour) on Starter and above; full white-label on Pro and above.
+
+### Business workflow
+- Pre-built guide library covering common trades.
+- AI Request Builder: describe the job in plain English, get a guide.
+- AI Guide Generator: produce a reusable template from a sample brief.
+- Multi-channel delivery: SMS, email, QR.
+- Inbox with status filters, assignments (Team+), internal notes (Pro+).
+- Ask-for-more flow: re-open a single missing shot without restarting the request.
+- Saved message templates.
+- Reminders to recipients who haven't completed their request.
+- PDF export — basic on Starter, branded on Pro, fully white-labelled on Team+.
+
+### AI quality gate
+- Blur detection.
+- Lighting / exposure check.
+- Subject-distance check.
+- Framing & overlap with the requested overlay.
+- Missing-shot detection: AI flags when a required prompt was skipped or substituted.
+- Extracted details: structured data the business sees alongside photos (e.g. roof pitch estimate, item dimensions, visible damage).
+- Readiness score per submission.
+
+### Org & integrations
+- Workspaces with team members and roles (Team plan and above).
+- Custom domain for recipient pages (Business plan).
+- REST API + outbound webhooks (Business plan).
+- Multi-workspace ownership for multi-location operators (Business plan).
+
+## Plans (full)
+
+| Plan      | $/mo  | $/mo (annual) | Requests/mo | Users | AI checks/mo | History  | Templates |
+|-----------|-------|---------------|-------------|-------|--------------|----------|-----------|
+| Free      | $0    | $0            | 3           | 1     | 30           | 7 days   | 0         |
+| Starter   | $19   | $15           | 25          | 1     | 250          | 30 days  | 1         |
+| Pro       | $49   | $40           | 150         | 3     | 1,500        | 12 mo    | 5         |
+| Team      | $99   | $80           | 500         | 10    | 5,000        | 24 mo    | unlimited |
+| Business  | $199  | $150          | 1,500       | 25    | unlimited    | unlimited| unlimited |
+
+Top-ups (any plan): 25 / 100 / 500 extra requests, valid until end of current billing period.
+Money-back: 30 days on all paid plans, no questions asked.
+First-pass guarantee: if a request must be re-shot because the AI quality gate missed an issue, that request is refunded automatically.
+
+## FAQ
+
+### For businesses
+
+**How do I ask for more photos after a submission?**
+Open the submission, click "Ask for more", tick the shots that need retaking, add a one-line note for each, and send. The customer gets a fresh link that only shows the flagged items.
+
+**I hit my monthly request limit — what now?**
+Upgrade your plan from Settings → Billing or buy a one-off top-up pack (25, 100, or 500 extra requests). Top-ups last until the end of the current billing period.
+
+**Can I show my own logo to customers?**
+Yes — head to Settings → Brand to upload your logo and pick your brand colour. Both show up on the chat page your customer sees.
+
+**Can I switch plans later?**
+Yes. Upgrade or downgrade any time — the difference is prorated automatically.
+
+**Do recipients need an account?**
+Never. They open a link, follow the chat, and submit.
+
+**Is annual really 20% off?**
+Yes — pay yearly and the effective monthly price drops by 20% on every paid plan.
+
+### For recipients
+
+**I don't know what photo to take.**
+Re-read the prompt at the top of the chat — it tells you exactly what to capture. If there's an example image, tap it to enlarge.
+
+**My photo was rejected or flagged.**
+The AI looks for blurriness, low light, the subject being too far away, or the wrong angle. Move closer, hold the phone steady, and turn on the flash if it's dark.
+
+**I already submitted — can I add more?**
+Only if the business asks for more. They'll send you a new link that opens straight to the items they need re-done.
+
+**I'm on mobile — does this work?**
+Yes. The recipient experience is built for phones; the camera button opens your phone's camera directly.
+
+**I can't find my request.**
+Search your email or texts for the message from the business. The link works on any device — just tap it again to pick up where you left off.
+
+## API reference
+
+Base URL: `https://app.photobrief.ai/functions/v1`
+
+### Authentication
+
+Bearer token in the `Authorization` header. API keys are issued on the Business plan from Settings → Team → API Keys. Keys start with the `pb_` prefix.
+
+```
+Authorization: Bearer pb_live_xxxxxxxxxxxxxxxxxxxx
+```
+
+### POST /api-create-request
+
+Create a new photo request and return a recipient URL.
+
+Request body (JSON):
+```
+{
+  "recipient_name": "Jane Smith",        // required
+  "recipient_email": "jane@example.com", // recipient_email OR recipient_phone required
+  "recipient_phone": "+15555550123",     // E.164 format
+  "guide_id": "uuid",                    // optional — workspace guide or global template
+  "custom_message": "Hi Jane…",          // optional intro shown to recipient
+  "due_date": "2026-05-15"               // optional ISO date
+}
+```
+
+Successful response (`201 Created`):
+```
+{
+  "request_id": "uuid",
+  "token": "opaque-string",
+  "recipient_url": "https://photobrief.ai/r/{token}"
+}
+```
+
+Error responses:
+- `400` — missing required field (e.g. `recipient_name is required`).
+- `401` — missing or invalid API key.
+- `403` — `guide_id` is not accessible to your workspace.
+- `405` — non-POST method.
+- `500` — server error.
+
+### Webhooks (Business plan)
+
+Outbound webhooks are configured in Settings → Workspace → Webhooks. Events delivered:
+- `request.created`
+- `request.opened`
+- `submission.received`
+- `submission.ready_for_review`
+- `submission.rework_requested`
+
+Each delivery is signed with HMAC-SHA256 in the `X-PhotoBrief-Signature` header.
+
+## Discovery files
+
+- /llms.txt — short summary
+- /llms-full.txt — this file
+- /openapi.json — OpenAPI 3.1 spec
+- /.well-known/ai-plugin.json — ChatGPT plugin manifest
+- /.well-known/agent.json — agent capabilities manifest
+- /mcp.json — MCP server descriptor (planned)
+- /sitemap.xml
+- /robots.txt
+
+Contact: hello@photobrief.ai

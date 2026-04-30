@@ -28,6 +28,40 @@
   <meta name="twitter:title" content="PhotoBrief | Take the right photos, every time.">
   <meta property="og:description" content="PhotoBrief turns vague customer photos into business-ready briefs. Chat-guided capture, AI quality checks, clean summaries — every time.">
   <meta name="twitter:description" content="PhotoBrief turns vague customer photos into business-ready briefs. Chat-guided capture, AI quality checks, clean summaries — every time.">
+  <meta property="og:site_name" content="PhotoBrief">
+  <meta name="twitter:site" content="@photobriefai">
+  <meta property="og:url" content="https://photobrief.ai/">
+
+  <!-- Sitewide Organization + WebSite JSON-LD. Per-page SoftwareApplication,
+       FAQPage, HowTo, Article, BreadcrumbList blobs are injected by usePageMeta. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://photobrief.ai/#org",
+        "name": "PhotoBrief",
+        "url": "https://photobrief.ai",
+        "logo": "https://photobrief.ai/og-image.png",
+        "email": "hello@photobrief.ai",
+        "sameAs": []
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://photobrief.ai/#website",
+        "url": "https://photobrief.ai",
+        "name": "PhotoBrief",
+        "publisher": { "@id": "https://photobrief.ai/#org" },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://photobrief.ai/help?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    ]
+  }
+  </script>
 
   <!-- Google tag (gtag.js) — deferred until first user interaction or 5s idle.
        Removes ~156KB / 660ms of main-thread work from the initial load

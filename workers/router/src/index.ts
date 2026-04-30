@@ -36,10 +36,25 @@ const MARKETING_PATHS = new Set<string>([
   "/",
   "/pricing",
   "/help",
+  "/for-ai-agents",
 ]);
 
-// Path prefixes for static files emitted by the Pages build.
-const STATIC_PREFIXES = ["/assets/", "/og-image", "/favicon", "/apple-touch-icon", "/robots.txt", "/sitemap.xml"];
+// Path prefixes for static files emitted by the Pages build, including
+// the AI / answer-engine discovery files.
+const STATIC_PREFIXES = [
+  "/assets/",
+  "/og-image",
+  "/favicon",
+  "/apple-touch-icon",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/llms.txt",
+  "/llms-full.txt",
+  "/openapi.json",
+  "/mcp.json",
+  "/.well-known/",
+  "/marketing/",
+];
 
 function isMarketingPath(pathname: string): boolean {
   if (MARKETING_PATHS.has(pathname)) return true;
