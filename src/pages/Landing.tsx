@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { ArrowRight, PlayCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { HeroGlassStory } from "@/components/marketing/HeroGlassStory";
 import { TrustLogosStrip } from "@/components/marketing/TrustLogosStrip";
@@ -37,6 +40,7 @@ const LANDING_JSONLD = [
 
 
 export default function LandingPage() {
+  const [demoOpen, setDemoOpen] = useState(false);
   return (
     <>
       <SEOHead
@@ -79,13 +83,16 @@ export default function LandingPage() {
                   {signupCtaLabel()} <ArrowRight className="ml-1 h-4 w-4" />
                 </NavLink>
               </Button>
-              <Button asChild size="xl" variant="glass" className="rounded-full">
-                <a
-                  href="#how-it-works"
-                  onClick={() => trackEvent("cta_click", { location: "hero", label: "watch_demo" })}
-                >
-                  <PlayCircle className="mr-1 h-5 w-5" /> Watch Demo
-                </a>
+              <Button
+                size="xl"
+                variant="glass"
+                className="rounded-full"
+                onClick={() => {
+                  trackEvent("cta_click", { location: "hero", label: "watch_demo" });
+                  setDemoOpen(true);
+                }}
+              >
+                <PlayCircle className="mr-1 h-5 w-5" /> Watch Demo
               </Button>
             </div>
             <p className="mt-4 text-xs text-muted-foreground">
@@ -147,6 +154,24 @@ export default function LandingPage() {
 
       {/* FINAL CTA ----------------------------------------------------------- */}
       <FinalCtaCard />
+
+      {/* DEMO VIDEO MODAL ---------------------------------------------------- */}
+      <Dialog open={demoOpen} onOpenChange={setDemoOpen}>
+        <DialogContent className="max-w-4xl border-0 bg-black p-0 sm:rounded-xl overflow-hidden">
+          <VisuallyHidden>
+            <DialogTitle>PhotoBrief product demo</DialogTitle>
+            <DialogDescription>A short walkthrough of the PhotoBrief request flow.</DialogDescription>
+          </VisuallyHidden>
+          <video
+            key={demoOpen ? "open" : "closed"}
+            src="/marketing/photobrief-demo.mp4"
+            controls
+            autoPlay
+            playsInline
+            className="h-auto w-full"
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
