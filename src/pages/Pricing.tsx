@@ -62,8 +62,8 @@ export default function PricingPage() {
             Questions, answered.
           </h2>
           <Accordion type="single" collapsible className="mt-8 glass-strong rounded-2xl px-4 sm:px-6">
-            {faqs.map((f) => (
-              <AccordionItem key={f.q} value={f.q}>
+            {businessFaqs.map((f) => (
+              <AccordionItem key={f.id} value={f.id}>
                 <AccordionTrigger className="text-left">{f.q}</AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">{f.a}</AccordionContent>
               </AccordionItem>
