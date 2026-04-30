@@ -132,6 +132,16 @@ const App = () => (
                 </RequireAuth>
               }
             />
+            <Route
+              path="/admin/ai-rerun"
+              element={
+                <RequireAuth requireOnboarding={false}>
+                  <RequirePlatformAdmin>
+                    <AdminAIRerunPage />
+                  </RequirePlatformAdmin>
+                </RequireAuth>
+              }
+            />
           </Route>
 
           {/* Public recipient (chat-first, no auth) */}
