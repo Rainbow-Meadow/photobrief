@@ -91,6 +91,8 @@ export function BrandMark({
         <img
           src={lightSrc}
           alt={ALT}
+          width={intrinsicWidth}
+          height={intrinsicHeight}
           style={style}
           loading={loading}
           draggable={false}
@@ -100,6 +102,8 @@ export function BrandMark({
           src={darkSrc}
           alt=""
           aria-hidden
+          width={intrinsicWidth}
+          height={intrinsicHeight}
           style={style}
           loading={loading}
           draggable={false}
