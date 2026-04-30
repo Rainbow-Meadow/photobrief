@@ -285,6 +285,65 @@
   .lift-on-hover { transition: transform var(--transition-base), box-shadow var(--transition-base); }
   .lift-on-hover:hover { transform: translateY(-2px); }
 
+  /* Refined surface card — replaces flat `border bg-card shadow-elev-sm` look
+     with a subtle inner highlight + softer hairline + layered shadow. */
+  .surface-card {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--glass-border));
+    border-radius: calc(var(--radius) + 2px);
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.6),
+      0 1px 0 hsl(220 30% 90% / 0.35),
+      0 8px 24px -16px hsl(222 47% 11% / 0.10);
+  }
+  .dark .surface-card {
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.05),
+      0 8px 24px -16px hsl(0 0% 0% / 0.5);
+  }
+  .surface-card-elevated {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--glass-border));
+    border-radius: calc(var(--radius) + 4px);
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.65),
+      0 24px 48px -24px hsl(222 47% 11% / 0.18),
+      0 8px 24px -16px hsl(222 47% 11% / 0.10);
+  }
+  .dark .surface-card-elevated {
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.06),
+      0 30px 60px -24px hsl(0 0% 0% / 0.65);
+  }
+
+  /* Section header divider — pairs with surface-card for sectioned panels */
+  .surface-divider { border-top: 1px solid hsl(var(--glass-border)); }
+
+  /* Refined chat bubble (assistant) */
+  .bubble-assistant {
+    background-color: hsl(var(--glass-bg-strong));
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.55),
+      0 6px 18px -12px hsl(222 47% 11% / 0.18);
+  }
+  .bubble-user {
+    background-image: linear-gradient(180deg, hsl(var(--primary-glow)) 0%, hsl(var(--primary)) 100%);
+    color: hsl(var(--primary-foreground));
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.35),
+      0 8px 20px -12px hsl(var(--primary) / 0.5);
+  }
+
+  /* Subtle ring for focus states on glass surfaces */
+  .ring-glass:focus-within {
+    box-shadow:
+      var(--glass-shadow),
+      0 0 0 3px hsl(var(--primary) / 0.18);
+  }
+
   /* Lens-ring decorative motif */
   .lens-ring {
     background: conic-gradient(from 200deg, hsl(var(--primary)) 0deg, hsl(var(--primary-glow)) 120deg, transparent 240deg, hsl(var(--primary) / 0.4) 360deg);
