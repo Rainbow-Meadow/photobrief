@@ -114,6 +114,7 @@ export default function SubmissionReviewPage() {
   const [extraActivity, setExtraActivity] = useState<ActivityEvent[]>([]);
   const [extraNotes, setExtraNotes] = useState<InternalNote[]>([]);
   const [askOpen, setAskOpen] = useState(false);
+  const [focusedShotId, setFocusedShotId] = useState<string | null>(null);
 
   // Pending per-shot decisions (mediaId -> approve/reject + comment).
   // Only persisted when the reviewer hits "Send back for resubmission".
