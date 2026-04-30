@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
+import { SEOHead } from "@/components/seo/SEOHead";
 
 import { Button } from "@/components/ui/button";
 import {
