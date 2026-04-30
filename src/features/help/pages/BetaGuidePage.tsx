@@ -15,6 +15,7 @@ import { GuideStep } from "@/features/help/components/GuideStep";
 import { GuideTOC, type TocItem } from "@/features/help/components/GuideTOC";
 import { QuickChecklist } from "@/features/help/components/QuickChecklist";
 import { Callout } from "@/features/help/components/Callout";
+import { SEOHead } from "@/components/seo/SEOHead";
 
 import { quickStartSteps, quickStartChecklist } from "@/features/help/content/quickStart";
 import { businessSteps, businessChecklist } from "@/features/help/content/business";
