@@ -1,7 +1,10 @@
+import { useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
-import { SEOHead } from "@/components/seo/SEOHead";
+import { PageMeta } from "@/hooks/seo/usePageMeta";
+import { buildFaqJsonLd } from "@/hooks/seo/buildFaqJsonLd";
+import { faqItems } from "@/features/help/content/faq";
 
 import { Button } from "@/components/ui/button";
 import { signupCtaTarget, signupCtaLabel } from "@/config/access";
@@ -12,36 +15,26 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-const faqs = [
-  {
-    q: "Can I switch plans later?",
-    a: "Yes. Upgrade or downgrade any time — we prorate the difference automatically.",
-  },
-  {
-    q: "What happens if I hit my monthly request limit?",
-    a: "We'll let you know before you hit it. You can upgrade in one click or wait for the next billing cycle.",
-  },
-  {
-    q: "Do recipients need an account?",
-    a: "Never. They open a link, follow the chat, and submit. PhotoBrief handles the rest.",
-  },
-  {
-    q: "Is annual really 20% off?",
-    a: "Yes — pay yearly and the effective monthly price drops by 20%, on every paid plan.",
-  },
-  {
-    q: "What is Founding Pro?",
-    a: "The first 50 customers on the Pro plan lock in a discounted rate forever and get early access to new features.",
-  },
-];
-
 export default function PricingPage() {
+  // Pricing-page FAQ = the business subset of the canonical FAQ source.
+  // No hardcoded duplicates; FAQPage JSON-LD is built from this same array.
+  const businessFaqs = useMemo(
+    () => faqItems.filter((f) => f.audience === "business"),
+    [],
+  );
+  const jsonLd = useMemo(() => [buildFaqJsonLd(businessFaqs)], [businessFaqs]);
+
   return (
     <>
-      <SEOHead
+      <PageMeta
         title="Pricing | PhotoBrief"
         description="Simple, transparent PhotoBrief pricing. Start free, automate intake with Pro, coordinate your team with Business, scale with Enterprise."
         canonicalPath="/pricing"
+        jsonLd={jsonLd}
+        breadcrumbs={[
+          { name: "Home", path: "/" },
+          { name: "Pricing", path: "/pricing" },
+        ]}
       />
       <section className="relative overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-ambient-sky" />
