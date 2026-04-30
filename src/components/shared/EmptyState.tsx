@@ -45,7 +45,7 @@ export function EmptyState({
       <div
         className={cn(
           "pointer-events-none absolute left-1/2 top-0 -z-10 -translate-x-1/2 opacity-30",
-          size === "lg" ? "h-72 w-72 -translate-y-12" : "h-56 w-56 -translate-y-10",
+          effectiveSize === "lg" ? "h-72 w-72 -translate-y-12" : "h-56 w-56 -translate-y-10",
           "lens-ring",
         )}
         aria-hidden
@@ -54,17 +54,17 @@ export function EmptyState({
         <span
           className={cn(
             "mx-auto flex items-center justify-center rounded-full glass-strong text-primary",
-            size === "lg" ? "h-16 w-16" : "h-14 w-14",
+            effectiveSize === "lg" ? "h-16 w-16" : "h-14 w-14",
           )}
           aria-hidden
         >
-          <Icon className={cn(size === "lg" ? "h-7 w-7" : "h-6 w-6")} />
+          <Icon className={cn(effectiveSize === "lg" ? "h-7 w-7" : "h-6 w-6")} />
         </span>
       ) : null}
       <h3
         className={cn(
           "mt-4 font-semibold tracking-tight text-foreground",
-          size === "lg" ? "text-lg" : "text-base",
+          effectiveSize === "lg" ? "text-lg" : "text-base",
         )}
       >
         {title}
@@ -73,7 +73,7 @@ export function EmptyState({
         <p
           className={cn(
             "mx-auto mt-1.5 max-w-sm text-muted-foreground",
-            size === "lg" ? "text-sm" : "text-xs",
+            effectiveSize === "lg" ? "text-sm" : "text-xs",
           )}
         >
           {description}
