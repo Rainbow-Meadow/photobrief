@@ -176,6 +176,7 @@ export default function SubmissionReviewPage() {
   }
 
   function focusShot(shotId: string) {
+    setFocusedShotId(shotId);
     const el = document.querySelector<HTMLElement>(`[data-shot-id="${shotId}"]`);
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
