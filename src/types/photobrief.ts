@@ -207,13 +207,21 @@ export interface PhotoBriefRequest {
   secondPassStatus?: PassStatus;
 }
 
-export type ShotFeedbackSeverity = "pass" | "warn" | "fail";
+export type ShotFeedbackSeverity = "pass" | "warn" | "fail" | "unavailable";
 
 export interface ShotAIFeedback {
   severity: ShotFeedbackSeverity;
   headline: string;
   detail?: string;
   checks?: { type: AICheckType; severity: ShotFeedbackSeverity; label: string }[];
+  /** Model self-reported confidence 0..1 (envelope). */
+  confidence?: number;
+  /** Machine-readable flags from the model (envelope). */
+  flags?: string[];
+  /** One-sentence summary for the business owner (envelope). */
+  businessSummary?: string;
+  /** Recommended next action for the workspace (envelope). */
+  suggestedNextAction?: string;
 }
 
 export type ShotReviewStatus = "pending" | "approved" | "rejected" | "resubmitted";
