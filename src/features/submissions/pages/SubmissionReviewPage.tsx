@@ -752,7 +752,24 @@ export default function SubmissionReviewPage() {
               <h2 className="text-sm font-semibold text-foreground">
                 Shots ({orderedShots.filter((s) => !s.missing).length}/{orderedShots.length})
               </h2>
-              <p className="text-xs text-muted-foreground">In requested order</p>
+              <p className="text-xs text-muted-foreground">
+                In requested order ·{" "}
+                <button
+                  type="button"
+                  onClick={() =>
+                    toast("Keyboard shortcuts", {
+                      description:
+                        "j/k or ↓/↑ move between shots · Enter applies suggested action · r reshoot · n note · a mark ready · x clear",
+                      duration: 6000,
+                    })
+                  }
+                  className="underline-offset-2 hover:underline"
+                  title="Show keyboard shortcuts"
+                >
+                  <kbd className="rounded border bg-muted px-1 py-0.5 text-[10px] font-mono text-foreground">?</kbd>{" "}
+                  shortcuts
+                </button>
+              </p>
             </div>
             {orderedShots.length === 0 ? (
               <p className="mt-3 text-sm text-muted-foreground">No shots captured yet.</p>
