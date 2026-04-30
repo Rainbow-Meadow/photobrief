@@ -58,7 +58,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b overflow-hidden">
+      <SidebarHeader className="hairline-b overflow-hidden bg-background/60 backdrop-blur">
         <div
           className={cn(
             "flex h-12 items-center",
