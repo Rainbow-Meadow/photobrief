@@ -1,5 +1,16 @@
 // Stripe.js loader — uses the publishable token injected by enable_stripe_payments.
-import { loadStripe, type Stripe } from "@stripe/stripe-js";
+//
+// Use the `/pure` entrypoint so importing this module does NOT eagerly inject
+// the https://js.stripe.com/... script tag into <head>. Without `/pure`,
+// stripe.js is added on app boot (because BillingSettingsPage is statically
+// imported in App.tsx), which Lighthouse flags as a render-blocking request
+// costing ~1.8s on the marketing landing page.
+//
+// With `/pure`, the script is only fetched when `loadStripe()` is actually
+// called — i.e. when the user opens an embedded checkout. Behavior is
+// otherwise identical.
+import { loadStripe } from "@stripe/stripe-js/pure";
+import type { Stripe } from "@stripe/stripe-js";
 
 type StripeEnv = "sandbox" | "live";
 
