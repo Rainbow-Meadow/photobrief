@@ -132,7 +132,7 @@ export default function SubmissionReviewPage() {
 
   if (!id) {
     return (
-      <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
+      <div className="surface-card p-8 text-center text-sm text-muted-foreground">
         No submission selected.
       </div>
     );
@@ -140,7 +140,7 @@ export default function SubmissionReviewPage() {
 
   if (!live) {
     return (
-      <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
+      <div className="surface-card p-8 text-center text-sm text-muted-foreground">
         Loading submission…
       </div>
     );
@@ -543,7 +543,7 @@ export default function SubmissionReviewPage() {
       />
 
       {/* Customer + status banner */}
-      <section className="grid gap-4 rounded-lg border bg-card p-5 shadow-elev-sm md:grid-cols-[1fr_auto]">
+      <section className="surface-card-elevated grid gap-4 p-5 md:grid-cols-[1fr_auto]">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
             <p className="text-base font-semibold text-foreground">{submission.recipientName}</p>
@@ -586,7 +586,7 @@ export default function SubmissionReviewPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           {/* AI summary + readiness */}
-          <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
+          <section className="surface-card p-5">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">AI summary</h2>
               <span className="text-xs text-muted-foreground">Auto-generated</span>
@@ -604,7 +604,7 @@ export default function SubmissionReviewPage() {
           </section>
 
           {/* Shots */}
-          <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
+          <section className="surface-card p-5">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">
                 Shots ({orderedShots.filter((s) => !s.missing).length}/{orderedShots.length})
@@ -630,7 +630,7 @@ export default function SubmissionReviewPage() {
           </section>
 
           {/* Customer answers + notes (tabbed) */}
-          <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
+          <section className="surface-card p-5">
             <Tabs defaultValue="answers">
               <TabsList>
                 <TabsTrigger value="answers">
@@ -670,7 +670,7 @@ export default function SubmissionReviewPage() {
 
         {/* Right rail */}
         <aside className="order-last space-y-6 lg:order-none">
-          <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
+          <section className="surface-card p-5">
             <h2 className="text-sm font-semibold text-foreground">Extracted details</h2>
             {submission.extractedDetails && submission.extractedDetails.length > 0 ? (
               <dl className="mt-3 divide-y text-sm">
@@ -697,7 +697,7 @@ export default function SubmissionReviewPage() {
             )}
           </section>
 
-          <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
+          <section className="surface-card p-5">
             <h2 className="text-sm font-semibold text-foreground">Missing items</h2>
             {submission.missingItems && submission.missingItems.length > 0 ? (
               <ul className="mt-3 space-y-2">
@@ -721,7 +721,7 @@ export default function SubmissionReviewPage() {
             )}
           </section>
 
-          <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
+          <section className="surface-card p-5">
             <h2 className="text-sm font-semibold text-foreground">Activity</h2>
             <div className="mt-4">
               <ActivityTimeline events={submission.activity ?? []} />
