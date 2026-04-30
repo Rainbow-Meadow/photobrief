@@ -1,18 +1,18 @@
-import { MessageSquare, Sparkles, CheckCircle2, AlertCircle, Camera } from "lucide-react";
-import leakPhoto from "@/assets/leak-photo.jpg";
-import wideScene from "@/assets/submission/wide-scene.jpg";
-import pipeConnections from "@/assets/submission/pipe-connections.jpg";
-import shutoffValve from "@/assets/submission/shutoff-valve.jpg";
-import waterDamage from "@/assets/submission/water-damage.jpg";
-import blurryRetake from "@/assets/submission/blurry-retake.jpg";
+import { MessageSquare, Sparkles, CheckCircle2, Camera } from "lucide-react";
+import wideGarage from "@/assets/junk-removal/wide-garage.jpg";
+import pileCloseup from "@/assets/junk-removal/pile-closeup.jpg";
+import mattress from "@/assets/junk-removal/mattress.jpg";
+import appliances from "@/assets/junk-removal/appliances.jpg";
+import drivewayAccess from "@/assets/junk-removal/driveway-access.jpg";
+import threshold from "@/assets/junk-removal/threshold.jpg";
 
 const SHOTS = [
-  { src: wideScene, label: "Wide scene", ok: true },
-  { src: leakPhoto, label: "Close-up of leak", ok: true },
-  { src: pipeConnections, label: "Pipe connections", ok: true },
-  { src: shutoffValve, label: "Shutoff valve", ok: true },
-  { src: blurryRetake, label: "Under-sink area", ok: false },
-  { src: waterDamage, label: "Water damage", ok: true },
+  { src: wideGarage, label: "Wide garage", ok: true },
+  { src: pileCloseup, label: "Main pile", ok: true },
+  { src: mattress, label: "Mattress + box spring", ok: true },
+  { src: appliances, label: "Appliances", ok: true },
+  { src: drivewayAccess, label: "Driveway access", ok: true },
+  { src: threshold, label: "Threshold", ok: true },
 ];
 
 /**
@@ -38,7 +38,7 @@ export function HeroProductMockup() {
           <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
           <div className="ml-3 flex-1">
             <div className="mx-auto w-full max-w-md truncate rounded-md bg-background px-3 py-1 text-center text-[11px] text-muted-foreground">
-              photobrief.app/r/sarah-m
+              photobrief.app/r/marcus-t
             </div>
           </div>
         </div>
@@ -62,10 +62,10 @@ export function HeroProductMockup() {
                     Photo 2 of 6
                   </p>
                   <p className="text-xs font-semibold text-foreground">
-                    Close-up of the leak
+                    Close-up of the main pile
                   </p>
                   <p className="text-[11px] leading-relaxed text-foreground/90">
-                    Get within arm's reach so we can see where water is coming from.
+                    Stand about 6 feet back so we can see the full volume.
                   </p>
                 </div>
               </div>
@@ -78,8 +78,8 @@ export function HeroProductMockup() {
                 <div className="w-full max-w-[78%] overflow-hidden rounded-2xl rounded-tr-sm bg-primary p-1 shadow-elev-sm">
                   <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-muted">
                     <img
-                      src={leakPhoto}
-                      alt="Close-up of a leaking P-trap pipe under a kitchen sink"
+                      src={pileCloseup}
+                      alt="Close-up of a household junk pile inside a single-car garage"
                       width={768}
                       height={576}
                       loading="lazy"
@@ -99,7 +99,7 @@ export function HeroProductMockup() {
                     <CheckCircle2 className="h-3 w-3" /> Looks great
                   </p>
                   <p className="mt-0.5 text-[11px] leading-relaxed text-foreground/90">
-                    Sharp focus on the joint. One more to go — the shutoff valve.
+                    Clear view of the pile. One more — the driveway where our truck will park.
                   </p>
                 </div>
               </div>
@@ -126,14 +126,14 @@ export function HeroProductMockup() {
             <div className="mt-4 flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-foreground">
-                  Sarah M. — Plumbing Leak
+                  Marcus T. — Garage Cleanout
                 </p>
                 <p className="text-[11px] text-muted-foreground">
                   Submitted 2 min ago · 6 of 6 photos
                 </p>
               </div>
               <span className="inline-flex flex-col items-center rounded-md bg-success/10 px-2.5 py-1 text-success">
-                <span className="text-sm font-bold leading-none">86%</span>
+                <span className="text-sm font-bold leading-none">94%</span>
                 <span className="text-[9px] font-semibold uppercase tracking-wide">
                   Readiness
                 </span>
@@ -146,8 +146,9 @@ export function HeroProductMockup() {
                 <Sparkles className="h-3 w-3" /> AI summary
               </p>
               <p className="mt-1.5 text-xs leading-relaxed text-foreground">
-                P-trap leak under the kitchen sink. Shutoff valve accessible.
-                All critical photos captured — ready to quote.
+                Single-car garage cleanout, ~½ truckload. Mattress, box spring,
+                and a mini-fridge flagged for oversize handling. Ground-level
+                access, driveway fits a 16-ft truck — ready to dispatch.
               </p>
             </div>
 
@@ -166,22 +167,8 @@ export function HeroProductMockup() {
                     width={256}
                     height={256}
                   />
-                  {!shot.ok && (
-                    <div className="absolute inset-0 bg-warning/10" aria-hidden />
-                  )}
-                  <span
-                    className={
-                      "absolute right-1 top-1 inline-flex h-4 w-4 items-center justify-center rounded-full shadow-elev-sm " +
-                      (shot.ok
-                        ? "bg-success text-success-foreground"
-                        : "bg-warning text-warning-foreground")
-                    }
-                  >
-                    {shot.ok ? (
-                      <CheckCircle2 className="h-3 w-3" />
-                    ) : (
-                      <AlertCircle className="h-3 w-3" />
-                    )}
+                  <span className="absolute right-1 top-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-success text-success-foreground shadow-elev-sm">
+                    <CheckCircle2 className="h-3 w-3" />
                   </span>
                 </div>
               ))}
