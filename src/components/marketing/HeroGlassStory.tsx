@@ -152,7 +152,7 @@ export function HeroGlassStory() {
               </div>
               <div className="mt-2 grid grid-cols-6 gap-1.5">
                 {SHOTS.map((shot, i) => (
-                  <div key={i} className="relative aspect-square overflow-hidden rounded-lg ring-1 ring-glass-border">
+                  <div key={i} className="relative aspect-square overflow-hidden rounded-lg hairline">
                     <img
                       src={shot.src}
                       alt={shot.label}
