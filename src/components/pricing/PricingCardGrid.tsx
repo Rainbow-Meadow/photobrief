@@ -9,6 +9,7 @@ import { BillingIntervalToggle } from "./BillingIntervalToggle";
 import { FoundingProBadge } from "./FoundingProBadge";
 import { FoundingCustomerBanner } from "@/components/marketing/FoundingCustomerBanner";
 import { trackEvent } from "@/lib/analytics";
+import { INVITE_ONLY_BETA } from "@/config/access";
 
 interface Props {
   /** Where the per-card primary button should send the user. */
@@ -32,17 +33,21 @@ interface Props {
   showFoundingBanner?: boolean;
 }
 
-function ctaLabel(plan: PlanLimit, currentPlan?: Plan, pending?: boolean): string {
+function ctaLabel(plan: PlanLimit, currentPlan?: Plan, pending?: boolean, target?: "signup" | "billing"): string {
   if (pending) return "Opening…";
   if (currentPlan && currentPlan === plan.id) return "Current plan";
-  if (plan.id === "free") return "Start free";
   if (plan.id === "business") return "Talk to us";
+  if (INVITE_ONLY_BETA && target !== "billing") {
+    return plan.id === "free" ? "Join waitlist" : "Request beta access";
+  }
+  if (plan.id === "free") return "Start free";
   return `Choose ${plan.name}`;
 }
 
 function ctaTo(plan: PlanLimit, target: "signup" | "billing"): string {
   if (plan.id === "business") return "mailto:hello@photobrief.app?subject=Business%20plan";
   if (target === "billing") return `/app/settings/billing?plan=${plan.id}`;
+  if (INVITE_ONLY_BETA) return `/waitlist?interest=${plan.id}`;
   return `/auth?mode=signup&plan=${plan.id}`;
 }
 

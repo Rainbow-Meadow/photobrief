@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { ArrowRight, ShieldCheck, Sparkles, Database, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trackEvent } from "@/lib/analytics";
+import { signupCtaTarget, signupCtaLabel } from "@/config/access";
 
 /**
  * Headline marketing surface for the rejection refund promise.
