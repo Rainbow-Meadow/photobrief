@@ -88,10 +88,9 @@ const TOOL = buildEnvelopeTool({
       },
     },
     required: ["title", "introMessage", "steps", "assistantReply"],
-      additionalProperties: false,
-    },
+    additionalProperties: false,
   },
-} as const;
+}) as const;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
