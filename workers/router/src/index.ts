@@ -2,16 +2,22 @@
  * photobrief-router — Cloudflare Worker bound to photobrief.ai/* and
  * www.photobrief.ai/*.
  *
- * Splits incoming requests between two origins based on the path:
+ * Splits incoming requests between two origins:
  *
- *   - Marketing routes (/, /pricing, /help and their static assets) →
- *     Cloudflare Pages, which serves prerendered HTML built from this repo.
+ *   - Static assets (/assets/*, /og-image, /robots.txt, /sitemap.xml,
+ *     /llms*.txt, /.well-known/*, etc.) → Cloudflare Pages, edge-cached.
+ *
+ *   - Marketing HTML routes (/, /pricing, /help, /for-ai-agents, /waitlist):
+ *       • Bots / crawlers / LLM fetchers → Pages (prerendered static HTML
+ *         optimized for SEO and answer-engine citation).
+ *       • Real users → Lovable hosting (live SPA with the latest dynamic
+ *         behavior, no prerender hydration delay).
  *
  *   - Everything else (/auth, /dashboard, /requests, /r/*, /onboarding,
- *     /settings/*, /guides, …) → Lovable hosting (photobrief.lovable.app),
- *     which continues to serve the SPA exactly as it does today.
+ *     /settings/*, …) → Lovable hosting, regardless of client.
  *
- * The allow-list MUST stay in sync with scripts/prerender.mjs ROUTES.
+ * The marketing allow-list MUST stay in sync with scripts/prerender.mjs,
+ * which reads its routes from public/sitemap.xml.
  *
  * Asset routing strategy
  * ----------------------
@@ -68,29 +74,39 @@ function isStaticAsset(pathname: string): boolean {
   return STATIC_PREFIXES.some((p) => pathname.startsWith(p));
 }
 
-async function proxyTo(host: string, request: Request): Promise<Response> {
-  const url = new URL(request.url);
-  url.hostname = host;
-  url.protocol = "https:";
-  url.port = "";
+// Known bot / crawler / answer-engine user agents. Matched case-insensitively
+// as substrings against the UA string. Covers traditional search crawlers,
+// social previewers, SEO tools, and LLM/answer-engine fetchers.
+const BOT_UA_PATTERNS = [
+  // Search engines
+  "googlebot", "google-inspectiontool", "bingbot", "slurp", "duckduckbot",
+  "baiduspider", "yandex", "sogou", "exabot", "facebot", "ia_archiver",
+  "applebot",
+  // Social / link unfurlers
+  "facebookexternalhit", "twitterbot", "linkedinbot", "slackbot",
+  "discordbot", "telegrambot", "whatsapp", "skypeuripreview", "pinterest",
+  "redditbot", "embedly", "quora link preview",
+  // SEO / monitoring
+  "ahrefsbot", "semrushbot", "mj12bot", "dotbot", "rogerbot", "screaming frog",
+  "lighthouse", "pagespeed", "gtmetrix", "pingdom", "uptimerobot",
+  // LLMs / answer engines
+  "gptbot", "oai-searchbot", "chatgpt-user", "chatgpt", "openai",
+  "claudebot", "claude-web", "anthropic-ai", "anthropic",
+  "perplexitybot", "perplexity-user", "perplexity",
+  "google-extended", "googleother",
+  "ccbot", "cohere-ai", "cohere",
+  "youbot", "phindbot", "amazonbot", "bytespider", "diffbot",
+  "meta-externalagent", "meta-externalfetcher",
+  "mistralai-user", "mistral",
+  "duckassistbot", "kagibot",
+  // Generic crawler hints
+  "bot/", " bot ", "spider", "crawler", "crawl", "headlesschrome",
+];
 
-  // Preserve method, headers, body. Set Host so the origin sees its own name.
-  const headers = new Headers(request.headers);
-  headers.set("host", host);
-  // Strip CF-* internal headers the origin shouldn't see.
-  headers.delete("cf-connecting-ip");
-  headers.delete("cf-ray");
-
-  const init: RequestInit = {
-    method: request.method,
-    headers,
-    redirect: "manual",
-  };
-  if (!["GET", "HEAD"].includes(request.method)) {
-    init.body = request.body;
-  }
-
-  return fetch(url.toString(), init);
+function isBot(request: Request): boolean {
+  const ua = (request.headers.get("user-agent") || "").toLowerCase();
+  if (!ua) return true; // No UA → treat as bot, safer for SEO.
+  return BOT_UA_PATTERNS.some((p) => ua.includes(p));
 }
 
 export default {
@@ -98,20 +114,36 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    const goPages = isMarketingPath(path) || isStaticAsset(path);
-
-    if (goPages) {
+    // Static assets always come from Pages (edge-cached, hashed filenames).
+    if (isStaticAsset(path)) {
       const res = await proxyTo(env.PAGES_HOST, request);
-      // Transparent fallback: if Pages doesn't have the asset (e.g. build
-      // skew), let Lovable try. Only fall back for static assets — for
-      // marketing paths a 404 from Pages should surface, otherwise we'd
-      // mask configuration drift.
-      if (res.status === 404 && isStaticAsset(path)) {
+      // Transparent fallback for build skew (Lovable build one commit ahead).
+      if (res.status === 404) {
         return proxyTo(env.LOVABLE_HOST, request);
       }
       return res;
     }
 
+    // HTML navigations: split by client.
+    //   - Bots/crawlers/LLMs → Pages (prerendered static HTML for SEO/citation).
+    //   - Real users → Lovable (live SPA with the latest dynamic behavior).
+    //
+    // Marketing paths are guaranteed to have a prerendered file on Pages;
+    // other paths will fall through to Lovable since Pages only knows the
+    // marketing allow-list.
+    if (isMarketingPath(path)) {
+      if (isBot(request)) {
+        const res = await proxyTo(env.PAGES_HOST, request);
+        // Belt-and-suspenders: if Pages somehow 404s, serve the live SPA so
+        // the bot still gets a usable response instead of an error.
+        if (res.status === 404) return proxyTo(env.LOVABLE_HOST, request);
+        return res;
+      }
+      return proxyTo(env.LOVABLE_HOST, request);
+    }
+
+    // Non-marketing paths (auth, app, recipient links, etc.) always go to
+    // the live SPA on Lovable.
     return proxyTo(env.LOVABLE_HOST, request);
   },
 };
