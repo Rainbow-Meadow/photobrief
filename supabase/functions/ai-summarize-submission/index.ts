@@ -177,49 +177,83 @@ Deno.serve(async (req) => {
       });
     }
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: SYSTEM },
-          { role: "user", content: userContent },
-        ],
+    const messages = [
+      { role: "system", content: SYSTEM },
+      { role: "user", content: userContent },
+    ];
+
+    let routerResult;
+    try {
+      routerResult = await callAIWithRouter({
+        task: "submission_summary",
+        messages,
         tools: [TOOL],
         tool_choice: { type: "function", function: { name: "summarize_submission" } },
-      }),
-    });
-
-    if (aiRes.status === 429) return json({ error: "Rate limit reached." }, 429);
-    if (aiRes.status === 402) return json({ error: "AI credits exhausted." }, 402);
-    if (!aiRes.ok) {
-      console.error("gateway", aiRes.status, await aiRes.text());
-      return json({ error: "AI gateway error" }, 502);
+      });
+    } catch (e) {
+      const mapped = routerErrorResponse(e, corsHeaders);
+      if (mapped) return mapped;
+      throw e;
     }
-    const data = await aiRes.json();
-    const call = data?.choices?.[0]?.message?.tool_calls?.[0];
-    const args = call ? JSON.parse(call.function.arguments) : null;
-    if (!args) return json({ error: "AI returned no summary" }, 502);
 
-    const extractedDetails: ExtractedDetailOut[] = Array.isArray(args.extractedDetails)
-      ? args.extractedDetails
+    // Auto-escalate one retry if confidence is low or model self-flagged it.
+    const lowConf =
+      routerResult.envelope.confidence < 0.5 ||
+      routerResult.envelope.flags.includes("low_confidence");
+    if (lowConf) {
+      try {
+        const escalated = await callAIWithRouter({
+          task: "submission_summary",
+          escalate: true,
+          messages,
+          tools: [TOOL],
+          tool_choice: { type: "function", function: { name: "summarize_submission" } },
+        });
+        // Use escalated only if it actually improved confidence.
+        if (escalated.envelope.confidence > routerResult.envelope.confidence) {
+          routerResult = escalated;
+        }
+      } catch (e) {
+        // Escalation is best-effort; ignore failures and keep first result.
+        if (!(e instanceof AIUnavailableError)) {
+          console.warn("escalation retry failed", e);
+        }
+      }
+    }
+
+    const { envelope, model, attempts } = routerResult;
+    const inner = (envelope.result ?? {}) as {
+      summary?: string;
+      highlights?: string[];
+      nextAction?: string;
+      missingItems?: string[];
+      extractedDetails?: ExtractedDetailOut[];
+    };
+
+    const extractedDetails: ExtractedDetailOut[] = Array.isArray(inner.extractedDetails)
+      ? inner.extractedDetails
       : [];
-    const missingItems: string[] = args.missingItems?.length
-      ? args.missingItems
-      : missingComputed;
+    const missingItems: string[] = inner.missingItems?.length
+      ? inner.missingItems
+      : envelope.missing_items?.length
+        ? envelope.missing_items
+        : missingComputed;
 
     const result = {
-      summary: args.summary,
-      highlights: args.highlights ?? [],
-      nextAction: args.nextAction,
+      summary: inner.summary ?? envelope.business_summary ?? "",
+      highlights: inner.highlights ?? [],
+      nextAction: inner.nextAction ?? envelope.suggested_next_action ?? "",
       missingItems,
       extractedDetails,
       readinessScore,
       band,
+      // Envelope-level fields:
+      confidence: envelope.confidence,
+      flags: envelope.flags,
+      businessSummary: envelope.business_summary,
+      suggestedNextAction: envelope.suggested_next_action,
+      model,
+      attempts,
     };
 
     if (persistTo) {
@@ -251,6 +285,8 @@ Deno.serve(async (req) => {
 
     return json(result);
   } catch (e) {
+    const mapped = routerErrorResponse(e, corsHeaders);
+    if (mapped) return mapped;
     console.error("ai-summarize-submission error", e);
     return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }
