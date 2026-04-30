@@ -13,6 +13,8 @@ interface EmptyStateProps {
   className?: string;
   /** Visual size — `default` for inline empty lists, `lg` for full-page states. */
   size?: "default" | "lg";
+  /** @deprecated Use `size="default"`. Kept for backward compat — maps to a tighter padding. */
+  compact?: boolean;
 }
 
 /**
