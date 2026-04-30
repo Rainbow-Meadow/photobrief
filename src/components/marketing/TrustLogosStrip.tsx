@@ -1,21 +1,13 @@
-// Lightweight "trusted by" strip — text wordmarks only, no third-party logos.
-const wordmarks = [
-  "Servpro",
-  "HomeAdvisor",
-  "Thumbtack",
-  "Poshmark",
-  "Zillow",
-  "eBay",
-];
+const wordmarks = ["Servpro", "HomeAdvisor", "Thumbtack", "Poshmark", "Zillow", "eBay"];
 
 export function TrustLogosStrip() {
   return (
-    <section className="border-y bg-muted/30">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <p className="text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+    <section className="bg-background">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <p className="text-center text-eyebrow">
           Trusted by service pros, property managers, and resellers
         </p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 sm:gap-x-14">
+        <div className="mx-auto mt-6 flex max-w-5xl flex-wrap items-center justify-center gap-x-10 gap-y-4 sm:gap-x-14">
           {wordmarks.map((w) => (
             <span
               key={w}

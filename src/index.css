@@ -65,7 +65,37 @@
     --shadow-glow: 0 8px 32px -8px hsl(var(--primary) / 0.35);
     --shadow-brand: 0 24px 60px -20px hsl(var(--brand-navy) / 0.45);
 
+    /* Apple-inspired glass system ----------------------------------- */
+    --glass-bg-strong: 0 0% 100% / 0.78;
+    --glass-bg: 0 0% 100% / 0.58;
+    --glass-bg-soft: 0 0% 100% / 0.36;
+    --glass-bg-onDark: 222 60% 14% / 0.55;
+    --glass-border: 220 30% 88% / 0.7;
+    --glass-border-strong: 220 30% 80% / 0.9;
+    --glass-border-onDark: 0 0% 100% / 0.14;
+    --glass-highlight: 0 0% 100% / 0.6;
+    --glass-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.6),
+      0 1px 0 hsl(220 30% 90% / 0.4),
+      0 20px 40px -22px hsl(222 47% 11% / 0.18),
+      0 8px 24px -14px hsl(222 47% 11% / 0.14);
+    --glass-shadow-lg:
+      inset 0 1px 0 hsl(0 0% 100% / 0.65),
+      0 30px 60px -24px hsl(222 47% 11% / 0.22),
+      0 12px 36px -16px hsl(222 47% 11% / 0.18);
+    --glass-shadow-onDark:
+      inset 0 1px 0 hsl(0 0% 100% / 0.08),
+      0 30px 60px -24px hsl(222 47% 11% / 0.55);
+
+    --ambient-sky: radial-gradient(80% 60% at 50% 0%, hsl(217 100% 70% / 0.18), transparent 70%);
+    --ambient-sky-soft: radial-gradient(60% 50% at 50% 0%, hsl(217 100% 65% / 0.12), transparent 75%);
+    --ambient-mesh:
+      radial-gradient(40% 30% at 15% 20%, hsl(217 100% 70% / 0.12), transparent 70%),
+      radial-gradient(35% 30% at 85% 10%, hsl(200 100% 70% / 0.10), transparent 70%),
+      radial-gradient(50% 40% at 50% 100%, hsl(217 100% 60% / 0.08), transparent 70%);
+
     --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-apple: cubic-bezier(0.32, 0.72, 0, 1);
 
     /* Sidebar tokens */
     --sidebar-background: 0 0% 100%;
@@ -125,6 +155,22 @@
     --sidebar-accent-foreground: 217 100% 80%;
     --sidebar-border: 222 30% 18%;
     --sidebar-ring: 217 100% 60%;
+
+    /* Dark-mode glass overrides */
+    --glass-bg-strong: 222 47% 12% / 0.78;
+    --glass-bg: 222 47% 12% / 0.55;
+    --glass-bg-soft: 222 47% 12% / 0.35;
+    --glass-border: 0 0% 100% / 0.10;
+    --glass-border-strong: 0 0% 100% / 0.16;
+    --glass-highlight: 0 0% 100% / 0.06;
+    --glass-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.06),
+      0 20px 40px -22px hsl(0 0% 0% / 0.55),
+      0 8px 24px -14px hsl(0 0% 0% / 0.5);
+    --glass-shadow-lg:
+      inset 0 1px 0 hsl(0 0% 100% / 0.08),
+      0 30px 60px -24px hsl(0 0% 0% / 0.65);
+    --ambient-sky: radial-gradient(80% 60% at 50% 0%, hsl(217 100% 55% / 0.18), transparent 70%);
   }
 }
 
@@ -133,30 +179,34 @@
     @apply border-border;
   }
   html, body {
-    /* Lock horizontal overflow on touch devices so a stray wide element
-       can't break the mobile shell. */
     @apply overflow-x-hidden;
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   h1, h2, h3, h4 {
     @apply tracking-tight;
+    font-feature-settings: "ss01", "cv11";
   }
-  /* Prevent iOS Safari from zooming when focusing form inputs whose
-     computed font-size is < 16px. We keep the visual size via Tailwind
-     classes but ensure the actual rendered size is >= 16px on touch. */
+  /* Premium hero scale — used on hero h1 via `.text-display` */
+  .text-display {
+    font-size: clamp(2.5rem, 6vw + 0.5rem, 4.5rem);
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    font-weight: 600;
+  }
+  .text-eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground;
+  }
   @media (max-width: 640px) {
-    input, select, textarea {
-      font-size: 16px;
-    }
+    input, select, textarea { font-size: 16px; }
   }
 }
 
 @layer utilities {
-  /* Safe-area helpers so layouts respect notches / home indicators when
-     this app is later wrapped in Capacitor or installed to home screen. */
   .pt-safe { padding-top: env(safe-area-inset-top); }
   .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
   .pl-safe { padding-left: env(safe-area-inset-left); }
@@ -164,7 +214,96 @@
   .min-h-screen-safe {
     min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
-  /* Hide scrollbar but keep scroll for snap rows. */
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { scrollbar-width: none; }
+
+  /* ----- Glass surfaces ---------------------------------------------- */
+  .glass {
+    background-color: hsl(var(--glass-bg));
+    backdrop-filter: saturate(180%) blur(16px);
+    -webkit-backdrop-filter: saturate(180%) blur(16px);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow: var(--glass-shadow);
+  }
+  .glass-strong {
+    background-color: hsl(var(--glass-bg-strong));
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid hsl(var(--glass-border-strong));
+    box-shadow: var(--glass-shadow);
+  }
+  .glass-soft {
+    background-color: hsl(var(--glass-bg-soft));
+    backdrop-filter: saturate(160%) blur(10px);
+    -webkit-backdrop-filter: saturate(160%) blur(10px);
+    border: 1px solid hsl(var(--glass-border));
+  }
+  .glass-onDark {
+    background-color: hsl(var(--glass-bg-onDark));
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid hsl(var(--glass-border-onDark));
+    box-shadow: var(--glass-shadow-onDark, var(--glass-shadow));
+  }
+  .glass-nav {
+    background-color: hsl(var(--glass-bg-strong));
+    backdrop-filter: saturate(180%) blur(24px);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.6),
+      0 8px 24px -16px hsl(222 47% 11% / 0.18);
+  }
+  .hairline { border: 1px solid hsl(var(--glass-border)); }
+  .hairline-b { border-bottom: 1px solid hsl(var(--glass-border)); }
+  .hairline-t { border-top: 1px solid hsl(var(--glass-border)); }
+
+  /* Ambient backgrounds */
+  .bg-ambient-sky { background-image: var(--ambient-sky); }
+  .bg-ambient-mesh { background-image: var(--ambient-mesh); }
+
+  /* Premium primary button finish (gradient + inner highlight) */
+  .btn-primary-glass {
+    background-image: linear-gradient(180deg,
+      hsl(var(--primary-glow)) 0%,
+      hsl(var(--primary)) 100%);
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.35),
+      inset 0 -1px 0 hsl(217 100% 30% / 0.25),
+      0 8px 20px -10px hsl(var(--primary) / 0.55);
+  }
+  .btn-primary-glass:hover {
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.4),
+      inset 0 -1px 0 hsl(217 100% 30% / 0.25),
+      0 14px 28px -10px hsl(var(--primary) / 0.6);
+    transform: translateY(-1px);
+  }
+  .btn-primary-glass:active { transform: translateY(0); }
+
+  /* Hover lift used on cards */
+  .lift-on-hover { transition: transform var(--transition-base), box-shadow var(--transition-base); }
+  .lift-on-hover:hover { transform: translateY(-2px); }
+
+  /* Lens-ring decorative motif */
+  .lens-ring {
+    background: conic-gradient(from 200deg, hsl(var(--primary)) 0deg, hsl(var(--primary-glow)) 120deg, transparent 240deg, hsl(var(--primary) / 0.4) 360deg);
+    -webkit-mask: radial-gradient(circle, transparent 55%, #000 56%);
+            mask: radial-gradient(circle, transparent 55%, #000 56%);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lift-on-hover, .btn-primary-glass { transition: none !important; transform: none !important; }
+  }
 }
+
+@keyframes lift-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+.animate-lift-in   { animation: lift-in 360ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+.animate-bubble-in { animation: bubble-in 240ms cubic-bezier(0.32, 0.72, 0, 1) both; }

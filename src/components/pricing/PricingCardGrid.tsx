@@ -113,15 +113,15 @@ export function PricingCardGrid({
             <article
               key={plan.id}
               className={cn(
-                "relative flex flex-col rounded-2xl border p-6 transition",
+                "relative flex flex-col rounded-3xl p-6 transition lift-on-hover",
                 onDark
-                  ? "border-white/15 bg-white/[0.06] text-white backdrop-blur"
-                  : "bg-card shadow-elev-sm hover:shadow-elev-md",
+                  ? "glass-onDark text-white"
+                  : "glass-strong",
                 showHighlight &&
                   (onDark
-                    ? "border-primary-glow/60 bg-white/[0.09] shadow-glow sm:col-span-2"
-                    : "border-primary/60 shadow-glow ring-1 ring-primary/30 sm:col-span-2"),
-                isCurrent && !onDark && "border-success/60 ring-1 ring-success/30",
+                    ? "ring-1 ring-primary-glow/60 shadow-glow sm:col-span-2"
+                    : "ring-1 ring-primary/40 shadow-glow sm:col-span-2"),
+                isCurrent && !onDark && "ring-1 ring-success/40",
               )}
             >
               {showHighlight ? (

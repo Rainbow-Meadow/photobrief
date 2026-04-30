@@ -26,9 +26,9 @@ export function StatsBand() {
           {stats.map((s) => (
             <div
               key={s.label}
-              className="rounded-2xl border border-white/15 bg-white/[0.08] p-6 text-center backdrop-blur transition hover:bg-white/[0.12]"
+              className="glass-onDark rounded-2xl p-6 text-center lift-on-hover"
             >
-              <div className="text-4xl font-bold tracking-tight sm:text-5xl">
+              <div className="text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl">
                 {s.value}
               </div>
               <p className="mt-2 text-sm text-white/75">{s.label}</p>

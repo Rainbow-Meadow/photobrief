@@ -12,10 +12,11 @@ export function FirstPassGuaranteeBand() {
   return (
     <section
       id="first-pass-guarantee"
-      className="border-y bg-card"
+      className="relative overflow-hidden bg-background"
       aria-labelledby="first-pass-guarantee-heading"
     >
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-ambient-mesh opacity-60" />
+      <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
         <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr]">
           {/* Pitch ----------------------------------------------------- */}
           <div>
@@ -76,7 +77,7 @@ export function FirstPassGuaranteeBand() {
           </div>
 
           {/* Bullet card --------------------------------------------- */}
-          <div className="rounded-2xl border border-primary/20 bg-gradient-subtle p-6 shadow-elev-sm sm:p-8">
+          <div className="glass-strong rounded-3xl p-6 shadow-glass-lg sm:p-8 animate-lift-in">
             <div className="flex items-center gap-3">
               <span className="rounded-xl bg-primary/10 p-3 text-primary">
                 <ShieldCheck className="h-6 w-6" />

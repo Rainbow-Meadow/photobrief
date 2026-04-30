@@ -74,6 +74,12 @@ export default {
         "gradient-subtle": "var(--gradient-subtle)",
         "gradient-brand": "var(--gradient-brand)",
         "gradient-radial-glow": "var(--gradient-radial-glow)",
+        "ambient-sky": "var(--ambient-sky)",
+        "ambient-mesh": "var(--ambient-mesh)",
+      },
+      backdropBlur: {
+        glass: "16px",
+        "glass-lg": "24px",
       },
       boxShadow: {
         "elev-sm": "var(--shadow-sm)",
@@ -81,6 +87,8 @@ export default {
         "elev-lg": "var(--shadow-lg)",
         glow: "var(--shadow-glow)",
         brand: "var(--shadow-brand)",
+        glass: "var(--glass-shadow)",
+        "glass-lg": "var(--glass-shadow-lg)",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -91,11 +99,15 @@ export default {
         "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
         "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
         "fade-in": { from: { opacity: "0", transform: "translateY(4px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+        "lift-in": { from: { opacity: "0", transform: "translateY(8px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+        "bubble-in": { from: { opacity: "0", transform: "translateY(6px) scale(.98)" }, to: { opacity: "1", transform: "translateY(0) scale(1)" } },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.3s ease-out",
+        "lift-in": "lift-in 0.36s cubic-bezier(0.32,0.72,0,1) both",
+        "bubble-in": "bubble-in 0.24s cubic-bezier(0.32,0.72,0,1) both",
       },
     },
   },

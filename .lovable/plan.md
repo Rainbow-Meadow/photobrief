@@ -1,116 +1,163 @@
-## Goal
+# PhotoBrief Visual Identity Upgrade — Apple-Inspired Glass
 
-Eliminate the ~4 second "element render delay" on the landing page by serving a fully-rendered HTML version of marketing pages from Cloudflare's edge, while the authenticated app continues to run as the existing Vite SPA on Lovable hosting.
+A focused redesign that keeps every flow intact and only changes look, feel, hierarchy, and surface language. No backend, routing, or data model changes.
 
-## Why this works
+---
 
-Today, Lighthouse shows TTFB at 48ms but LCP at 3.6s — the H1 doesn't paint until React mounts (~4s of JS parse + execute). Pre-rendering ships the H1, hero copy, and above-the-fold HTML in the initial document so LCP fires within a few hundred ms of TTFB. The SPA then hydrates in the background with no visual change.
+## 1. Audit — what still feels template-like today
 
-## Architecture
+- Hero is a centered text block + standard browser-chrome mockup. No depth, no glass, no real "Apple" presentation.
+- Nav is flat: solid background, generic ghost links, no glass or active-state polish.
+- Section rhythm is conventional Tailwind SaaS: light-gray bands, big numerals, 2/4-up grids — works, but reads as "Lovable starter".
+- Cards everywhere use the same `bg-card + shadow-elev-sm` recipe, so pricing, dashboard, capture, and review all look siblings of each other rather than purpose-built surfaces.
+- No glass token system — translucent surfaces are one-off `bg-white/[0.06] backdrop-blur` strings inside components.
+- Typography is Inter system default with one weight scale; hero headline isn't large or tight enough to feel premium.
+- Buttons are stock shadcn — no branded primary, no luminous hover, no consistent loading state.
+- Capture chat bubbles, submission review, and dashboard widgets have no shared "glass" identity — they look like different apps.
+- Mobile nav works but visual hierarchy is weak; sheet feels generic.
+- Decorative numerals in HowItWorks, gray pricing FAQ band, and the StatsBand all read as defaults.
 
-```text
-                    photobrief.ai (Cloudflare proxy)
-                              │
-                ┌─────────────┴─────────────┐
-                │ Cloudflare Worker / Pages │
-                │ route-based origin pick   │
-                └─────────────┬─────────────┘
-                              │
-            ┌─────────────────┼─────────────────┐
-            │                 │                 │
-   /, /pricing, /help     /auth, /r/*    /dashboard, /requests,
-   /forgot-password,      (recipient     /guides, /settings/*,
-   /reset-password,       capture +      /onboarding, /invite/*
-   /unsubscribe           auth pages)    (authenticated app)
-            │                 │                 │
-            ▼                 ▼                 ▼
-   Cloudflare Pages    Lovable hosting   Lovable hosting
-   (pre-rendered      (existing SPA)    (existing SPA)
-    static HTML +
-    hydrating SPA)
-```
+---
 
-Marketing routes are pre-rendered at build time. Every other route stays on Lovable so nothing about the auth/app pipeline changes.
+## 2. Top 10 highest-impact upgrades
 
-## What we build
+1. Introduce a **glass design token layer** (`--glass-*`, `--blur-*`, `--ring-hairline`, layered shadows) and a `<GlassPanel>` primitive with variants: `nav | hero | card | modal | widget | chat`.
+2. Redesign the **homepage hero**: tighter headline, refined CTA pair, and a new layered glass product story (two floating panels with parallax depth and a soft sky-blue ambient gradient behind them) replacing the browser-chrome mockup.
+3. Rebuild **navigation** as a translucent floating glass bar with hairline border, refined hover underline, and a branded primary CTA pill.
+4. Establish a **typography scale** (Inter Display for h1/h2, Inter for body, tabular nums for metrics) with confident hero size (clamp 44–72px), tighter tracking, and consistent label/eyebrow style.
+5. Refactor **buttons** with a true brand primary (gradient + inner highlight + soft ring on hover), consistent `loading`, `success`, and `disabled` states, and a new `glass` variant for use on dark/photo backgrounds.
+6. Redesign **pricing cards** as glass tiles with distinct elevation for the recommended Pro plan (lifted, glow ring, gradient header chip), uniform feature spacing, and four clear tiers visually grouped.
+7. Polish the **dashboard shell**: sidebar becomes a thin glass rail, header uses a translucent strip, metric cards become glass widgets with strong number hierarchy + sparkline placeholder, and the request inbox rows get a refined hover lift.
+8. Elevate the **recipient capture/chat flow**: branded glass header with progress pill, larger capture CTA, refined chat bubbles (assistant = glass card w/ lens dot, user = primary gradient), AI feedback bubble with sparkline accent, and a calm completion state.
+9. Make the **submission review page** the "money screen": a hero readiness card (large animated score ring + status label), AI summary glass card, missing items glass card, shot grid with consistent badge language, and a sticky action bar.
+10. Add **restrained motion**: section reveal on scroll, card hover lift (translateY -2px + shadow swap), readiness ring count-up, chat bubble fade/slide-in, and button press micro-interaction. All ≤250ms, respects `prefers-reduced-motion`.
 
-**1. Pre-rendering in the existing Vite build**
+---
 
-Add `vite-plugin-prerender` (or `react-snap`) configured to crawl `/`, `/pricing`, `/help` after `vite build`. Output is regular `dist/` plus `dist/pricing/index.html`, `dist/help/index.html` with the React tree serialized into the body. The same JS bundle hydrates on load, so behavior is identical to today.
+## 3. The Apple-inspired glass system
 
-To make this safe, the prerender step runs against a "marketing-only" entry that mounts `<MarketingLayout>` + the three pages — it never touches `useAuth`, Supabase client, or any code that would fail in Node. The browser still loads the full app bundle as today.
-
-**2. GitHub Actions → Cloudflare Pages**
-
-Already-connected GitHub repo gets a workflow that on push to main:
-- runs `npm ci && npm run build:prerender`
-- publishes `dist/` to a Cloudflare Pages project named `photobrief-marketing` via `cloudflare/wrangler-action`
-
-Pages auto-deploys on every push, gives us preview URLs per PR, and serves from Cloudflare's edge with Brotli + HTTP/3 by default.
-
-**3. Cloudflare Worker for path routing**
-
-A tiny Worker bound to `photobrief.ai/*` (and `www.photobrief.ai/*`) does:
+### Tokens (added to `src/index.css` `:root` and `.dark`)
 
 ```text
-if path matches marketing allow-list:
-    fetch from photobrief-marketing.pages.dev
-else:
-    fetch from photobrief.lovable.app   (current origin)
+--glass-bg-strong:   hsl(0 0% 100% / 0.72)
+--glass-bg:          hsl(0 0% 100% / 0.55)
+--glass-bg-soft:     hsl(0 0% 100% / 0.35)
+--glass-bg-onDark:   hsl(222 60% 14% / 0.55)
+--glass-border:      hsl(220 30% 90% / 0.7)
+--glass-border-onDark: hsl(0 0% 100% / 0.12)
+--glass-highlight:   hsl(0 0% 100% / 0.6)   /* top inner sheen */
+--glass-shadow:      0 1px 0 hsl(0 0% 100% / 0.6) inset,
+                     0 20px 40px -20px hsl(222 47% 11% / 0.18),
+                     0 8px 24px -12px hsl(222 47% 11% / 0.12)
+--blur-sm: 8px;  --blur-md: 16px;  --blur-lg: 28px;
+--radius-xs: 8px; --radius-sm: 12px; --radius-md: 16px;
+--radius-lg: 20px; --radius-xl: 28px; --radius-2xl: 36px;
+--ambient-sky: radial-gradient(80% 60% at 50% 0%, hsl(217 100% 70% / 0.18), transparent 70%)
 ```
 
-Allow-list: `/`, `/pricing`, `/help`, `/forgot-password`, `/reset-password`, `/unsubscribe`, plus static asset paths emitted by the prerender build (`/assets/*` for the prerendered bundle is namespaced so it can't collide).
+Tailwind exposure: extend `boxShadow.glass`, `backdropBlur.glass-{sm,md,lg}`, `backgroundImage.ambient-sky`, plus utility classes `.glass`, `.glass-strong`, `.glass-onDark`, `.hairline`.
 
-`app.photobrief.ai` is left untouched — it always goes to Lovable.
+### `<GlassPanel>` primitive (`src/components/ui/glass-panel.tsx`)
 
-**4. SEO assets**
+```tsx
+<GlassPanel variant="card" tone="light" elevation="md" interactive>
+```
+Variants map to combinations of bg/blur/border/shadow tokens above. All glass surfaces in the app render through this component so the look stays consistent.
 
-While we're pre-rendering, fix three things that need server-rendered HTML to count:
-- per-route `<title>` and `<meta name="description">` for `/pricing` and `/help`
-- canonical link tag per route
-- a real sitemap.xml listing the prerendered URLs (replaces current static one if needed)
-- JSON-LD `Organization` + `SoftwareApplication` schema in the landing `<head>`
+### Usage rules
 
-## Expected impact
+- Glass appears on top of an ambient gradient, photo, or layered background — never on flat white-on-white.
+- One glass tier per visual layer; never stack two translucent panels directly.
+- Hairline border (`1px hsl(var(--glass-border))`) on every glass surface for crispness.
+- Inner top highlight via `box-shadow inset` for the "sheen".
+- Blur kept ≤ 16px on cards, 28px reserved for nav/modal overlays.
+- Text on glass always passes WCAG AA — enforce via `text-foreground` on light glass, `text-white` on dark glass.
 
-| Metric | Before | After (target) |
-|---|---|---|
-| LCP (mobile) | 3.6s | ~0.8-1.2s |
-| Speed Index | 7.0s | ~2-3s |
-| FCP | 2.3s | ~0.6s |
-| Element render delay | 4,021ms | ~50ms |
-| Crawler-visible HTML | empty `<div id="root">` | full marketing copy |
+---
 
-The big win is the last row — Google currently sees an empty div until JS executes. Pre-rendered HTML means meta descriptions, headings, and copy are indexable without depending on Googlebot's JS rendering queue.
+## 4. What changes, page by page
 
-## What stays the same
+### Marketing
 
-- All routes under `/dashboard`, `/requests`, `/guides`, `/settings/*`, `/onboarding`, `/invite/*`, `/r/*`, `/auth` continue to be served from `photobrief.lovable.app` exactly as today.
-- The Vite SPA itself is unchanged — same bundle, same routes, same auth flow.
-- Lovable Cloud (Supabase) backend is untouched.
-- `app.photobrief.ai` continues to point straight to Lovable.
-- No publishing workflow changes — Lovable's Publish button still controls the SPA. Cloudflare Pages deploys are driven by git push.
+- **`src/pages/Landing.tsx`** — new hero copy ("Send a link. Get a complete brief." / "Start Free" + "Watch Demo"), ambient sky gradient behind hero, replace `HeroProductMockup` with new `HeroGlassStory`. Insert a 3-step value strip above HowItWorks.
+- **`src/components/marketing/HeroGlassStory.tsx`** *(new)* — two floating glass panels (Customer / Brief) with offset depth, soft drop shadow, lens-ring accent, animated readiness arc.
+- **`HowItWorksSteps.tsx`** — reduce to 3 steps matching brief, swap big numerals for refined lens-ring step indicators on glass cards.
+- **`TrustLogosStrip.tsx`, `StatsBand.tsx`, `IndustryGrid.tsx`, `TestimonialsRow.tsx`, `FinalCtaCard.tsx`, `FirstPassGuaranteeBand.tsx`** — re-skin to glass cards / hairline dividers, consistent eyebrow style, no functional change.
+- **`MarketingLayout.tsx`** — floating translucent glass nav, refined hover underline, branded primary CTA, polished mobile sheet.
 
-## Risks and mitigations
+### Pricing
 
-- **Hydration mismatch on prerendered pages.** Mitigated by keeping the marketing pages free of `Date.now()`, `Math.random()`, and any auth-dependent rendering above the fold. They already are today.
-- **Stale prerendered HTML after a content edit.** Every push to main triggers a fresh Pages build. Plus we'll set Cache-Control on the HTML to `public, max-age=0, must-revalidate` so visitors always get the latest, while `/assets/*` keeps the existing 1-year hash-based caching.
-- **Worker adds a hop.** Cloudflare Workers add ~5ms; net win because both origins are Cloudflare-fronted.
-- **Cost.** Cloudflare Pages free tier covers 500 builds/month and unlimited bandwidth. Workers free tier covers 100k requests/day. No expected charges.
+- **`Pricing.tsx`** + **`PricingCardGrid.tsx`** — 4 glass tiles (Free / Pro / Business / Enterprise), Pro lifted with glow ring + gradient cap, uniform feature list, refined billing toggle, glass FAQ accordion, glass guarantee card.
 
-## Steps in build order
+### Auth
 
-1. Create a `prerender.config.ts` and a marketing-only Vite entry that excludes auth/Supabase code paths.
-2. Add `npm run build:prerender` script that runs `vite build` then crawls the listed routes and writes static HTML.
-3. Add per-route `<title>`/`<meta>`/canonical/JSON-LD via a small `<SEOHead>` component used on each marketing page.
-4. Add `.github/workflows/deploy-marketing.yml` that runs the build and pushes `dist/` to Cloudflare Pages on push to main. Requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as repo secrets — I'll add them via the Cloudflare API.
-5. Write the routing Worker (`workers/router/index.ts` + `wrangler.toml`) and deploy it via the same workflow, bound to `photobrief.ai/*` and `www.photobrief.ai/*`.
-6. Verify: hit `/`, `/pricing`, `/help` and confirm "view source" shows the rendered copy; hit `/dashboard` and confirm it still loads from Lovable; re-run Lighthouse.
+- **`src/pages/Auth.tsx`, `ForgotPassword.tsx`, `ResetPassword.tsx`** — split layout with ambient gradient + faint product silhouette on one side, single glass card holding the form. Inputs get the new refined style (taller, hairline border, focus ring).
 
-Step 1-3 are code changes in this repo. Step 4-5 require GitHub repo access (already connected) and the Cloudflare API token (already available). Step 6 is verification.
+### Dashboard shell
 
-## Out of scope
+- **`DashboardLayout.tsx`, `AppSidebar.tsx`, `PageHeader.tsx`** — translucent header, thin glass sidebar rail with refined active state (gradient pill + lens dot), softened content background using the ambient gradient.
+- **`shared/MetricCard.tsx`, `DashboardPage.tsx`** — glass widgets, large tabular-num value, eyebrow label, micro-trend area, hover lift.
+- Inbox rows (`RequestsInboxPage.tsx`, related row components) — hover lift, status pills re-skinned, readiness badge unified.
 
-- Migrating the authenticated app off Lovable hosting.
-- Switching to a true SSR framework (Next/Remix). Pre-rendering gives us the SEO and LCP wins without that lift.
-- Image optimization beyond the WebP work already done.
+### Request builder
+
+- **`CreateRequestPage.tsx`, `AIRequestBuilderChat.tsx`, `RequestBuilderModeTabs.tsx`, `GeneratedQuestionEditor.tsx`, `GeneratedStepEditor.tsx`, `TemplatePicker.tsx`** — wrap step canvas in glass, refine tab pills, soften card edges, consistent spacing scale; no logic change.
+
+### Recipient capture / chat
+
+- **`PublicRequestLayout.tsx`, `PublicRecipientPage.tsx`, `ChatThread.tsx`, `ChatMessage.tsx`, `PhotoPromptCard.tsx`, `CaptureUploadCard.tsx`, `AIFeedbackMessage.tsx`, `RetakeDecisionCard.tsx`, `ReviewSummaryCard.tsx`, `SubmitConfirmationCard.tsx`** — branded glass header w/ progress pill, larger primary capture button, assistant bubbles as glass cards w/ lens-ring avatar, user bubbles as primary gradient with subtle inner highlight, AI feedback bubble distinguished by sparkline accent, calm glass completion state.
+
+### Submission review
+
+- **`SubmissionReviewPage.tsx`, `ShotCard.tsx`, `ActivityTimeline.tsx`, `InternalNotesPanel.tsx`, `AskForMorePhotosDialog.tsx`** — new readiness hero (large ring + status), AI summary glass card, missing-items glass card, refined shot grid with unified status badges, sticky bottom action bar on mobile.
+
+### Settings / branding
+
+- **`BrandSettingsPage.tsx`, `BillingSettingsPage.tsx`, `TeamSettingsPage.tsx`, `MessageTemplatesPage.tsx`, `SmsSettingsPage.tsx`** — sectioned glass panels, refined form inputs, consistent description text style.
+
+### Shared components touched
+
+`button.tsx` (gradient primary + glass variant + loading state), `card.tsx` (radius + shadow scale), `input.tsx` / `textarea.tsx` / `select.tsx` (taller, hairline, focus ring), `badge.tsx` (status palette unified), `EmptyState.tsx`, `StatusBadge.tsx`, `PlanTag.tsx`, `ReadinessProgress.tsx`, `ReadinessScoreBadge.tsx`, `UpgradePromptCard.tsx`.
+
+---
+
+## 5. Motion
+
+- `motion.css` utility additions: `.lift-on-hover`, `.section-reveal`, `.bubble-in`, `.ring-count-up`.
+- Use Tailwind keyframes already in `tailwind.config.ts` (`fade-in`, plus new `lift`, `reveal`, `count-up`).
+- All ≤ 250ms, easing `cubic-bezier(0.4,0,0.2,1)`. Wrapped in `@media (prefers-reduced-motion: no-preference)`.
+
+---
+
+## 6. Implementation order
+
+1. Tokens + Tailwind extension + `GlassPanel` primitive + button/input/card refinements.
+2. Marketing layout (nav + footer) and homepage hero + sections.
+3. Pricing page + pricing cards.
+4. Auth screens.
+5. Dashboard shell + metric cards + inbox rows.
+6. Recipient capture/chat surfaces.
+7. Submission review page.
+8. Settings & remaining shared components.
+9. Mobile pass + motion pass + accessibility/contrast verification.
+
+---
+
+## 7. Guardrails
+
+- Zero changes to routing, data hooks, Supabase calls, or state machines.
+- Keep all component prop signatures stable — purely visual refactor inside components.
+- Preserve every existing test; do not remove behavior covered by `src/test/*`.
+- Run a contrast pass on every new glass surface (target WCAG AA 4.5:1).
+- No new heavy dependencies — use existing `lucide-react`, Tailwind, CSS only.
+
+---
+
+## 8. Deliverable summary I will provide after implementation
+
+1. Pages updated (list).
+2. Components updated (list).
+3. Design tokens added/changed (diff of `index.css` + `tailwind.config.ts`).
+4. Glass styles introduced (`GlassPanel` API + utility classes).
+5. Mobile responsiveness notes (per surface).
+6. Remaining polish recommendations (e.g. real product screenshots, custom illustrations, video demo asset).
