@@ -503,8 +503,6 @@ function EditableFeedbackField({
 // We classify the suggestion text to highlight the most likely action,
 // but always render all three so the reviewer can pick a different one.
 
-import { classifyAction, type QuickActionKind } from "@/features/submissions/lib/quickAction";
-
 
 interface QuickActionsProps {
   shot: SubmissionShot;
