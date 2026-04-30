@@ -2,16 +2,22 @@
  * photobrief-router — Cloudflare Worker bound to photobrief.ai/* and
  * www.photobrief.ai/*.
  *
- * Splits incoming requests between two origins based on the path:
+ * Splits incoming requests between two origins:
  *
- *   - Marketing routes (/, /pricing, /help and their static assets) →
- *     Cloudflare Pages, which serves prerendered HTML built from this repo.
+ *   - Static assets (/assets/*, /og-image, /robots.txt, /sitemap.xml,
+ *     /llms*.txt, /.well-known/*, etc.) → Cloudflare Pages, edge-cached.
+ *
+ *   - Marketing HTML routes (/, /pricing, /help, /for-ai-agents, /waitlist):
+ *       • Bots / crawlers / LLM fetchers → Pages (prerendered static HTML
+ *         optimized for SEO and answer-engine citation).
+ *       • Real users → Lovable hosting (live SPA with the latest dynamic
+ *         behavior, no prerender hydration delay).
  *
  *   - Everything else (/auth, /dashboard, /requests, /r/*, /onboarding,
- *     /settings/*, /guides, …) → Lovable hosting (photobrief.lovable.app),
- *     which continues to serve the SPA exactly as it does today.
+ *     /settings/*, …) → Lovable hosting, regardless of client.
  *
- * The allow-list MUST stay in sync with scripts/prerender.mjs ROUTES.
+ * The marketing allow-list MUST stay in sync with scripts/prerender.mjs,
+ * which reads its routes from public/sitemap.xml.
  *
  * Asset routing strategy
  * ----------------------
