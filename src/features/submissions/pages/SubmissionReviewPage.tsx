@@ -20,6 +20,7 @@ import { notificationService } from "@/services/notificationService";
 import { submissionsService } from "@/services/submissionsService";
 import { messagingService } from "@/services/messagingService";
 import { trackEvent } from "@/lib/analytics";
+import { classifyAction } from "@/features/submissions/lib/quickAction";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
