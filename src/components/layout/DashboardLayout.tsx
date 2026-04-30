@@ -27,14 +27,16 @@ export function DashboardLayout() {
   return (
     <RequireAuth>
       <SidebarProvider>
-        <div className="flex min-h-screen w-full bg-gradient-subtle">
+        <div className="relative flex min-h-screen w-full bg-gradient-subtle">
+          {/* Ambient glow behind the app shell — sits behind sidebar + content */}
+          <div className="pointer-events-none absolute inset-0 -z-10 bg-ambient-mesh opacity-70" aria-hidden />
           {/* Desktop sidebar — hidden on phone/tablet, where the bottom tab bar takes over. */}
           <div className="hidden lg:block">
             <AppSidebar />
           </div>
 
           <div className="flex min-w-0 flex-1 flex-col">
-            <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/85 px-3 backdrop-blur pt-safe sm:px-4">
+            <header className="sticky top-0 z-30 flex h-14 items-center gap-3 glass-nav px-3 pt-safe sm:px-4">
               {/* Sidebar toggle only on desktop where the sidebar exists. */}
               <div className="hidden lg:block">
                 <SidebarTrigger />
