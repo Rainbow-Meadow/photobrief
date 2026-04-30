@@ -1,163 +1,128 @@
-# PhotoBrief Visual Identity Upgrade — Apple-Inspired Glass
 
-A focused redesign that keeps every flow intact and only changes look, feel, hierarchy, and surface language. No backend, routing, or data model changes.
+# Invite-only beta + public waitlist
 
----
+PhotoBrief stays in beta: public visitors join a waitlist, only invited emails can create accounts. Existing users sign in normally.
 
-## 1. Audit — what still feels template-like today
+## 1. Config flag
 
-- Hero is a centered text block + standard browser-chrome mockup. No depth, no glass, no real "Apple" presentation.
-- Nav is flat: solid background, generic ghost links, no glass or active-state polish.
-- Section rhythm is conventional Tailwind SaaS: light-gray bands, big numerals, 2/4-up grids — works, but reads as "Lovable starter".
-- Cards everywhere use the same `bg-card + shadow-elev-sm` recipe, so pricing, dashboard, capture, and review all look siblings of each other rather than purpose-built surfaces.
-- No glass token system — translucent surfaces are one-off `bg-white/[0.06] backdrop-blur` strings inside components.
-- Typography is Inter system default with one weight scale; hero headline isn't large or tight enough to feel premium.
-- Buttons are stock shadcn — no branded primary, no luminous hover, no consistent loading state.
-- Capture chat bubbles, submission review, and dashboard widgets have no shared "glass" identity — they look like different apps.
-- Mobile nav works but visual hierarchy is weak; sheet feels generic.
-- Decorative numerals in HowItWorks, gray pricing FAQ band, and the StatsBand all read as defaults.
+New `src/config/access.ts`:
 
----
+- `PUBLIC_SIGNUP_ENABLED = false`
+- `INVITE_ONLY_BETA = true`
+- Helper `signupCtaTarget()` → returns `/waitlist` when invite-only, `/auth?mode=signup` otherwise.
+- Helper `signupCtaLabel()` → `"Join waitlist"` or `"Start free"`.
 
-## 2. Top 10 highest-impact upgrades
+All marketing/pricing CTAs read from this — no hardcoded strings.
 
-1. Introduce a **glass design token layer** (`--glass-*`, `--blur-*`, `--ring-hairline`, layered shadows) and a `<GlassPanel>` primitive with variants: `nav | hero | card | modal | widget | chat`.
-2. Redesign the **homepage hero**: tighter headline, refined CTA pair, and a new layered glass product story (two floating panels with parallax depth and a soft sky-blue ambient gradient behind them) replacing the browser-chrome mockup.
-3. Rebuild **navigation** as a translucent floating glass bar with hairline border, refined hover underline, and a branded primary CTA pill.
-4. Establish a **typography scale** (Inter Display for h1/h2, Inter for body, tabular nums for metrics) with confident hero size (clamp 44–72px), tighter tracking, and consistent label/eyebrow style.
-5. Refactor **buttons** with a true brand primary (gradient + inner highlight + soft ring on hover), consistent `loading`, `success`, and `disabled` states, and a new `glass` variant for use on dark/photo backgrounds.
-6. Redesign **pricing cards** as glass tiles with distinct elevation for the recommended Pro plan (lifted, glow ring, gradient header chip), uniform feature spacing, and four clear tiers visually grouped.
-7. Polish the **dashboard shell**: sidebar becomes a thin glass rail, header uses a translucent strip, metric cards become glass widgets with strong number hierarchy + sparkline placeholder, and the request inbox rows get a refined hover lift.
-8. Elevate the **recipient capture/chat flow**: branded glass header with progress pill, larger capture CTA, refined chat bubbles (assistant = glass card w/ lens dot, user = primary gradient), AI feedback bubble with sparkline accent, and a calm completion state.
-9. Make the **submission review page** the "money screen": a hero readiness card (large animated score ring + status label), AI summary glass card, missing items glass card, shot grid with consistent badge language, and a sticky action bar.
-10. Add **restrained motion**: section reveal on scroll, card hover lift (translateY -2px + shadow swap), readiness ring count-up, chat bubble fade/slide-in, and button press micro-interaction. All ≤250ms, respects `prefers-reduced-motion`.
+## 2. Database (one migration)
 
----
+**`waitlist_entries`**
+- `id uuid pk`, `name`, `business_name`, `email citext unique`, `business_type`, `website`, `use_case`, `estimated_monthly_requests`, `notes`, `status text default 'new'` (new/reviewed/invited/rejected/contacted), `source text default 'web'`, `created_at`, `updated_at`
+- RLS: anon `INSERT` allowed; `SELECT/UPDATE/DELETE` admin-only via `is_platform_admin()`.
 
-## 3. The Apple-inspired glass system
+**`beta_invites`** (separate from existing `workspace_invites` which is for team seats)
+- `id uuid pk`, `email citext`, `business_name`, `workspace_id uuid null`, `invited_by uuid null`, `token_hash text not null` (sha256), `token_prefix text` (first 8 chars, for admin display), `status text default 'pending'` (pending/accepted/expired/revoked), `expires_at timestamptz default now()+'14 days'`, `accepted_at`, `notes`, timestamps
+- Unique partial index on `(email)` where `status='pending'`.
+- RLS: admin-only read/write. Acceptance happens through an edge function (service role).
 
-### Tokens (added to `src/index.css` `:root` and `.dark`)
+**`platform_admins`** (allowlist; safer than a flag on profiles)
+- `user_id uuid pk references auth.users`, `created_at`
+- Helper `public.is_platform_admin()` SECURITY DEFINER returning bool.
+- Seeded by manual SQL with the user's existing admin email (we'll prompt for which email to seed during build).
 
-```text
---glass-bg-strong:   hsl(0 0% 100% / 0.72)
---glass-bg:          hsl(0 0% 100% / 0.55)
---glass-bg-soft:     hsl(0 0% 100% / 0.35)
---glass-bg-onDark:   hsl(222 60% 14% / 0.55)
---glass-border:      hsl(220 30% 90% / 0.7)
---glass-border-onDark: hsl(0 0% 100% / 0.12)
---glass-highlight:   hsl(0 0% 100% / 0.6)   /* top inner sheen */
---glass-shadow:      0 1px 0 hsl(0 0% 100% / 0.6) inset,
-                     0 20px 40px -20px hsl(222 47% 11% / 0.18),
-                     0 8px 24px -12px hsl(222 47% 11% / 0.12)
---blur-sm: 8px;  --blur-md: 16px;  --blur-lg: 28px;
---radius-xs: 8px; --radius-sm: 12px; --radius-md: 16px;
---radius-lg: 20px; --radius-xl: 28px; --radius-2xl: 36px;
---ambient-sky: radial-gradient(80% 60% at 50% 0%, hsl(217 100% 70% / 0.18), transparent 70%)
-```
+## 3. Edge functions (3 new)
 
-Tailwind exposure: extend `boxShadow.glass`, `backdropBlur.glass-{sm,md,lg}`, `backgroundImage.ambient-sky`, plus utility classes `.glass`, `.glass-strong`, `.glass-onDark`, `.hairline`.
+- **`waitlist-submit`** (public, JWT off): zod-validate fields, enforce rate-limit by IP + email, dedupe by email (return `{ already: true }` instead of error), insert row, fire `_notify_event` for ops notification. Returns `{ ok, already }`.
+- **`invite-validate`** (public, JWT off): given raw token, hash + look up `beta_invites`. Returns `{ valid, email, business_name, reason }` where reason is `expired|revoked|accepted|not_found|ok`. No 500s on miss.
+- **`invite-accept`** (public, JWT off): called from signup page after `auth.signUp` succeeds. Verifies token + that `auth.users.email` matches invite email, marks `status='accepted'`, `accepted_at=now()`. Idempotent.
+- **`admin-invites`** (JWT on, asserts `is_platform_admin`): create / revoke / resend / mark-waitlist-status. Returns one-time raw token on create (only shown once; copy-link UX).
 
-### `<GlassPanel>` primitive (`src/components/ui/glass-panel.tsx`)
+## 4. Routes (App.tsx)
 
-```tsx
-<GlassPanel variant="card" tone="light" elevation="md" interactive>
-```
-Variants map to combinations of bg/blur/border/shadow tokens above. All glass surfaces in the app render through this component so the look stays consistent.
+Add to marketing layout:
+- `/waitlist` → `WaitlistPage` (public)
+- `/signup` → `SignupPage` (public; reads `?invite=` token)
+- `/beta-invite/:token` → `BetaInvitePage` (public landing → forwards to `/signup?invite=...`)
 
-### Usage rules
+`/invite/:token` stays as-is (team-seat invites; do not break).
 
-- Glass appears on top of an ambient gradient, photo, or layered background — never on flat white-on-white.
-- One glass tier per visual layer; never stack two translucent panels directly.
-- Hairline border (`1px hsl(var(--glass-border))`) on every glass surface for crispness.
-- Inner top highlight via `box-shadow inset` for the "sheen".
-- Blur kept ≤ 16px on cards, 28px reserved for nav/modal overlays.
-- Text on glass always passes WCAG AA — enforce via `text-foreground` on light glass, `text-white` on dark glass.
+Admin:
+- `/admin/invites` → `AdminInvitesPage` wrapped in `RequireAuth` + new `RequirePlatformAdmin` guard (renders 404 for non-admins, no leakage).
 
----
+## 5. Pages
 
-## 4. What changes, page by page
+**`WaitlistPage`** — glass design matching brand:
+- Headline + subhead per spec, form fields per spec, react-hook-form + zod.
+- Submits to `waitlist-submit`. On `already: true` → "Looks like you're already on the list — we'll be in touch."
+- On success → success card replacing form.
+- Tracks `waitlist_viewed`, `waitlist_submitted`, `waitlist_duplicate`.
 
-### Marketing
+**`SignupPage`** — invite-aware:
+- No `?invite` token → `<Navigate to="/waitlist" replace />` + `signup_blocked_no_invite` event.
+- With token → call `invite-validate`. Invalid/expired/revoked → polished error card with link to `/waitlist` (`invite_invalid` event).
+- Valid → render signup form (email pre-filled and **read-only**, name + password). Email mismatch is impossible because the field is locked.
+- After `supabase.auth.signUp` → call `invite-accept` → redirect to `/onboarding` (or `/dashboard` if workspace exists).
+- Google/Apple OAuth: pass invite token via `state`; on return, the existing redirect-to-dashboard flow runs but we add a `<InviteAcceptanceGuard>` on `/onboarding` that finalizes acceptance if a `pendingInviteToken` is in sessionStorage.
 
-- **`src/pages/Landing.tsx`** — new hero copy ("Send a link. Get a complete brief." / "Start Free" + "Watch Demo"), ambient sky gradient behind hero, replace `HeroProductMockup` with new `HeroGlassStory`. Insert a 3-step value strip above HowItWorks.
-- **`src/components/marketing/HeroGlassStory.tsx`** *(new)* — two floating glass panels (Customer / Brief) with offset depth, soft drop shadow, lens-ring accent, animated readiness arc.
-- **`HowItWorksSteps.tsx`** — reduce to 3 steps matching brief, swap big numerals for refined lens-ring step indicators on glass cards.
-- **`TrustLogosStrip.tsx`, `StatsBand.tsx`, `IndustryGrid.tsx`, `TestimonialsRow.tsx`, `FinalCtaCard.tsx`, `FirstPassGuaranteeBand.tsx`** — re-skin to glass cards / hairline dividers, consistent eyebrow style, no functional change.
-- **`MarketingLayout.tsx`** — floating translucent glass nav, refined hover underline, branded primary CTA, polished mobile sheet.
+**`BetaInvitePage`** (`/beta-invite/:token`) — small landing that validates and forwards to `/signup?invite=…`.
 
-### Pricing
+**`AdminInvitesPage`** — two-tab UI:
+- Waitlist: table with filter (status, business type), row actions: mark reviewed/contacted, "Invite this person" (creates beta invite pre-filled).
+- Invites: table of beta invites with status, expires, copy-link, revoke, resend (regenerates token).
+- All actions go through `admin-invites` edge function.
 
-- **`Pricing.tsx`** + **`PricingCardGrid.tsx`** — 4 glass tiles (Free / Pro / Business / Enterprise), Pro lifted with glow ring + gradient cap, uniform feature list, refined billing toggle, glass FAQ accordion, glass guarantee card.
+## 6. CTA updates
 
-### Auth
+Replace every `/auth?mode=signup` and "Start Free / Try Free / Start free" string in:
+- `src/components/layout/MarketingLayout.tsx` (desktop + mobile nav)
+- `src/pages/Landing.tsx` (hero CTA)
+- `src/pages/Pricing.tsx`
+- `src/components/pricing/PricingCardGrid.tsx` (free plan CTA → "Join waitlist")
+- `src/components/marketing/FinalCtaCard.tsx`
+- `src/components/marketing/FirstPassGuaranteeBand.tsx`
+- `src/components/marketing/FoundingCustomerBanner.tsx` (founding-pro CTA → `/waitlist?interest=founding-pro` so we capture intent)
 
-- **`src/pages/Auth.tsx`, `ForgotPassword.tsx`, `ResetPassword.tsx`** — split layout with ambient gradient + faint product silhouette on one side, single glass card holding the form. Inputs get the new refined style (taller, hairline border, focus ring).
+All read from `signupCtaTarget()` / `signupCtaLabel()` so flipping the flag flips everything.
 
-### Dashboard shell
+`AuthPage`: when `mode=signup` and `INVITE_ONLY_BETA`, redirect to `/waitlist`. Keep sign-in fully functional (Google/Apple/email/demo). Remove the bottom "New to PhotoBrief? Create one" link in invite-only mode; replace with "Don't have an invite? Join the waitlist."
 
-- **`DashboardLayout.tsx`, `AppSidebar.tsx`, `PageHeader.tsx`** — translucent header, thin glass sidebar rail with refined active state (gradient pill + lens dot), softened content background using the ambient gradient.
-- **`shared/MetricCard.tsx`, `DashboardPage.tsx`** — glass widgets, large tabular-num value, eyebrow label, micro-trend area, hover lift.
-- Inbox rows (`RequestsInboxPage.tsx`, related row components) — hover lift, status pills re-skinned, readiness badge unified.
+## 7. Auth guard / safety
 
-### Request builder
+- `RequireAuth` unchanged — still handles existing users + onboarding loop + backend-unavailable panel.
+- New `RequirePlatformAdmin` component checks `platform_admins` membership via a small hook (`usePlatformAdmin`).
+- Backend-unavailable behavior preserved (we do NOT block sign-in, only signup).
+- Demo account (`demo@photobrief.app`) and existing seed users continue to work — they sign in via the password flow which is untouched. The temp-password / password-reset flow (`/forgot-password`, `/reset-password`) is untouched.
 
-- **`CreateRequestPage.tsx`, `AIRequestBuilderChat.tsx`, `RequestBuilderModeTabs.tsx`, `GeneratedQuestionEditor.tsx`, `GeneratedStepEditor.tsx`, `TemplatePicker.tsx`** — wrap step canvas in glass, refine tab pills, soften card edges, consistent spacing scale; no logic change.
+## 8. Analytics
 
-### Recipient capture / chat
+Extend `src/lib/analytics.ts` event union with: `waitlist_viewed`, `waitlist_submitted`, `waitlist_duplicate`, `invite_created`, `invite_accepted`, `invite_invalid`, `signup_blocked_no_invite`. Fire from the relevant pages/functions.
 
-- **`PublicRequestLayout.tsx`, `PublicRecipientPage.tsx`, `ChatThread.tsx`, `ChatMessage.tsx`, `PhotoPromptCard.tsx`, `CaptureUploadCard.tsx`, `AIFeedbackMessage.tsx`, `RetakeDecisionCard.tsx`, `ReviewSummaryCard.tsx`, `SubmitConfirmationCard.tsx`** — branded glass header w/ progress pill, larger primary capture button, assistant bubbles as glass cards w/ lens-ring avatar, user bubbles as primary gradient with subtle inner highlight, AI feedback bubble distinguished by sparkline accent, calm glass completion state.
+## 9. Email
 
-### Submission review
+No automatic invite emails this pass — admin copies the link. Edge function returns the raw token once on creation. We'll wire the existing `_notify_event` queue for a `beta_invite_created` template later behind a `BETA_INVITE_EMAIL_ENABLED` flag (off by default).
 
-- **`SubmissionReviewPage.tsx`, `ShotCard.tsx`, `ActivityTimeline.tsx`, `InternalNotesPanel.tsx`, `AskForMorePhotosDialog.tsx`** — new readiness hero (large ring + status), AI summary glass card, missing-items glass card, refined shot grid with unified status badges, sticky bottom action bar on mobile.
+## Validation checklist (post-build)
 
-### Settings / branding
+I'll manually walk through:
+1. `/` shows "Join waitlist" CTA.
+2. `/waitlist` submit → success.
+3. Re-submit same email → friendly "already on list".
+4. `/signup` (no token) → redirects to `/waitlist`.
+5. `/signup?invite=bogus` → polished error + waitlist link.
+6. Admin creates invite → copies link → `/signup?invite=…` works once.
+7. Reusing accepted invite → blocked with clear message.
+8. Existing demo + beta accounts sign in normally.
+9. `/dashboard` still requires auth.
+10. `/admin/invites` returns 404 for non-admin signed-in users.
 
-- **`BrandSettingsPage.tsx`, `BillingSettingsPage.tsx`, `TeamSettingsPage.tsx`, `MessageTemplatesPage.tsx`, `SmsSettingsPage.tsx`** — sectioned glass panels, refined form inputs, consistent description text style.
+## Open question (will ask before building)
 
-### Shared components touched
+Which email should be seeded into `platform_admins`? (We need at least one to access `/admin/invites`.)
 
-`button.tsx` (gradient primary + glass variant + loading state), `card.tsx` (radius + shadow scale), `input.tsx` / `textarea.tsx` / `select.tsx` (taller, hairline, focus ring), `badge.tsx` (status palette unified), `EmptyState.tsx`, `StatusBadge.tsx`, `PlanTag.tsx`, `ReadinessProgress.tsx`, `ReadinessScoreBadge.tsx`, `UpgradePromptCard.tsx`.
+## Deliverables
 
----
-
-## 5. Motion
-
-- `motion.css` utility additions: `.lift-on-hover`, `.section-reveal`, `.bubble-in`, `.ring-count-up`.
-- Use Tailwind keyframes already in `tailwind.config.ts` (`fade-in`, plus new `lift`, `reveal`, `count-up`).
-- All ≤ 250ms, easing `cubic-bezier(0.4,0,0.2,1)`. Wrapped in `@media (prefers-reduced-motion: no-preference)`.
-
----
-
-## 6. Implementation order
-
-1. Tokens + Tailwind extension + `GlassPanel` primitive + button/input/card refinements.
-2. Marketing layout (nav + footer) and homepage hero + sections.
-3. Pricing page + pricing cards.
-4. Auth screens.
-5. Dashboard shell + metric cards + inbox rows.
-6. Recipient capture/chat surfaces.
-7. Submission review page.
-8. Settings & remaining shared components.
-9. Mobile pass + motion pass + accessibility/contrast verification.
-
----
-
-## 7. Guardrails
-
-- Zero changes to routing, data hooks, Supabase calls, or state machines.
-- Keep all component prop signatures stable — purely visual refactor inside components.
-- Preserve every existing test; do not remove behavior covered by `src/test/*`.
-- Run a contrast pass on every new glass surface (target WCAG AA 4.5:1).
-- No new heavy dependencies — use existing `lucide-react`, Tailwind, CSS only.
-
----
-
-## 8. Deliverable summary I will provide after implementation
-
-1. Pages updated (list).
-2. Components updated (list).
-3. Design tokens added/changed (diff of `index.css` + `tailwind.config.ts`).
-4. Glass styles introduced (`GlassPanel` API + utility classes).
-5. Mobile responsiveness notes (per surface).
-6. Remaining polish recommendations (e.g. real product screenshots, custom illustrations, video demo asset).
+- 1 migration (3 tables + helper function + RLS)
+- 4 edge functions (`waitlist-submit`, `invite-validate`, `invite-accept`, `admin-invites`)
+- 3 new pages + 1 admin page + 1 guard component + 1 hook
+- 1 config file + analytics event additions
+- ~7 marketing/pricing files updated to read from config
