@@ -72,14 +72,18 @@ export default function SignupPage() {
         });
         if (cancelled) return;
         if (error) throw error;
-        const r = data as
-          | { valid: true; email: string; business_name: string | null }
-          | { valid: false; reason: string };
-        if (r.valid) {
+        const r = data as {
+          valid: boolean;
+          email?: string;
+          business_name?: string | null;
+          reason?: string;
+        };
+        if (r.valid && r.email) {
           setState({ kind: "valid", email: r.email, business_name: r.business_name ?? null });
         } else {
-          trackEvent("invite_invalid", { reason: r.reason });
-          setState({ kind: "invalid", reason: r.reason });
+          const reason = r.reason ?? "not_found";
+          trackEvent("invite_invalid", { reason });
+          setState({ kind: "invalid", reason });
         }
       } catch (e) {
         if (cancelled) return;
