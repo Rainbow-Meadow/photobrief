@@ -65,6 +65,7 @@ const App = () => (
         <AuthProvider>
         <CurrentWorkspaceProvider>
           <RouteTracker />
+          <InviteAcceptanceGuard>
           <Suspense fallback={null}>
           <Routes>
           {/* Marketing + auth */}
