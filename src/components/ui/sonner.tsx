@@ -11,12 +11,20 @@ const Toaster = ({ ...props }: ToasterProps) => {
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
       toastOptions={{
+        unstyled: false,
         classNames: {
           toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
+            "group toast glass-strong !rounded-2xl !text-foreground !border-[hsl(var(--glass-border))] group-[.toaster]:shadow-[var(--glass-shadow-lg)]",
+          title: "font-semibold",
           description: "group-[.toast]:text-muted-foreground",
-          actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
-          cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+          actionButton:
+            "group-[.toast]:btn-primary-glass group-[.toast]:!text-primary-foreground group-[.toast]:!rounded-lg",
+          cancelButton:
+            "group-[.toast]:!bg-muted group-[.toast]:!text-muted-foreground group-[.toast]:!rounded-lg",
+          success: "[&_[data-icon]]:!text-success",
+          error: "[&_[data-icon]]:!text-destructive",
+          warning: "[&_[data-icon]]:!text-warning",
+          info: "[&_[data-icon]]:!text-primary",
         },
       }}
       {...props}
