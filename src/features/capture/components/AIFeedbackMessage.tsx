@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CapturedPhoto } from "@/types/chat";
 import type { AICheckSeverity } from "@/types/photobrief";
@@ -27,11 +27,17 @@ const verdictMeta: Record<
     label: "Let's try again",
     tone: "text-destructive",
   },
+  unavailable: {
+    Icon: HelpCircle,
+    label: "AI review unavailable",
+    tone: "text-muted-foreground",
+  },
 };
 
 const checkIcon = (sev: AICheckSeverity) => {
   if (sev === "pass") return <CheckCircle2 className="h-3.5 w-3.5 text-success" />;
   if (sev === "warn") return <AlertTriangle className="h-3.5 w-3.5 text-warning" />;
+  if (sev === "unavailable") return <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />;
   return <XCircle className="h-3.5 w-3.5 text-destructive" />;
 };
 
