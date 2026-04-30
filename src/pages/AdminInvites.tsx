@@ -195,11 +195,12 @@ export default function AdminInvitesPage() {
         eyebrow="Platform admin"
         title="Beta invites & waitlist"
         description="Review beta requests, send invites, and manage active invite links."
-      >
-        <Button onClick={() => { setCreateForm({ email: "", business_name: "", notes: "", waitlist_id: "" }); setCreateOpen(true); }}>
-          New invite
-        </Button>
-      </PageHeader>
+        actions={
+          <Button onClick={() => { setCreateForm({ email: "", business_name: "", notes: "", waitlist_id: "" }); setCreateOpen(true); }}>
+            New invite
+          </Button>
+        }
+      />
 
       <Tabs defaultValue="waitlist" className="mt-8">
         <TabsList>
