@@ -4,8 +4,9 @@
  *
  * Splits incoming requests between two origins:
  *
- *   - Static assets (/assets/*, /og-image, /robots.txt, /sitemap.xml,
- *     /llms*.txt, /.well-known/*, etc.) → Cloudflare Pages, edge-cached.
+ *   - Pages-only static files (/og-image, /robots.txt, /sitemap.xml,
+ *     /llms*.txt, /openapi.json, /mcp.json, /.well-known/*) → Cloudflare
+ *     Pages, edge-cached. Stable filenames, only the Pages build emits them.
  *
  *   - Marketing HTML routes (/, /pricing, /help, /for-ai-agents, /waitlist):
  *       • Bots / crawlers / LLM fetchers → Pages (prerendered static HTML
@@ -13,22 +14,13 @@
  *       • Real users → Lovable hosting (live SPA with the latest dynamic
  *         behavior, no prerender hydration delay).
  *
- *   - Everything else (/auth, /dashboard, /requests, /r/*, /onboarding,
- *     /settings/*, …) → Lovable hosting, regardless of client.
+ *   - Hashed JS/CSS bundles (/assets/*) and everything else (/auth, /dashboard,
+ *     /requests, /r/*, /onboarding, /settings/*, …) → Lovable hosting.
+ *     /assets/* MUST come from the same origin that served the HTML, because
+ *     Vite hash filenames differ between the Lovable build and the Pages build.
  *
  * The marketing allow-list MUST stay in sync with scripts/prerender.mjs,
  * which reads its routes from public/sitemap.xml.
- *
- * Asset routing strategy
- * ----------------------
- * Vite emits hashed filenames into /assets/*. Both the Pages build and
- * the Lovable build produce the SAME bundle (same source repo), so a
- * request for /assets/index-CM16Y4DE.js can be served by either origin.
- * We route /assets/* to Pages because:
- *   1. Pages caches at the edge with a 1y TTL out of the box.
- *   2. Pages → Lovable would add an extra hop with no benefit.
- * If Pages 404s on an asset (because the Lovable build is one commit
- * ahead, say), we fall back to Lovable transparently.
  */
 
 interface Env {
