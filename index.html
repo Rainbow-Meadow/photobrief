@@ -29,14 +29,43 @@
   <meta property="og:description" content="PhotoBrief turns vague customer photos into business-ready briefs. Chat-guided capture, AI quality checks, clean summaries — every time.">
   <meta name="twitter:description" content="PhotoBrief turns vague customer photos into business-ready briefs. Chat-guided capture, AI quality checks, clean summaries — every time.">
 
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GJCZPQ3WJ9"></script>
+  <!-- Google tag (gtag.js) — deferred until first user interaction or 5s idle.
+       Removes ~156KB / 660ms of main-thread work from the initial load
+       (Speed Index / LCP / TBT win) without losing analytics for engaged
+       users. The dataLayer + gtag shim are defined synchronously so any
+       early trackEvent() calls queue up and replay once the real script loads. -->
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
+    window.gtag = gtag;
     gtag('js', new Date());
     // SPA: page_view is sent manually by RouteTracker on every route change
     gtag('config', 'G-GJCZPQ3WJ9', { send_page_view: false });
+
+    (function () {
+      var loaded = false;
+      function loadGA() {
+        if (loaded) return;
+        loaded = true;
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=G-GJCZPQ3WJ9';
+        document.head.appendChild(s);
+        ['pointerdown','keydown','touchstart','scroll'].forEach(function (e) {
+          window.removeEventListener(e, loadGA);
+        });
+      }
+      ['pointerdown','keydown','touchstart','scroll'].forEach(function (e) {
+        window.addEventListener(e, loadGA, { passive: true, once: true });
+      });
+      // Fallback: load after the page is idle so bounced visitors are still
+      // counted. 5s gives the browser time to finish paint + hydrate.
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(loadGA, { timeout: 5000 });
+      } else {
+        setTimeout(loadGA, 5000);
+      }
+    })();
   </script>
 </head>
 

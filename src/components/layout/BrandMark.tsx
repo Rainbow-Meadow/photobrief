@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
-import horizontalLogo from "@/assets/brand/photobrief-horizontal.png";
+import horizontalLogo from "@/assets/brand/photobrief-horizontal.webp";
 import stackedLogo from "@/assets/brand/photobrief-stacked.png";
-import wordmark from "@/assets/brand/photobrief-wordmark.png";
+import wordmark from "@/assets/brand/photobrief-wordmark.webp";
 import markDark from "@/assets/brand/photobrief-mark-dark.png";
 import markLight from "@/assets/brand/photobrief-mark-light.png";
 import primaryMark from "@/assets/brand/photobrief-primary.png";
@@ -57,6 +57,19 @@ export function BrandMark({
 
   const loading = eager ? "eager" : "lazy";
   const style = { height: size, width: "auto" as const };
+  // Intrinsic aspect ratios for each variant (width:height) so we can emit
+  // explicit width/height attributes — prevents CLS and satisfies the
+  // Lighthouse "unsized-images" audit without changing displayed size.
+  const aspectByVariant: Record<BrandVariant, number> = {
+    horizontal: 378 / 126, // 3:1
+    stacked: 1, // square-ish stacked lockup
+    wordmark: 628 / 209, // ~3:1
+    mark: 1,
+    primary: 1,
+  };
+  const aspect = aspectByVariant[resolvedVariant];
+  const intrinsicHeight = size;
+  const intrinsicWidth = Math.round(size * aspect);
   const imgClass = cn(
     "block select-none",
     withGlow && "drop-shadow-[0_8px_28px_hsl(var(--primary)/0.45)]",
@@ -78,6 +91,8 @@ export function BrandMark({
         <img
           src={lightSrc}
           alt={ALT}
+          width={intrinsicWidth}
+          height={intrinsicHeight}
           style={style}
           loading={loading}
           draggable={false}
@@ -87,6 +102,8 @@ export function BrandMark({
           src={darkSrc}
           alt=""
           aria-hidden
+          width={intrinsicWidth}
+          height={intrinsicHeight}
           style={style}
           loading={loading}
           draggable={false}
@@ -104,6 +121,8 @@ export function BrandMark({
       <img
         src={pickSrc(resolvedVariant, resolvedTone)}
         alt={ALT}
+        width={intrinsicWidth}
+        height={intrinsicHeight}
         style={style}
         loading={loading}
         draggable={false}
