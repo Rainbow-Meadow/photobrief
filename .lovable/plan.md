@@ -1,71 +1,126 @@
-# Replace landing hero example with a Junk Removal brief
 
-The landing page hero (`HeroGlassStory`) currently shows a plumbing leak example: a customer-side chat with a leak close-up, plus a 6-shot business "brief" panel. I'll swap it for a junk removal request with brand-new, fully photorealistic, visually consistent images that depict a *well-completed* brief (all six shots pass, no retake warning).
+# PhotoBrief demo video — end-to-end request flow
 
-## Scenario
+A ~25 second, 1920×1080 / 30fps MP4 rendered with Remotion, captions/text only (no voiceover). Reuses the existing junk-removal "Garage Cleanout" photos and the landing-page visual language (glass panels, ambient sky background, primary/primary-glow gradient) so the video feels like a natural extension of the marketing site.
 
-**Customer:** Marcus T. — Garage Cleanout
-**Job:** ~½ truckload of household junk in a single-car garage, ready for pickup
-**Critical photos (6 of 6, all green):**
-1. Wide shot of the garage from the open door (scale + access)
-2. Close-up of the main pile (volume estimate)
-3. Old mattress + box spring leaning against wall (oversize item)
-4. Small appliance pile — broken microwave + mini-fridge (special handling)
-5. Driveway / truck access view (where the truck will park)
-6. Stair / threshold check at garage entry (no stairs, ground level)
+Final output: `/mnt/documents/photobrief-demo.mp4`
 
-The right-hand "AI summary" will read like a real dispatcher-ready brief: estimated volume, oversize items flagged, truck access confirmed, no stairs.
+## Story (5 scenes, ~25s total)
 
-## Image generation
+```
+[0:00] LOGO IN          1.5s   PhotoBrief wordmark fades up over ambient sky
+[0:01] STEP 1 — SEND    4.5s   "Sarah at Apex Junk Removal sends a request"
+                                Phone-shaped card composes a brief, taps Send
+[0:06] STEP 2 — RECEIVE 4.5s   "Marcus gets a text with one link"
+                                SMS bubble drops in, link expands into chat UI
+[0:10] STEP 3 — CAPTURE 7s     "AI guides him photo by photo"
+                                6 photo tiles fly in one by one (the existing
+                                wide-garage / pile / mattress / appliances /
+                                driveway / threshold images), each gets a green
+                                check, mini "AI feedback" bubbles appear
+[0:17] STEP 4 — BRIEF   5s     "Sarah opens a complete, dispatch-ready brief"
+                                Glass brief panel assembles: 6/6 photos grid,
+                                94% readiness ring spins up, AI summary types in
+[0:22] CLOSING          3s     Tagline: "Send a link. Get a complete brief."
+                                CTA-style logo lockup + photobrief.ai
+```
 
-Generate 6 photorealistic JPGs via the Lovable AI image model (`google/gemini-3-pro-image-preview` for hero quality), with a shared style spec to guarantee consistency:
+Total: ~25.5s = 765 frames at 30fps.
 
-- Same suburban single-car garage, same daylight (overcast late afternoon, soft shadows)
-- Same homeowner-phone perspective (handheld, ~chest height, slight wide-angle)
-- Same color palette: warm beige garage walls, gray concrete floor, muted browns/blues in the junk pile
-- No text, no watermarks, no people's faces
-- Realistic camera grain, natural color, no HDR look
-- Square crop friendly (the brief grid renders them as squares)
+## Visual direction
 
-Files written to `src/assets/junk-removal/`:
-- `wide-garage.jpg` — hero "close-up" used in the chat bubble + grid slot 1
-- `pile-closeup.jpg`
-- `mattress.jpg`
-- `appliances.jpg`
-- `driveway-access.jpg`
-- `threshold.jpg`
+- **Palette** — pulled from the landing page CSS tokens: primary `hsl(var(--primary))` blue with `--primary-glow` gradient, near-white glass panels with subtle border, soft warm ambient mesh background (matches `bg-ambient-sky` / `bg-ambient-mesh`).
+- **Typography** — Inter (Google Font, loaded via `@remotion/google-fonts/Inter`) for UI/body, Inter 800 for the big captions. Matches site.
+- **Motion system** — default entrance: 18-frame spring (`damping: 20, stiffness: 180`) with a 6px upward translate + opacity 0→1. Hero/accent moments (logo, readiness ring, tagline) use a bouncier spring (`damping: 12`). Scene-to-scene uses `<TransitionSeries>` with `fade` (15-frame springTiming) — restrained, premium, no flashy wipes.
+- **Camera feel** — every scene has a slow 1.02→1.06 scale drift on its hero element so nothing feels static.
+- **Layout** — asymmetric: phone/chat panels left-aligned with caption text right; brief panel center-stage. Never dead-centered until the closing tagline.
 
-After generation, I'll visually QA each image (open and inspect) and re-generate any that drift in style or look obviously AI before wiring them in.
+## Scene details
 
-## Code changes
+**Scene 1 — Logo in (45 frames)**
+Wordmark "PhotoBrief" springs up center, with the small `Sparkles` glyph and tagline "AI-guided visual intake" fading in beneath.
 
-**`src/components/marketing/HeroGlassStory.tsx`** — rewrite the example content:
-- Swap all 6 image imports to the new junk-removal assets
-- Update `SHOTS` array labels (Wide garage, Main pile, Mattress, Appliances, Driveway access, Threshold) and set **all six `ok: true`** so the brief reads as fully complete
-- Update the chat bubbles:
-  - Assistant prompt: "Photo 2 of 6 — Close-up of the main pile" / "Stand about 6 feet back so we can see the full volume."
-  - User photo bubble uses `pile-closeup.jpg`
-  - AI feedback: "Looks great — clear view of the pile. One more — the driveway where our truck will park."
-- Update the brief panel:
-  - Title: "Marcus T. — Garage Cleanout"
-  - Subtitle: "Submitted 2 min ago · 6 of 6 photos"
-  - Readiness ring: bump to **94** (fully complete brief), recompute the `stroke-dashoffset` accordingly
-  - Footer counter: "6 pass · 0 retakes"
-  - AI summary: "Single-car garage cleanout, ~½ truckload. Mattress + box spring and a mini-fridge flagged for oversize/appliance handling. Ground-level access, driveway fits a 16-ft truck — ready to dispatch."
-  - Extracted card: "Volume: ~½ truck · Oversize: mattress, mini-fridge"
-  - Quote-ready card copy unchanged ("First-pass guarantee active")
+**Scene 2 — Business sends request (135 frames)**
+- Left: a faux desktop "New request" card (rounded glass, matches `RequestDraftPreview`): title "Garage Cleanout", recipient "Marcus T. · 555-0142", a 3-line preview of the guide steps.
+- Cursor glides to a primary "Send request" button; on click the button pulses and a paper-plane icon flies off-screen right.
+- Right: caption "1. Build a brief in seconds" with sub-line "Pick a template or describe the job."
 
-**`HeroProductMockup.tsx`** is not imported by Landing — leave it alone to avoid scope creep, but note in the response that it still references the leak photos in case the user wants that updated too.
+**Scene 3 — Customer receives link (135 frames)**
+- A phone-frame mockup slides up from bottom.
+- An SMS bubble appears: "Apex Junk Removal: Tap to send a few photos so we can quote your cleanout → photobrief.ai/r/4f8a"
+- Bubble link expands into the recipient chat header ("Apex Junk Removal · Garage Cleanout") and the first assistant prompt ("Photo 1 of 6 — Wide shot of the garage").
+- Caption right: "2. Customer just taps a link" / "No app install. Works on any phone."
 
-**`Landing.tsx`** — no change (already imports `HeroGlassStory`).
+**Scene 4 — Guided capture with AI checks (210 frames)**
+The hero scene. Phone frame stays anchored on the left; on the right, a 3×2 grid of the six junk-removal photos populates one tile at a time with a 22-frame stagger:
+1. wide-garage → green check + "Great wide shot"
+2. pile-closeup → "Volume looks like ~½ truck"
+3. mattress → "Oversize item flagged"
+4. appliances → "Mini-fridge — special handling"
+5. driveway-access → "Truck access confirmed"
+6. threshold → "Ground-level entry"
+
+After tile 6 a small "6 of 6 ✓" pill pops in. Caption right: "3. AI guides every photo" / "Quality-checked in real time."
+
+**Scene 5 — Business gets the finished brief (150 frames)**
+- The phone fades back, the photo grid morphs/scales into the right-hand glass brief panel from the landing page (same look as `HeroGlassStory`'s right column).
+- Header: "Marcus T. — Garage Cleanout · 6 of 6 photos"
+- Readiness SVG ring animates 0 → 94% (interpolating `strokeDashoffset` over 30 frames)
+- AI summary types in line by line: "Single-car garage cleanout, ~½ truckload. Mattress + box spring and mini-fridge flagged for oversize/appliance handling. Ground-level access, driveway fits a 16-ft truck — ready to dispatch."
+- Small "First-pass guarantee active" chip slides in at the bottom.
+- Caption left: "4. Dispatch-ready brief" / "Quote and schedule on the spot."
+
+**Scene 6 — Closing (90 frames)**
+Big centered tagline "Send a link. Get a complete brief." with the gradient applied to "complete brief" (matches the H1 on `Landing.tsx`). Below: "photobrief.ai" in muted foreground. A subtle floating-shapes background ties it back to the hero.
+
+## Technical implementation
+
+Following the `skill/remotion-video` workflow exactly:
+
+1. **Scaffold** at `/dev-server/remotion/`:
+   - `bun init -y`
+   - Install: `remotion @remotion/cli @remotion/renderer @remotion/bundler @remotion/compositor-linux-x64-musl @remotion/transitions @remotion/google-fonts react react-dom typescript @types/react`
+   - Apply the NixOS compositor fix: copy musl `remotion` binary over the gnu path, symlink system `ffmpeg`/`ffprobe` into the gnu compositor dir.
+   - Write `tsconfig.json` (jsx `react-jsx`, module `Preserve`).
+
+2. **Project files**:
+   ```
+   remotion/
+     src/
+       index.ts                    registerRoot(RemotionRoot)
+       Root.tsx                    <Composition id="main" 1920x1080 fps=30 durationInFrames≈755>
+       MainVideo.tsx               <TransitionSeries> wiring scenes 1–6 with fade transitions
+       theme.ts                    Color tokens copied from src/index.css (HSL → hex), spring presets
+       components/
+         AmbientBackground.tsx     Persistent gradient + soft floating blobs (no backdropFilter — uses filter: blur sparingly)
+         GlassPanel.tsx            Reusable rounded-2xl panel with border + shadow
+         Caption.tsx               Large headline + sub line, used in scenes 2–5
+         PhoneFrame.tsx            iPhone-ish frame for chat scenes
+         ReadinessRing.tsx         Animated SVG ring driven by a 0–1 progress prop
+       scenes/
+         SceneLogo.tsx
+         SceneSend.tsx
+         SceneReceive.tsx
+         SceneCapture.tsx
+         SceneBrief.tsx
+         SceneClosing.tsx
+     public/
+       photos/                     Copied from src/assets/junk-removal/*.jpg via code--copy
+   ```
+
+3. **Assets** — `code--copy` the 6 existing junk-removal jpgs from `src/assets/junk-removal/` into `remotion/public/photos/`, referenced via `staticFile('photos/wide-garage.jpg')` etc. No new image generation needed (reuses what's already on the landing page → guarantees brand consistency).
+
+4. **Fonts** — `loadFont` from `@remotion/google-fonts/Inter` at module scope (weights 400/600/800).
+
+5. **Animation rules** — every motion via `useCurrentFrame()` + `interpolate()`/`spring()`. No CSS transitions, no Framer Motion, no `backdropFilter` (sandbox Chromium constraint).
+
+6. **Render** — programmatic script at `remotion/scripts/render-remotion.mjs` (per skill best practice), with `chromeMode: "chrome-for-testing"`, `muted: true`, `concurrency: 1`, `browserExecutable: "/bin/chromium"`, output → `/mnt/documents/photobrief-demo.mp4`.
+
+7. **QA** — render `bunx remotion still` checkpoints at frames 30, 180, 360, 540, 720 to spot-check each scene before the full render. Then render the full video and report file size + path.
 
 ## Out of scope
 
-- The PublicRecipientPage / SubmissionReviewPage product flows — only the marketing mockup changes
-- The `leak-photo.jpg` and `submission/*.jpg` assets stay on disk (still used by the unused `HeroProductMockup`)
-
-## QA
-
-After the edit:
-1. View each generated image to confirm photorealism and visual consistency (same garage, lighting, perspective)
-2. Load `/` in the preview at 1313×887 and confirm the hero panels render with the new images, no broken layouts, all six shot tiles green
+- No voiceover / no audio (the user picked the captions-only option). Final MP4 will be muted.
+- No background music (can be added later by mixing externally).
+- Video is generated as a downloadable artifact only — not embedded into the React app or wired into the landing page in this pass. After delivery, the user can ask me to add it to the hero or a "Watch demo" modal.
+- The 6 junk-removal photos are reused as-is — no new image generation.
