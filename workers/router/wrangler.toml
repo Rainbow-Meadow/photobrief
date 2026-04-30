@@ -1,0 +1,18 @@
+name = "photobrief-router"
+main = "src/index.ts"
+compatibility_date = "2025-04-01"
+
+# Bind the worker to both apex and www on the production zone.
+# `app.photobrief.ai` is intentionally NOT routed here — it points straight
+# at Lovable so the authenticated app continues to work without a Worker hop.
+[[routes]]
+pattern = "photobrief.ai/*"
+zone_name = "photobrief.ai"
+
+[[routes]]
+pattern = "www.photobrief.ai/*"
+zone_name = "photobrief.ai"
+
+[vars]
+PAGES_HOST = "photobrief-marketing.pages.dev"
+LOVABLE_HOST = "photobrief.lovable.app"
