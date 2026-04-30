@@ -15,6 +15,7 @@ import { GuideStep } from "@/features/help/components/GuideStep";
 import { GuideTOC, type TocItem } from "@/features/help/components/GuideTOC";
 import { QuickChecklist } from "@/features/help/components/QuickChecklist";
 import { Callout } from "@/features/help/components/Callout";
+import { SEOHead } from "@/components/seo/SEOHead";
 
 import { quickStartSteps, quickStartChecklist } from "@/features/help/content/quickStart";
 import { businessSteps, businessChecklist } from "@/features/help/content/business";
@@ -72,6 +73,11 @@ export default function BetaGuidePage() {
 
   return (
     <div className="space-y-8">
+      <SEOHead
+        title="Help & beta guide | PhotoBrief"
+        description="Get started with PhotoBrief in 5 minutes. Step-by-step guides for sending photo requests, receiving them, and getting the most out of every brief."
+        canonicalPath="/help"
+      />
       {/* Hero */}
       <header className="rounded-3xl border bg-gradient-to-br from-primary/10 via-background to-accent/30 p-6 sm:p-10">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">

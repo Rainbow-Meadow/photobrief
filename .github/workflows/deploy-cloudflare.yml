@@ -1,0 +1,53 @@
+name: Deploy Cloudflare (Pages + Worker)
+
+# Builds the marketing site, prerenders /, /pricing, /help and publishes the
+# `dist/` output to Cloudflare Pages. Then deploys the routing Worker that
+# splits photobrief.ai traffic between Pages (marketing) and Lovable (app).
+#
+# Lovable continues to host the SPA — this workflow only adds an edge layer
+# for marketing pages. Frontend changes to the app made via Lovable Publish
+# are unaffected by this workflow.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install app dependencies
+        run: npm ci
+
+      - name: Build SPA + prerender marketing routes
+        run: npm run build:prerender
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=photobrief-marketing --branch=main
+
+      - name: Install Worker dependencies
+        working-directory: workers/router
+        run: npm install --no-package-lock
+
+      - name: Deploy router Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/router
+          command: deploy
