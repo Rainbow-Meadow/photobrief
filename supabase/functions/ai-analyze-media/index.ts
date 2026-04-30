@@ -41,51 +41,56 @@ Reply ONLY by calling the analyze_photo function. Be specific, kind, and actiona
 - "warn": usable but a better retake would help (slight blur, glare, framing).
 - "fail": not usable for this step (wrong subject, too dark, blurry, missing key element).
 
-Per-check messages should be one short sentence the recipient could act on.`;
+Per-check messages should be one short sentence the recipient could act on.
 
-const TOOL = {
-  type: "function",
-  function: {
-    name: "analyze_photo",
-    description: "Return per-check verdicts and reviewer feedback for one photo.",
-    parameters: {
-      type: "object",
-      properties: {
-        verdict: { type: "string", enum: ["pass", "warn", "fail"] },
-        headline: { type: "string", description: "Short reviewer headline (max 60 chars)." },
-        detail: { type: "string", description: "Optional 1-sentence detail." },
-        checks: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              type: { type: "string" },
-              severity: { type: "string", enum: ["pass", "warn", "fail"] },
-              message: { type: "string" },
-            },
-            required: ["type", "severity", "message"],
-            additionalProperties: false,
+Always populate the envelope:
+  result.verdict, result.headline, result.checks[], result.extractedDetails[]
+  confidence (0..1), flags[] (e.g. low_light, ambiguous_label, low_confidence),
+  recipient_feedback (kind sentence to recipient),
+  business_summary (one short sentence for the business owner),
+  missing_items[] (required items still missing — usually empty for a single photo),
+  suggested_next_action (e.g. "Retake closer", "Accept as-is").`;
+
+const TOOL = buildEnvelopeTool({
+  name: "analyze_photo",
+  description: "Return per-check verdicts and reviewer feedback for one photo.",
+  resultSchema: {
+    type: "object",
+    properties: {
+      verdict: { type: "string", enum: ["pass", "warn", "fail"] },
+      headline: { type: "string", description: "Short reviewer headline (max 60 chars)." },
+      detail: { type: "string", description: "Optional 1-sentence detail." },
+      checks: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            type: { type: "string" },
+            severity: { type: "string", enum: ["pass", "warn", "fail"] },
+            message: { type: "string" },
           },
-        },
-        extractedDetails: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              label: { type: "string" },
-              value: { type: "string" },
-              confidence: { type: "number" },
-            },
-            required: ["label", "value"],
-            additionalProperties: false,
-          },
+          required: ["type", "severity", "message"],
+          additionalProperties: false,
         },
       },
-      required: ["verdict", "headline", "checks"],
-      additionalProperties: false,
+      extractedDetails: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            label: { type: "string" },
+            value: { type: "string" },
+            confidence: { type: "number" },
+          },
+          required: ["label", "value"],
+          additionalProperties: false,
+        },
+      },
     },
+    required: ["verdict", "headline", "checks"],
+    additionalProperties: false,
   },
-} as const;
+}) as const;
 
 interface Body {
   stepId?: string;
@@ -97,6 +102,8 @@ interface Body {
   imageUrl: string;
   recipientNote?: string;
   capturedMediaId?: string;
+  /** When "admin_review", router escalates to the premium tier first. */
+  priority?: "admin_review";
 }
 
 Deno.serve(async (req) => {
