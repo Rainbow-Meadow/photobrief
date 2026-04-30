@@ -56,7 +56,7 @@ export function ShotCard({ shot, pendingDecision, onApprove, onReject, onClearDe
   return (
     <article
       className={cn(
-        "overflow-hidden surface-card transition-colors",
+        "group overflow-hidden surface-card lift-on-hover transition-colors",
         isRejected && "border-destructive/50",
         isApproved && "border-success/40",
       )}
@@ -71,16 +71,21 @@ export function ShotCard({ shot, pendingDecision, onApprove, onReject, onClearDe
           <img
             src={shot.imageUrl}
             alt={shot.title}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
             loading="lazy"
           />
         )}
+        {/* Glass gradient veil — improves chip contrast and adds depth on hover */}
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-foreground/30 via-foreground/5 to-transparent opacity-70 transition-opacity group-hover:opacity-90"
+          aria-hidden
+        />
         <div className="absolute left-2 top-2">
-          <span className="rounded-full bg-background/90 px-2 py-0.5 text-[11px] font-medium text-foreground shadow-sm">
+          <span className="glass rounded-full px-2 py-0.5 text-[11px] font-semibold text-foreground">
             #{shot.orderIndex + 1}
           </span>
         </div>
-        <div className="absolute right-2 top-2">
+        <div className="absolute right-2 top-2 [&>*]:glass [&>*]:!bg-[hsl(var(--glass-bg-strong))]">
           <StatusBadge label={meta.label} tone={meta.tone} />
         </div>
       </div>
