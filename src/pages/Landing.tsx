@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { ArrowRight, PlayCircle, Sparkles, Send, Camera, FileText } from "lucide-react";
+import { ArrowRight, PlayCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { HeroGlassStory } from "@/components/marketing/HeroGlassStory";
@@ -35,23 +35,6 @@ const LANDING_JSONLD = [
   },
 ];
 
-const VALUE_STEPS = [
-  {
-    icon: Send,
-    title: "Send a branded request link",
-    body: "SMS, email, or QR. No app for your customer to install.",
-  },
-  {
-    icon: Camera,
-    title: "Customer follows guided prompts",
-    body: "Step-by-step photo prompts with framing tips and live AI feedback.",
-  },
-  {
-    icon: FileText,
-    title: "AI returns a review-ready brief",
-    body: "Quality checks, missing-shot prompts, summary, and extracted details.",
-  },
-];
 
 export default function LandingPage() {
   return (
