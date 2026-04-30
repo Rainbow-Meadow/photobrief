@@ -238,6 +238,44 @@ export const submissionsService = {
   },
 
   /**
+   * Reviewer-side: edit the AI-generated wording on a single shot's feedback
+   * (business summary and/or suggested next action). Merges into the existing
+   * `ai_feedback` jsonb so we don't lose severity, headline, checks, etc.
+   * Pass `null` or "" for a field to clear it.
+   */
+  async updateShotFeedbackText(args: {
+    mediaId: string;
+    businessSummary?: string | null;
+    suggestedNextAction?: string | null;
+  }): Promise<void> {
+    const { data: row, error: readErr } = await supabase
+      .from("captured_media")
+      .select("ai_feedback")
+      .eq("id", args.mediaId)
+      .maybeSingle();
+    if (readErr) throw readErr;
+
+    const current = (row?.ai_feedback ?? {}) as Record<string, unknown>;
+    const next: Record<string, unknown> = { ...current };
+    if (args.businessSummary !== undefined) {
+      next.businessSummary = args.businessSummary === "" ? null : args.businessSummary;
+    }
+    if (args.suggestedNextAction !== undefined) {
+      next.suggestedNextAction =
+        args.suggestedNextAction === "" ? null : args.suggestedNextAction;
+    }
+    // Mark this row as human-edited so admin diff tooling can distinguish
+    // raw model output from reviewer-corrected wording.
+    next.editedAt = new Date().toISOString();
+
+    const { error } = await supabase
+      .from("captured_media")
+      .update({ ai_feedback: next as any })
+      .eq("id", args.mediaId);
+    if (error) throw error;
+  },
+
+  /**
    * Recipient-side: create a submission row + upload media + insert captured_media.
    */
   async submitFromRecipient(args: {
