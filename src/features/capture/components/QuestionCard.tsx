@@ -29,7 +29,7 @@ export function QuestionCard({ question, onAnswer }: QuestionCardProps) {
       }}
       className="space-y-3"
     >
-      <Label className="text-sm font-medium text-foreground">{question.prompt}</Label>
+      <Label className="text-sm font-semibold text-foreground">{question.prompt}</Label>
 
       {question.inputType === "short_text" && (
         <Input

@@ -53,18 +53,23 @@ export function CaptureUploadCard({ step, pending, onCapture, onSkip }: CaptureU
   const disabled = pending || busy;
 
   return (
-    <div className="rounded-2xl border-2 border-dashed bg-card p-5 text-center">
-      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground">
+    <div className="surface-card-elevated relative overflow-hidden p-6 text-center">
+      {/* Decorative lens-ring backdrop */}
+      <div
+        className="pointer-events-none absolute inset-x-0 -top-10 mx-auto h-40 w-40 opacity-40 lens-ring"
+        aria-hidden
+      />
+      <span className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-full btn-primary-glass text-primary-foreground ring-1 ring-primary/30">
         {pending ? (
-          <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+          <Loader2 className="h-6 w-6 animate-spin" aria-hidden />
         ) : (
-          <Camera className="h-5 w-5" aria-hidden />
+          <Camera className="h-6 w-6" aria-hidden />
         )}
       </span>
-      <p className="mt-3 text-sm font-medium text-foreground">
+      <p className="relative mt-4 text-sm font-semibold text-foreground">
         {pending ? "Checking your photo…" : "Take or upload a photo"}
       </p>
-      <p className="mt-0.5 text-xs text-muted-foreground">{step.title}</p>
+      <p className="relative mt-0.5 text-xs text-muted-foreground">{step.title}</p>
 
       <input
         ref={cameraRef}
@@ -82,10 +87,10 @@ export function CaptureUploadCard({ step, pending, onCapture, onSkip }: CaptureU
         onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
       />
 
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+      <div className="relative mt-5 flex flex-wrap items-center justify-center gap-2">
         <Button
           size="sm"
-          className="gap-1.5"
+          className="gap-1.5 btn-primary-glass"
           disabled={disabled}
           onClick={() => cameraRef.current?.click()}
         >
