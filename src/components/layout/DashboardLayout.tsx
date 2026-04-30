@@ -53,7 +53,7 @@ export function DashboardLayout() {
 
               <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
                 {/* New request lives in the FAB on mobile, in the header from sm: up. */}
-                <Button asChild size="sm" className="hidden gap-1.5 sm:inline-flex">
+                <Button asChild size="sm" className="hidden gap-1.5 sm:inline-flex btn-primary-glass">
                   <NavLink to="/requests/new">
                     <Plus className="h-4 w-4" />
                     New request
