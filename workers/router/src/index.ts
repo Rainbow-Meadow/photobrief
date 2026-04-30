@@ -161,8 +161,8 @@ async function proxyTo(host: string, request: Request): Promise<Response> {
   const target = new URL(incoming.pathname + incoming.search, `https://${host}`);
 
   const headers = new Headers(request.headers);
+  // fetch() in Workers derives Host from the URL, but set it explicitly too.
   headers.set("host", host);
-  // Preserve the original client info for the upstream.
   const cfIp = request.headers.get("cf-connecting-ip");
   if (cfIp) headers.set("x-forwarded-for", cfIp);
   headers.set("x-forwarded-host", incoming.hostname);
@@ -177,5 +177,61 @@ async function proxyTo(host: string, request: Request): Promise<Response> {
     init.body = request.body;
   }
 
-  return fetch(target.toString(), init);
+  const upstream = await fetch(target.toString(), init);
+
+  // Break redirect loops: if the origin is trying to send the browser back to
+  // the user-facing host (e.g. Lovable redirecting custom-domain traffic to
+  // its canonical hostname or vice-versa), rewrite or strip that redirect so
+  // the browser doesn't bounce back into this worker indefinitely.
+  if (upstream.status >= 300 && upstream.status < 400) {
+    const location = upstream.headers.get("location");
+    if (location) {
+      try {
+        const loc = new URL(location, target);
+        const userHost = incoming.hostname.toLowerCase();
+        const locHost = loc.hostname.toLowerCase();
+        // If the redirect targets the user-facing host OR the upstream host
+        // with the same path we just requested, treat it as a loop and
+        // serve the body of a fresh request to the same upstream URL with
+        // redirects followed internally.
+        const sameUserHost =
+          locHost === userHost ||
+          locHost === `www.${userHost}` ||
+          `www.${locHost}` === userHost;
+        const sameUpstreamPath =
+          locHost === host.toLowerCase() && loc.pathname === incoming.pathname;
+        if (sameUserHost || sameUpstreamPath) {
+          // Re-fetch from upstream following redirects internally; this
+          // bypasses the loop without exposing the origin host to the client.
+          const followed = await fetch(target.toString(), {
+            ...init,
+            redirect: "follow",
+          });
+          // Strip any lingering Location header just in case.
+          const cleaned = new Headers(followed.headers);
+          cleaned.delete("location");
+          return new Response(followed.body, {
+            status: followed.status === 0 ? 200 : followed.status,
+            statusText: followed.statusText,
+            headers: cleaned,
+          });
+        }
+        // Redirect points elsewhere on the upstream — rewrite it to be
+        // relative so the browser stays on the user-facing host.
+        if (locHost === host.toLowerCase()) {
+          const rewritten = new Headers(upstream.headers);
+          rewritten.set("location", loc.pathname + loc.search + loc.hash);
+          return new Response(upstream.body, {
+            status: upstream.status,
+            statusText: upstream.statusText,
+            headers: rewritten,
+          });
+        }
+      } catch {
+        // Malformed Location — pass through unchanged.
+      }
+    }
+  }
+
+  return upstream;
 }
