@@ -22,9 +22,14 @@ import PricingPage from "@/pages/Pricing";
 import ForgotPasswordPage from "@/pages/ForgotPassword";
 import ResetPasswordPage from "@/pages/ResetPassword";
 import UnsubscribePage from "@/pages/Unsubscribe";
+import WaitlistPage from "@/pages/Waitlist";
+import SignupPage from "@/pages/Signup";
+import BetaInvitePage from "@/pages/BetaInvite";
 import NotFound from "@/pages/NotFound";
 import PublicRecipientPage from "@/features/capture/pages/PublicRecipientPage";
 import RecipientConfirmationPage from "@/features/capture/pages/RecipientConfirmationPage";
+
+import { RequirePlatformAdmin } from "@/components/auth/RequirePlatformAdmin";
 
 // Lazy: authenticated business app + onboarding + help. These pages are only
 // reachable after sign-in, so splitting them out of the initial bundle removes
