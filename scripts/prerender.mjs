@@ -35,14 +35,39 @@ const DIST_DIR = join(__dirname, "..", "dist");
 async function loadRoutesFromSitemap() {
   const sitemapPath = join(DIST_DIR, "sitemap.xml");
   const xml = await readFile(sitemapPath, "utf8");
-  const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim());
-  const routes = locs.map((loc) => {
-    try {
-      return new URL(loc).pathname || "/";
-    } catch {
-      return loc.startsWith("/") ? loc : `/${loc}`;
-    }
-  });
+  const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) =>
+    // Decode entities (&amp; etc.) and trim whitespace/newlines.
+    m[1].replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").trim(),
+  );
+
+  const routes = locs
+    .map((loc) => {
+      // Accept absolute URLs (https://photobrief.ai/pricing) or bare paths
+      // (/pricing). Fall back to a base so the URL constructor works for both.
+      let pathname;
+      try {
+        pathname = new URL(loc, "https://placeholder.local").pathname;
+      } catch {
+        pathname = loc;
+      }
+
+      // Ensure leading slash.
+      if (!pathname.startsWith("/")) pathname = `/${pathname}`;
+
+      // Collapse duplicate slashes (//foo → /foo).
+      pathname = pathname.replace(/\/{2,}/g, "/");
+
+      // Normalize trailing slash: keep "/" as-is, strip from everything else
+      // so "/pricing/" and "/pricing" produce the same dist/pricing/index.html.
+      if (pathname.length > 1 && pathname.endsWith("/")) {
+        pathname = pathname.slice(0, -1);
+      }
+
+      return pathname;
+    })
+    // Drop empty entries defensively.
+    .filter(Boolean);
+
   // De-dupe while preserving order.
   return [...new Set(routes)];
 }
