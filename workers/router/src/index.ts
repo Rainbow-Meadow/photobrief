@@ -122,10 +122,12 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Static assets always come from Pages (edge-cached, hashed filenames).
-    if (isStaticAsset(path)) {
+    // Pages-only static files (sitemap, robots, llms.txt, .well-known, og-image…).
+    // These have stable filenames and only the Pages build emits them.
+    // /assets/* is deliberately NOT included here — see PAGES_STATIC_PREFIXES.
+    if (isPagesStatic(path)) {
       const res = await proxyTo(env.PAGES_HOST, request);
-      // Transparent fallback for build skew (Lovable build one commit ahead).
+      // Transparent fallback if Pages doesn't have it for any reason.
       if (res.status === 404) {
         return proxyTo(env.LOVABLE_HOST, request);
       }
