@@ -34,10 +34,10 @@ export function ChatMessage({ from, children, className, bare }: ChatMessageProp
     >
       <span
         className={cn(
-          "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+          "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-1",
           isUser
-            ? "bg-muted text-muted-foreground"
-            : "bg-gradient-primary text-primary-foreground shadow-elev-sm",
+            ? "bg-muted text-muted-foreground ring-border"
+            : "btn-primary-glass text-primary-foreground ring-primary/30",
         )}
         aria-hidden
       >
@@ -49,10 +49,10 @@ export function ChatMessage({ from, children, className, bare }: ChatMessageProp
       </span>
       <div
         className={cn(
-          "max-w-[85%] rounded-2xl shadow-elev-sm",
+          "max-w-[85%] rounded-2xl",
           isUser
-            ? "rounded-tr-sm bg-primary text-primary-foreground"
-            : "rounded-tl-sm border bg-card text-foreground",
+            ? "rounded-tr-sm bubble-user"
+            : "rounded-tl-sm bubble-assistant text-foreground",
           bare ? "p-0 overflow-hidden" : "px-4 py-3",
           // Cards need to expand wider than text bubbles
           bare && "w-full max-w-[92%]",
