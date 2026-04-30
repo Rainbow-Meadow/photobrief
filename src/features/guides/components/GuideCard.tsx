@@ -25,7 +25,7 @@ export function GuideCard({ guide, onUse, onPreview, onCustomize }: Props) {
   const minutes = guide.estimatedMinutes;
 
   return (
-    <article className="group flex h-full flex-col rounded-lg border bg-card p-5 shadow-elev-sm transition-shadow hover:shadow-elev-md">
+    <article className="group flex h-full flex-col surface-card p-5 transition-shadow hover:shadow-elev-md">
       <header className="space-y-2">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

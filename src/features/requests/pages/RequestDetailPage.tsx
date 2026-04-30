@@ -134,7 +134,7 @@ export default function RequestDetailPage() {
         actions={<StatusBadge label={status.label} tone={status.tone} />}
       />
 
-      <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
+      <section className="surface-card p-5">
         <h2 className="text-sm font-semibold text-foreground">Recipient link</h2>
         <p className="mt-1 text-xs text-muted-foreground">
           Share this link via SMS, email, or your CRM. Recipient does not need an account.
@@ -186,7 +186,7 @@ export default function RequestDetailPage() {
         </div>
       </section>
 
-      <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
+      <section className="surface-card p-5">
         <h2 className="text-sm font-semibold text-foreground">Activity</h2>
         {messages.length === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">

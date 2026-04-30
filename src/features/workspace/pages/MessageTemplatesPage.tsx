@@ -112,7 +112,7 @@ export default function MessageTemplatesPage() {
         <UpgradePromptCard feature="saved_templates" />
       ) : (
         <>
-          <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
+          <section className="surface-card p-5">
             <h2 className="text-sm font-semibold text-foreground">New template</h2>
             <p className="mt-1 text-xs text-muted-foreground">
               {cap === "unlimited"
@@ -182,7 +182,7 @@ export default function MessageTemplatesPage() {
             </div>
           </section>
 
-          <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
+          <section className="surface-card p-5">
             <h2 className="text-sm font-semibold text-foreground">
               Your templates ({items.length})
             </h2>

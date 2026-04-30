@@ -56,7 +56,7 @@ export function ShotCard({ shot, pendingDecision, onApprove, onReject, onClearDe
   return (
     <article
       className={cn(
-        "overflow-hidden rounded-lg border bg-card shadow-elev-sm transition-colors",
+        "overflow-hidden surface-card transition-colors",
         isRejected && "border-destructive/50",
         isApproved && "border-success/40",
       )}

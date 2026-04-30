@@ -139,7 +139,7 @@ export function WebhookSubscriptionsSection({ workspaceId }: Props) {
   const empty = useMemo(() => !loading && rows.length === 0, [loading, rows]);
 
   return (
-    <section className="space-y-3 rounded-lg border bg-card p-5 shadow-elev-sm">
+    <section className="space-y-3 surface-card p-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Webhook className="h-4 w-4 text-muted-foreground" />

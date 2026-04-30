@@ -187,7 +187,7 @@ export default function BrandSettingsPage() {
             e.preventDefault();
             handleSave();
           }}
-          className="space-y-6 rounded-lg border bg-card p-5 shadow-elev-sm"
+          className="space-y-6 surface-card p-5"
           aria-disabled={disabled}
         >
           <fieldset disabled={disabled} className="space-y-6 disabled:opacity-60">
@@ -445,7 +445,7 @@ export default function BrandSettingsPage() {
       <div className="max-w-3xl space-y-3">
         <h3 className="text-sm font-semibold text-foreground">White-label</h3>
         {canWhiteLabel ? (
-          <label className="flex items-start gap-3 rounded-lg border bg-card p-4 text-sm shadow-elev-sm cursor-pointer">
+          <label className="flex items-start gap-3 surface-card p-4 text-sm cursor-pointer">
             <input
               type="checkbox"
               className="mt-1 h-4 w-4"
