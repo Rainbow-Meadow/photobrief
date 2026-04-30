@@ -1,21 +1,28 @@
-// ai-analyze-media — runs Lovable AI vision checks on a single captured photo.
-// Contract: 05_AI_System/02_prompt_contracts.md (ai-check-photo).
+// ai-analyze-media — runs vision checks on a single captured photo.
+// Routed via the centralized aiModelRouter (task: photo_quality_check, vision tier).
+//
+// Model selection lives in _shared/aiModelRouter.ts — never hardcode here.
 //
 // Input:
 //  { stepId, stepTitle, instruction, captureType, overlayType,
-//    aiChecks: string[], imageUrl, recipientNote?, capturedMediaId? }
+//    aiChecks: string[], imageUrl, recipientNote?, capturedMediaId?,
+//    priority?: "admin_review" }   // when "admin_review", escalate to premium
 //
-// Output:
-//  { verdict: "pass"|"warn"|"fail",
-//    headline: string, detail?: string,
-//    checks: [{ type, severity, label, message }],
-//    extractedDetails: [{ label, value, confidence }] }
+// Output (success):
+//  { verdict, headline, detail, checks, extractedDetails,
+//    confidence, flags, businessSummary, suggestedNextAction, model }
 //
-// If `capturedMediaId` is provided AND the caller is authenticated as a
-// workspace member of the submission's workspace, the result is also
-// persisted to ai_check_results + captured_media.ai_feedback.
+// Output (graceful failure):  { error: "ai_unavailable", graceful: true }
+//   — HTTP 200, so the client can render the "AI review unavailable" state
+//   without throwing. Submission is never blocked by AI being down.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import {
+  buildEnvelopeTool,
+  callAIWithRouter,
+  routerErrorResponse,
+  type AIEnvelope,
+} from "../_shared/aiModelRouter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
