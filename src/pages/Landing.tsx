@@ -128,31 +128,6 @@ export default function LandingPage() {
       {/* TRUST STRIP --------------------------------------------------------- */}
       <TrustLogosStrip />
 
-      {/* 3-STEP VALUE STRIP -------------------------------------------------- */}
-      <section className="relative overflow-hidden bg-background">
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-ambient-sky opacity-60" />
-        <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-          <div className="grid gap-4 sm:grid-cols-3 sm:gap-6">
-            {VALUE_STEPS.map((s, i) => (
-              <div
-                key={s.title}
-                className="glass-strong rounded-2xl p-6 lift-on-hover animate-lift-in"
-                style={{ animationDelay: `${i * 80}ms` }}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
-                    <s.icon className="h-5 w-5" />
-                  </span>
-                  <span className="text-eyebrow">Step {i + 1}</span>
-                </div>
-                <h3 className="mt-4 text-base font-semibold text-foreground">{s.title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{s.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* HOW IT WORKS -------------------------------------------------------- */}
       <HowItWorksSteps />
 
