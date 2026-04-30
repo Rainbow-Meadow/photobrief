@@ -16,8 +16,18 @@ export default function AuthPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { session, loading: authLoading } = useAuth();
-  const mode = params.get("mode") === "signup" ? "signup" : "signin";
+  const requestedSignup = params.get("mode") === "signup";
+  // Force sign-in mode while public signup is disabled. Visitors trying to
+  // sign up are redirected to the waitlist (or signup-with-invite flow).
+  const signupAllowed = PUBLIC_SIGNUP_ENABLED && !INVITE_ONLY_BETA;
+  const mode = requestedSignup && signupAllowed ? "signup" : "signin";
   const otherMode = mode === "signup" ? "signin" : "signup";
+
+  // If a logged-out visitor asks for ?mode=signup while signup is closed,
+  // bounce them to the waitlist instead of silently flipping to sign-in.
+  if (requestedSignup && !signupAllowed && !session && !authLoading) {
+    return <Navigate to="/waitlist" replace />;
+  }
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
