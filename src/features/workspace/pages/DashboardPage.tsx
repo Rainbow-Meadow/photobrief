@@ -280,8 +280,8 @@ interface DashboardListProps {
 
 function DashboardList({ title, emptyLabel, items, ctaLabel, ctaHref, showReminder }: DashboardListProps) {
   return (
-    <section className="rounded-lg border bg-card shadow-elev-sm">
-      <header className="flex items-center justify-between border-b px-5 py-4">
+    <section className="surface-card overflow-hidden">
+      <header className="flex items-center justify-between px-5 py-4 hairline-b">
         <h2 className="text-sm font-semibold text-foreground">{title}</h2>
         <Button asChild variant="ghost" size="sm" className="-mr-2 gap-1">
           <NavLink to={ctaHref}>
