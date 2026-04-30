@@ -42,60 +42,60 @@ Tone: clear, professional, no fluff. The reader is a busy small-business owner
 deciding whether to act on this submission. Look at the photos provided and only
 extract details you can actually see — never invent values.
 
-Always call the summarize_submission function exactly once.`;
+Always call summarize_submission exactly once and populate the full envelope:
+  result.summary, result.highlights[], result.nextAction,
+  result.missingItems[], result.extractedDetails[]
+  confidence (0..1), flags[] (e.g. low_confidence, photos_unclear),
+  recipient_feedback (one short kind sentence — null if N/A),
+  business_summary (one short sentence for the business owner),
+  missing_items[] (mirror of result.missingItems for envelope-level consumers),
+  suggested_next_action (e.g. "Mark reviewed", "Ask for retakes").`;
 
-const TOOL = {
-  type: "function",
-  function: {
-    name: "summarize_submission",
-    description: "Summarize a submission for the reviewer.",
-    parameters: {
-      type: "object",
-      properties: {
-        summary: { type: "string", description: "1-3 sentence reviewer summary." },
-        highlights: {
-          type: "array",
-          items: { type: "string" },
-          description: "2-4 short bullet highlights.",
-        },
-        nextAction: {
-          type: "string",
-          description: "One short instruction (e.g. 'Mark as reviewed', 'Ask for more photos').",
-        },
-        missingItems: {
-          type: "array",
-          items: { type: "string" },
-          description:
-            "Titles of required shots that are missing OR present but unusable.",
-        },
-        extractedDetails: {
-          type: "array",
-          description:
-            "Structured details visible in the photos (model #, serial, dimensions, address, brand, date, etc.). Only include details you can directly observe.",
-          items: {
-            type: "object",
-            properties: {
-              label: { type: "string", description: "Human label, e.g. 'Model number'." },
-              value: { type: "string", description: "The observed value." },
-              type: {
-                type: "string",
-                description: "Optional category: model, serial, dimension, address, brand, date, other.",
-              },
-              confidence: {
-                type: "number",
-                description: "0-1 confidence based on legibility.",
-              },
+const TOOL = buildEnvelopeTool({
+  name: "summarize_submission",
+  description: "Summarize a submission for the reviewer.",
+  resultSchema: {
+    type: "object",
+    properties: {
+      summary: { type: "string", description: "1-3 sentence reviewer summary." },
+      highlights: {
+        type: "array",
+        items: { type: "string" },
+        description: "2-4 short bullet highlights.",
+      },
+      nextAction: {
+        type: "string",
+        description: "One short instruction (e.g. 'Mark as reviewed', 'Ask for more photos').",
+      },
+      missingItems: {
+        type: "array",
+        items: { type: "string" },
+        description: "Titles of required shots that are missing OR present but unusable.",
+      },
+      extractedDetails: {
+        type: "array",
+        description:
+          "Structured details visible in the photos (model #, serial, dimensions, address, brand, date, etc.). Only include details you can directly observe.",
+        items: {
+          type: "object",
+          properties: {
+            label: { type: "string", description: "Human label, e.g. 'Model number'." },
+            value: { type: "string", description: "The observed value." },
+            type: {
+              type: "string",
+              description: "Optional category: model, serial, dimension, address, brand, date, other.",
             },
-            required: ["label", "value"],
-            additionalProperties: false,
+            confidence: { type: "number", description: "0-1 confidence based on legibility." },
           },
+          required: ["label", "value"],
+          additionalProperties: false,
         },
       },
-      required: ["summary", "highlights", "nextAction", "missingItems"],
-      additionalProperties: false,
     },
+    required: ["summary", "highlights", "nextAction", "missingItems"],
+    additionalProperties: false,
   },
-} as const;
+}) as const;
 
 interface ShotIn {
   title: string;
