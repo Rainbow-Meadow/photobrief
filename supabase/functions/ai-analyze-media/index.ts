@@ -134,58 +134,55 @@ Deno.serve(async (req) => {
   ].filter(Boolean).join("\n");
 
   try {
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: userPrompt },
-              { type: "image_url", image_url: { url: body.imageUrl } },
-            ],
-          },
-        ],
-        tools: [TOOL],
-        tool_choice: { type: "function", function: { name: "analyze_photo" } },
-      }),
+    const { envelope, model, attempts } = await callAIWithRouter({
+      task: "photo_quality_check",
+      escalate: body.priority === "admin_review",
+      messages: [
+        { role: "system", content: SYSTEM },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: userPrompt },
+            { type: "image_url", image_url: { url: body.imageUrl } },
+          ],
+        },
+      ],
+      tools: [TOOL],
+      tool_choice: { type: "function", function: { name: "analyze_photo" } },
     });
 
-    if (aiRes.status === 429) return json({ error: "Rate limit reached. Try again in a moment." }, 429);
-    if (aiRes.status === 402) return json({ error: "AI credits exhausted. Add credits in Settings." }, 402);
-    if (!aiRes.ok) {
-      const t = await aiRes.text();
-      console.error("AI gateway error", aiRes.status, t);
-      return json({ error: "AI gateway error" }, 502);
-    }
+    const inner = (envelope.result ?? {}) as {
+      verdict?: "pass" | "warn" | "fail";
+      headline?: string;
+      detail?: string;
+      checks?: Array<{ type: string; severity: string; message: string; label?: string }>;
+      extractedDetails?: Array<{ label: string; value: string; confidence?: number }>;
+    };
 
-    const data = await aiRes.json();
-    const call = data?.choices?.[0]?.message?.tool_calls?.[0];
-    const args = call ? JSON.parse(call.function.arguments) : null;
-    if (!args) return json({ error: "AI returned no analysis" }, 502);
-
-    // Add labels for each check using the requested aiChecks list as fallback.
-    const enrichedChecks = (args.checks ?? []).map((c: any) => ({
+    const enrichedChecks = (inner.checks ?? []).map((c) => ({
       type: c.type,
       severity: c.severity,
       label: c.label ?? prettyLabel(c.type),
       message: c.message,
     }));
+
     const result = {
-      verdict: args.verdict ?? "pass",
-      headline: args.headline ?? "Photo received",
-      detail: args.detail,
+      verdict: inner.verdict ?? "pass",
+      headline: inner.headline ?? "Photo received",
+      detail: inner.detail,
       checks: enrichedChecks,
-      extractedDetails: args.extractedDetails ?? [],
+      extractedDetails: inner.extractedDetails ?? [],
+      // Envelope-level fields exposed to the client.
+      confidence: envelope.confidence,
+      flags: envelope.flags,
+      recipientFeedback: envelope.recipient_feedback,
+      businessSummary: envelope.business_summary,
+      missingItems: envelope.missing_items,
+      suggestedNextAction: envelope.suggested_next_action,
+      model,
+      attempts,
     };
 
-    // Optional persistence (only if caller is an authed workspace member).
     if (body.capturedMediaId) {
       try {
         await persist(req, body.capturedMediaId, result);
@@ -196,6 +193,8 @@ Deno.serve(async (req) => {
 
     return json(result, 200);
   } catch (e) {
+    const mapped = routerErrorResponse(e, corsHeaders);
+    if (mapped) return mapped;
     console.error("ai-analyze-media error", e);
     return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }
