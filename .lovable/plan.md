@@ -1,60 +1,58 @@
 ## Goal
 
-Make onboarding resilient to the Lovable Cloud transient 503 / `PGRST002` ("schema cache reload") errors that are currently blocking users on the Review step, and add a server-side fallback in case a user's workspace bootstrap row is missing entirely.
+Use your `CLOUDFLARE_API_TOKEN` to scan your entire Cloudflare zone (`photobrief.ai`) and produce a written audit report identifying settings, rules, and configurations that should be adjusted for performance, security, and SEO — with specific focus on issues already showing up in your Lighthouse audit (Cloudflare-injected scripts hurting LCP, render-blocking, and cache TTLs).
 
-## Files
+This is a **one-off analysis task**, not a feature to build into the app. I'll run it as a script and deliver a markdown report you can act on.
 
-### 1. New — `src/lib/supabaseRetry.ts`
+## What gets scanned
 
-Extract the retry logic that already lives inside `useCurrentWorkspace` into a reusable helper. Same backoff (250ms → 750ms → 2.25s, 4 attempts), same transient detection (`PGRST001`, `PGRST002`, 503, "schema cache", "Database client error").
+A read-only sweep of every Cloudflare API surface that affects your site:
 
-Exports: `withSupabaseRetry(fn, maxAttempts?)` and `isTransientSupabaseError(err)`.
-
-### 2. Refactor — `src/hooks/useCurrentWorkspace.ts`
-
-Replace the local `withRetry` / `isTransient` definitions with imports from `@/lib/supabaseRetry`. Behavior unchanged.
-
-### 3. New edge function — `supabase/functions/ensure-workspace/index.ts`
-
-Server-side, service-role provisioner. Verifies the caller's JWT, then idempotently:
-1. Upserts `profiles` row (id, email, name).
-2. Looks up an existing workspace via `profiles.default_workspace_id`, then via `business_workspaces.owner_id`.
-3. If none, inserts a fresh `business_workspaces` row.
-4. Ensures `workspace_members` (owner/active), `brand_profiles`, and `subscriptions` rows exist.
-5. Updates `profiles.default_workspace_id` to point at the workspace.
-
-Returns `{ workspace_id }`. Registered in `supabase/config.toml` with `verify_jwt = false` (the function does its own JWT validation against the Supabase auth API, matching the pattern used by `ensure-demo-user`).
-
-### 4. Edit — `supabase/config.toml`
-
-Add the new function block:
-```
-[functions.ensure-workspace]
-  verify_jwt = false
-```
-
-### 5. Edit — `src/features/workspace/pages/OnboardingPage.tsx`
-
-**Fix #1 — error banner.** When `useCurrentWorkspace` finishes loading with `workspace = null`, render a banner above the form: "We can't reach your workspace right now" with a Retry button (calls `refetch()`) and a "Repair workspace" button (calls the `ensure-workspace` edge function then `refetch()`). The form below stays visible so the user can keep typing.
-
-**Fix #2 — retry-wrapped writes.** Wrap every supabase call in `handleFinish` (workspace update, brand_profiles select/update/insert, profiles update) with `withSupabaseRetry`. If the final attempt still fails with a transient error, show a persistent inline error inside the card (not just a sonner toast) with a "Try again" button.
-
-**Fix #3 — stronger Finish gate.** Change the disable condition from `disabled={saving || wsLoading}` to `disabled={saving || wsLoading || !workspace?.id}`. Add a `title` tooltip explaining "Loading workspace…" or "Workspace unavailable — tap Repair above" so the disabled state is never ambiguous.
-
-**Fix #4 — auto-repair on first detected gap.** On mount, after `useCurrentWorkspace` resolves with `workspace = null` and `loading = false`, automatically call `ensure-workspace` once (guarded by a ref so it doesn't loop), then `refetch()`. Only show the manual error banner if that auto-repair also fails.
-
-The seeding `useEffect` already gracefully handles `workspace?.id` being null, so no change needed there.
-
-## Behavioral summary
-
-| Scenario | Before | After |
+| Area | API endpoints | What I'm looking for |
 |---|---|---|
-| Cloud schema cache reload during onboarding load | Form loads with empty defaults, Finish silently no-ops | Banner appears with Retry; auto-repair runs once; on success form populates and Finish works |
-| User without `default_workspace_id` (orphaned account) | Permanently stuck — Finish toasts "Workspace not loaded" forever | Auto-repair provisions all bootstrap rows; user proceeds normally |
-| Transient 503 during Finish click | `handleFinish` throws, toast disappears, no clear next step | Each write retries up to 4 times; if all fail, persistent inline error with "Try again" |
-| Healthy Cloud, normal flow | Works | Works (no extra latency — retry only triggers on transient errors) |
+| **Zone settings** | `/zones/{id}/settings` | Brotli, HTTP/3, Early Hints, 0-RTT, minify, Rocket Loader, Auto Minify, Polish, Mirage, Email Obfuscation, Hotlink Protection, Server-side Excludes, IPv6, WebSockets, Always Use HTTPS, Auto HTTPS Rewrites, HSTS, min TLS version, opportunistic encryption, TLS 1.3, certificate transparency, ciphers |
+| **Speed / Optimization** | `/zones/{id}/speed_api/...`, `/zones/{id}/argo`, `/zones/{id}/flock` | Speed Brain (`~flock.js`), Argo Smart Routing, Tiered Cache, image optimization (Polish/Mirage), Early Hints |
+| **Caching** | `/zones/{id}/settings/cache_level`, `/zones/{id}/settings/browser_cache_ttl`, cache rules | Browser cache TTL (your audit flags 257 KiB savings here), Edge cache TTL, Cache Reserve, Always Online, Development Mode |
+| **Page Rules + Rulesets** | `/zones/{id}/pagerules`, `/zones/{id}/rulesets` | All Page Rules, Transform Rules, Cache Rules, Configuration Rules, Origin Rules, Redirect Rules, Compression Rules — flag conflicts, deprecated patterns, missing cache rules |
+| **WAF / Security** | `/zones/{id}/rulesets` (http_request_firewall_*), `/zones/{id}/firewall/rules`, `/zones/{id}/settings/security_level`, bot management, rate limiting | Managed rulesets enabled?, custom WAF rules, bot fight mode, security level, challenge passage, rate limiting rules, IP access rules |
+| **SSL/TLS** | `/zones/{id}/ssl/...`, `/zones/{id}/settings/ssl` | SSL mode (Full Strict required), TLS min version (should be 1.2+), HSTS config, certificate status, edge cert vs custom |
+| **DNS** | `/zones/{id}/dns_records` | Records list, proxied vs DNS-only flags, DNSSEC status, CAA records, SPF/DKIM/DMARC TXT records for email deliverability |
+| **Scrape Shield** | settings | Email Obfuscation (injects `email-decode.min.js` flagged in your audit), Server-side Excludes, Hotlink Protection |
+| **Network** | settings | HTTP/2, HTTP/3 (QUIC), 0-RTT, IPv6, WebSockets, gRPC, pseudo IPv4 |
+| **Workers / Pages / R2** | `/zones/{id}/workers/routes`, `/accounts/{id}/workers/scripts`, pages projects | List any Workers, routes, Pages projects |
+| **Analytics / Insights** | `/zones/{id}/settings/web_analytics` | Web Analytics beacon (injects `beacon.min.js` flagged in your audit) |
+| **Bot Management** | `/zones/{id}/bot_management` | Super Bot Fight Mode tier and config |
+
+## Deliverable
+
+A single markdown report saved to `/mnt/documents/cloudflare-audit.md` with:
+
+1. **Executive summary** — top 5 issues ranked by impact
+2. **Performance findings** — directly tied to your Lighthouse failures (e.g., "Disable Email Obfuscation to remove the 1,447-byte render-blocking `email-decode.min.js`", "Increase browser cache TTL — currently 2min on Stripe, 25min on `~flock.js`", "Enable Brotli/HTTP3/Early Hints if off")
+3. **Security findings** — SSL mode, HSTS, TLS version, WAF coverage gaps, missing rate limits on sensitive paths
+4. **SEO/DNS findings** — DNSSEC, SPF/DKIM/DMARC, CAA, redirect rules
+5. **Each finding includes**: current value → recommended value → why → exact dashboard path to change it (e.g., "Speed → Optimization → Content Optimization")
+6. **Raw JSON dumps** of each section appended at the end for reference
+
+## How it runs
+
+A standalone Deno/Node script (in `/tmp`, not added to your codebase) that:
+
+1. Calls `GET /user/tokens/verify` to confirm token + list permissions
+2. Calls `GET /zones?name=photobrief.ai` to get zone ID + account ID
+3. Fans out ~20 read-only GET requests in parallel to the endpoints above
+4. Runs each response through a rule-based analyzer
+5. Cross-references findings against your known Lighthouse issues
+6. Writes the markdown report
+
+**Read-only.** Nothing is changed in Cloudflare. You decide which recommendations to apply.
+
+## Caveat about token scope
+
+Your token may not have permission for every API surface (e.g., account-level Workers, Bot Management on lower plans). Any 403/404 responses will be listed in an "inaccessible endpoints" section of the report rather than failing the whole scan. If a critical area is blocked, I'll tell you which permission to add to the token.
 
 ## Out of scope
 
-- Other pages that use `supabase` directly (Dashboard, Requests, etc.) — they aren't on the critical signup path. Can adopt `withSupabaseRetry` later if similar reports come in.
-- Cloud instance sizing — the underlying 503s are infrastructure-side and resolve on their own; if they recur frequently, recommend upgrading the Cloud instance from Connectors → Lovable Cloud → Advanced settings.
+- Changing any Cloudflare settings (read-only audit only)
+- Anything requiring account-level access if your token is zone-scoped
+- Cloudflare Access / Zero Trust / Magic Transit / Magic WAN (not relevant to this site)
