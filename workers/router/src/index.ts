@@ -46,10 +46,18 @@ const MARKETING_PATHS = new Set<string>([
   "/waitlist",
 ]);
 
-// Path prefixes for static files emitted by the Pages build, including
-// the AI / answer-engine discovery files.
-const STATIC_PREFIXES = [
-  "/assets/",
+// Path prefixes for files that ONLY exist on the Pages build (AI/answer-engine
+// discovery files, prerender artifacts, marketing OG image). These have stable
+// filenames so it's safe to serve them from Pages regardless of which origin
+// rendered the HTML.
+//
+// IMPORTANT: /assets/* is intentionally NOT in this list. Vite emits hashed
+// filenames (index-XYZ.js) and the Lovable build and the Pages build produce
+// DIFFERENT hashes for the same source. Routing /assets/* to Pages while the
+// HTML came from Lovable causes 404s/MIME-type mismatches and a blank page.
+// Assets must come from the same origin as the HTML — which is Lovable for
+// real users — so we let /assets/* fall through to Lovable.
+const PAGES_STATIC_PREFIXES = [
   "/og-image",
   "/favicon",
   "/apple-touch-icon",
@@ -70,8 +78,8 @@ function isMarketingPath(pathname: string): boolean {
   return false;
 }
 
-function isStaticAsset(pathname: string): boolean {
-  return STATIC_PREFIXES.some((p) => pathname.startsWith(p));
+function isPagesStatic(pathname: string): boolean {
+  return PAGES_STATIC_PREFIXES.some((p) => pathname.startsWith(p));
 }
 
 // Known bot / crawler / answer-engine user agents. Matched case-insensitively
