@@ -42,16 +42,13 @@ export default function PricingPage() {
         description="Simple, transparent PhotoBrief pricing. Start free, automate intake with Pro, coordinate your team with Business, scale with Enterprise."
         canonicalPath="/pricing"
       />
-      <section className="relative overflow-hidden bg-gradient-subtle">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(60%_50%_at_50%_0%,hsl(var(--primary)/0.10),transparent_70%)]"
-        />
-        <div className="relative mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 sm:py-20 lg:px-8">
-          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-            Simple, transparent pricing
-          </h1>
-          <p className="mt-4 text-base text-muted-foreground sm:text-lg">
+      <section className="relative overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-ambient-sky" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-ambient-mesh opacity-60" />
+        <div className="relative mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 sm:py-20 lg:px-8 animate-lift-in">
+          <p className="text-eyebrow">Pricing</p>
+          <h1 className="text-display mt-3 text-foreground">Simple, transparent pricing</h1>
+          <p className="mx-auto mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
             Start free. Automate intake with Pro. Coordinate your team with Business. Scale with Enterprise.
           </p>
           <p className="mt-2 text-sm text-primary">
@@ -60,16 +57,17 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <section className="px-4 pb-16 pt-12 sm:px-6 lg:px-8 lg:pb-20">
+      <section className="relative px-4 pb-16 pt-4 sm:px-6 lg:px-8 lg:pb-20">
         <PricingCardGrid />
       </section>
 
-      <section className="border-t bg-muted/30">
-        <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-          <h2 className="text-center text-3xl font-bold tracking-tight text-foreground">
+      <section className="relative overflow-hidden bg-background">
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-ambient-mesh opacity-50" />
+        <div className="relative mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+          <h2 className="text-center text-3xl font-semibold tracking-tight text-foreground">
             Questions, answered.
           </h2>
-          <Accordion type="single" collapsible className="mt-8">
+          <Accordion type="single" collapsible className="mt-8 glass-strong rounded-2xl px-4 sm:px-6">
             {faqs.map((f) => (
               <AccordionItem key={f.q} value={f.q}>
                 <AccordionTrigger className="text-left">{f.q}</AccordionTrigger>
@@ -78,7 +76,7 @@ export default function PricingPage() {
             ))}
           </Accordion>
 
-          <div className="mt-12 flex flex-col items-center gap-3 rounded-2xl border bg-card p-8 text-center shadow-elev-sm">
+          <div className="glass-strong mt-12 flex flex-col items-center gap-3 rounded-3xl p-8 text-center shadow-glass-lg">
             <ShieldCheck className="h-8 w-8 text-primary" />
             <p className="text-base font-semibold text-foreground">
               30-day money-back guarantee
@@ -86,7 +84,7 @@ export default function PricingPage() {
             <p className="max-w-md text-sm text-muted-foreground">
               If PhotoBrief isn't a fit in your first month, email us and we'll refund you.
             </p>
-            <Button asChild className="mt-2 rounded-full px-6">
+            <Button asChild size="xl" className="mt-2 rounded-full">
               <NavLink to="/auth?mode=signup">
                 Start free <ArrowRight className="ml-1 h-4 w-4" />
               </NavLink>
