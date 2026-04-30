@@ -19,6 +19,7 @@ import { RouteTracker } from "@/components/analytics/RouteTracker";
 import LandingPage from "@/pages/Landing";
 import AuthPage from "@/pages/Auth";
 import PricingPage from "@/pages/Pricing";
+import ForAiAgentsPage from "@/pages/ForAiAgents";
 import ForgotPasswordPage from "@/pages/ForgotPassword";
 import ResetPasswordPage from "@/pages/ResetPassword";
 import UnsubscribePage from "@/pages/Unsubscribe";
@@ -72,6 +73,7 @@ const App = () => (
           <Route element={<MarketingLayout />}>
             <Route path="/" element={<LandingPage />} />
             <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/for-ai-agents" element={<ForAiAgentsPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
