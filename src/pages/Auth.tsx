@@ -321,6 +321,7 @@ export default function AuthPage() {
           </NavLink>
         </p>
       </div>
+      </div>
     </div>
   );
 }
