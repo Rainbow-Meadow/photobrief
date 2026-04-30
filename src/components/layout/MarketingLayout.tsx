@@ -4,6 +4,7 @@ import { Menu } from "lucide-react";
 
 import { BrandMark } from "@/components/layout/BrandMark";
 import { Button } from "@/components/ui/button";
+import { signupCtaTarget, signupCtaShortLabel, signupCtaLabel } from "@/config/access";
 import {
   Sheet,
   SheetContent,
@@ -66,7 +67,7 @@ export function MarketingLayout() {
               <NavLink to="/auth">Sign in</NavLink>
             </Button>
             <Button asChild size="sm" className="rounded-full px-4">
-              <NavLink to="/auth?mode=signup">Try Free</NavLink>
+              <NavLink to={signupCtaTarget()}>{signupCtaShortLabel()}</NavLink>
             </Button>
 
             <Button
@@ -140,8 +141,8 @@ export function MarketingLayout() {
           </ul>
           <div className="px-5 pt-6">
             <Button asChild className="w-full rounded-full">
-              <NavLink to="/auth?mode=signup" onClick={() => setMenuOpen(false)}>
-                Try Free
+              <NavLink to={signupCtaTarget()} onClick={() => setMenuOpen(false)}>
+                {signupCtaLabel()}
               </NavLink>
             </Button>
           </div>

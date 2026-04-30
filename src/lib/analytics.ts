@@ -32,6 +32,8 @@ export function sanitizePath(pathname: string): string {
     .replace(/^\/r\/[^/]+/, "/r/:token")
     // /invite/<token> -> /invite/:token
     .replace(/^\/invite\/[^/]+/, "/invite/:token")
+    // /beta-invite/<token> -> /beta-invite/:token
+    .replace(/^\/beta-invite\/[^/]+/, "/beta-invite/:token")
     // UUIDs -> :id
     .replace(
       /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,

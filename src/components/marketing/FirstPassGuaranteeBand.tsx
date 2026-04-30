@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { ArrowRight, ShieldCheck, Sparkles, Database, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trackEvent } from "@/lib/analytics";
+import { signupCtaTarget, signupCtaLabel } from "@/config/access";
 
 /**
  * Headline marketing surface for the rejection refund promise.
@@ -44,15 +45,15 @@ export function FirstPassGuaranteeBand() {
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Button asChild size="lg" className="rounded-full px-6">
                 <NavLink
-                  to="/auth?mode=signup"
+                  to={signupCtaTarget()}
                   onClick={() =>
                     trackEvent("cta_click", {
                       location: "guarantee_band",
-                      label: "start_free",
+                      label: "primary",
                     })
                   }
                 >
-                  Start free <ArrowRight className="ml-1 h-4 w-4" />
+                  {signupCtaLabel()} <ArrowRight className="ml-1 h-4 w-4" />
                 </NavLink>
               </Button>
               <Button

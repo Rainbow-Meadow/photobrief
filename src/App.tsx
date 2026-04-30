@@ -22,9 +22,14 @@ import PricingPage from "@/pages/Pricing";
 import ForgotPasswordPage from "@/pages/ForgotPassword";
 import ResetPasswordPage from "@/pages/ResetPassword";
 import UnsubscribePage from "@/pages/Unsubscribe";
+import WaitlistPage from "@/pages/Waitlist";
+import SignupPage from "@/pages/Signup";
+import BetaInvitePage from "@/pages/BetaInvite";
 import NotFound from "@/pages/NotFound";
 import PublicRecipientPage from "@/features/capture/pages/PublicRecipientPage";
 import RecipientConfirmationPage from "@/features/capture/pages/RecipientConfirmationPage";
+
+import { RequirePlatformAdmin } from "@/components/auth/RequirePlatformAdmin";
 
 // Lazy: authenticated business app + onboarding + help. These pages are only
 // reachable after sign-in, so splitting them out of the initial bundle removes
@@ -46,6 +51,7 @@ const GuideBuilderPage = lazy(() => import("@/features/guides/pages/GuideBuilder
 const GuideDetailPage = lazy(() => import("@/features/guides/pages/GuideDetailPage"));
 const AcceptInvitePage = lazy(() => import("@/features/workspace/pages/AcceptInvitePage"));
 const BetaGuidePage = lazy(() => import("@/features/help/pages/BetaGuidePage"));
+const AdminInvitesPage = lazy(() => import("@/pages/AdminInvites"));
 
 const queryClient = new QueryClient();
 
@@ -69,6 +75,9 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/unsubscribe" element={<UnsubscribePage />} />
             <Route path="/help" element={<BetaGuidePage />} />
+            <Route path="/waitlist" element={<WaitlistPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/beta-invite/:token" element={<BetaInvitePage />} />
           </Route>
 
           {/* Onboarding + invite acceptance (no sidebar, but still auth-only).
@@ -108,6 +117,16 @@ const App = () => (
             <Route path="/settings/sms" element={<SmsSettingsPage />} />
             <Route path="/settings/billing" element={<BillingSettingsPage />} />
             <Route path="/app/help" element={<BetaGuidePage />} />
+            <Route
+              path="/admin/invites"
+              element={
+                <RequireAuth requireOnboarding={false}>
+                  <RequirePlatformAdmin>
+                    <AdminInvitesPage />
+                  </RequirePlatformAdmin>
+                </RequireAuth>
+              }
+            />
           </Route>
 
           {/* Public recipient (chat-first, no auth) */}

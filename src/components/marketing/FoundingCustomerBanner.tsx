@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useFoundingPro } from "@/hooks/useFoundingPro";
 import { FOUNDING_PRO } from "@/config/planLimits";
 import { trackEvent } from "@/lib/analytics";
+import { INVITE_ONLY_BETA } from "@/config/access";
 
 export function FoundingCustomerBanner() {
   const { available, loading } = useFoundingPro();
@@ -30,10 +31,12 @@ export function FoundingCustomerBanner() {
           className="shrink-0 rounded-full bg-warning text-warning-foreground hover:bg-warning/90"
         >
           <NavLink
-            to={`/auth?mode=signup&plan=pro&coupon=${FOUNDING_PRO.couponCode}`}
+            to={INVITE_ONLY_BETA
+              ? `/waitlist?interest=founding-pro`
+              : `/auth?mode=signup&plan=pro&coupon=${FOUNDING_PRO.couponCode}`}
             onClick={() => trackEvent("cta_click", { location: "founding_banner", label: "claim_founding" })}
           >
-            Claim Founding Price <ArrowRight className="ml-1 h-4 w-4" />
+            {INVITE_ONLY_BETA ? "Request founding access" : "Claim Founding Price"} <ArrowRight className="ml-1 h-4 w-4" />
           </NavLink>
         </Button>
       </div>

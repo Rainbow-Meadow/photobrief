@@ -55,6 +55,54 @@ export type Database = {
           },
         ]
       }
+      beta_invites: {
+        Row: {
+          accepted_at: string | null
+          business_name: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          notes: string | null
+          status: string
+          token_hash: string
+          token_prefix: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          business_name?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          notes?: string | null
+          status?: string
+          token_hash: string
+          token_prefix: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          business_name?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          notes?: string | null
+          status?: string
+          token_hash?: string
+          token_prefix?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       brand_profiles: {
         Row: {
           completion_message: string | null
@@ -746,6 +794,24 @@ export type Database = {
           },
         ]
       }
+      platform_admins: {
+        Row: {
+          created_at: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1233,6 +1299,54 @@ export type Database = {
           },
         ]
       }
+      waitlist_entries: {
+        Row: {
+          business_name: string | null
+          business_type: string | null
+          created_at: string
+          email: string
+          estimated_monthly_requests: string | null
+          id: string
+          name: string
+          notes: string | null
+          source: string
+          status: string
+          updated_at: string
+          use_case: string | null
+          website: string | null
+        }
+        Insert: {
+          business_name?: string | null
+          business_type?: string | null
+          created_at?: string
+          email: string
+          estimated_monthly_requests?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          use_case?: string | null
+          website?: string | null
+        }
+        Update: {
+          business_name?: string | null
+          business_type?: string | null
+          created_at?: string
+          email?: string
+          estimated_monthly_requests?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          use_case?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       webhook_deliveries: {
         Row: {
           attempted_at: string
@@ -1584,6 +1698,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_platform_admin: { Args: never; Returns: boolean }
       is_workspace_member: { Args: { _workspace_id: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
