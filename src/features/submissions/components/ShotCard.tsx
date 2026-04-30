@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { formatRelativeTime } from "@/utils/format";
 import type { ShotFeedbackSeverity, ShotReviewStatus, SubmissionShot } from "@/types/photobrief";
+import { classifyAction, type QuickActionKind } from "@/features/submissions/lib/quickAction";
 
 const severityMeta: Record<
   ShotFeedbackSeverity,
@@ -502,34 +503,6 @@ function EditableFeedbackField({
 // We classify the suggestion text to highlight the most likely action,
 // but always render all three so the reviewer can pick a different one.
 
-type QuickActionKind = "reshoot" | "note" | "ready";
-
-const RESHOOT_KEYWORDS = [
-  "retake", "reshoot", "re-shoot", "re-take", "redo", "blurry", "out of focus",
-  "too dark", "lighting", "ask for", "request another", "request a new",
-  "unreadable", "illegible", "unclear", "obscured", "wider shot", "closer shot",
-  "different angle", "from a different", "zoom in", "zoom out",
-];
-const NOTE_KEYWORDS = [
-  "note", "flag", "follow up", "follow-up", "for the team", "internal",
-  "remember", "double-check", "verify with", "confirm with",
-];
-const READY_KEYWORDS = [
-  "approve", "looks good", "looks great", "ready", "no action", "accept",
-  "mark as reviewed", "mark reviewed", "good to go", "all set", "proceed",
-];
-
-function classifyAction(text: string | undefined | null): QuickActionKind {
-  if (!text) return "ready";
-  const t = text.toLowerCase();
-  // Order matters — reshoot wins over note wins over ready, since a
-  // suggestion that says "reshoot and note the model number" should
-  // primarily trigger a reshoot.
-  if (RESHOOT_KEYWORDS.some((k) => t.includes(k))) return "reshoot";
-  if (NOTE_KEYWORDS.some((k) => t.includes(k))) return "note";
-  if (READY_KEYWORDS.some((k) => t.includes(k))) return "ready";
-  return "ready";
-}
 
 interface QuickActionsProps {
   shot: SubmissionShot;

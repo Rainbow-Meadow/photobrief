@@ -20,6 +20,7 @@ import { notificationService } from "@/services/notificationService";
 import { submissionsService } from "@/services/submissionsService";
 import { messagingService } from "@/services/messagingService";
 import { trackEvent } from "@/lib/analytics";
+import { classifyAction } from "@/features/submissions/lib/quickAction";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
@@ -114,6 +115,7 @@ export default function SubmissionReviewPage() {
   const [extraActivity, setExtraActivity] = useState<ActivityEvent[]>([]);
   const [extraNotes, setExtraNotes] = useState<InternalNote[]>([]);
   const [askOpen, setAskOpen] = useState(false);
+  const [focusedShotId, setFocusedShotId] = useState<string | null>(null);
 
   // Pending per-shot decisions (mediaId -> approve/reject + comment).
   // Only persisted when the reviewer hits "Send back for resubmission".
@@ -174,6 +176,7 @@ export default function SubmissionReviewPage() {
   }
 
   function focusShot(shotId: string) {
+    setFocusedShotId(shotId);
     const el = document.querySelector<HTMLElement>(`[data-shot-id="${shotId}"]`);
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -454,6 +457,123 @@ export default function SubmissionReviewPage() {
     }
   }
 
+  // ────────────────────────────────────────────────────────────────────────
+  // Keyboard shortcuts
+  //
+  //   j / ↓ → focus next shot         k / ↑ → focus previous shot
+  //   Enter → apply suggested action  r → reshoot   n → note required   a → mark ready
+  //   x → clear pending decision      ? → show shortcut help
+  //
+  // We attach to window so the bindings work even when nothing inside the
+  // card has focus. Skips when the user is typing in an input/textarea or
+  // when a modifier key is held.
+  // ────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const shotIds = orderedShots.map((s) => s.id);
+    if (shotIds.length === 0) return;
+
+    function isTypingTarget(t: EventTarget | null): boolean {
+      if (!(t instanceof HTMLElement)) return false;
+      if (t.isContentEditable) return true;
+      const tag = t.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+    }
+
+    function applyAction(shotId: string, kind: "reshoot" | "note" | "ready") {
+      const shot = orderedShots.find((s) => s.id === shotId);
+      if (!shot || shot.missing) return;
+      const suggestion = shot.feedback?.suggestedNextAction?.trim();
+
+      if (kind === "ready") {
+        setShotDecision(shotId, { status: "approved" });
+        toast.success(`Marked “${shot.title}” ready`);
+      } else if (kind === "reshoot") {
+        const comment =
+          suggestion || `Please retake "${shot.title}" — current photo isn't usable.`;
+        setShotDecision(shotId, { status: "rejected", comment });
+        toast(`Queued “${shot.title}” for reshoot`);
+      } else if (kind === "note") {
+        const noteBody =
+          suggestion || `Follow up on "${shot.title}" before acting on this submission.`;
+        void handleAddNote(`[${shot.title}] ${noteBody}`);
+        setShotDecision(shotId, { status: "approved" });
+        toast.success(`Noted on “${shot.title}”`);
+      }
+    }
+
+    function handler(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTypingTarget(e.target)) return;
+
+      const currentIdx = focusedShotId
+        ? Math.max(0, shotIds.indexOf(focusedShotId))
+        : -1;
+
+      if (e.key === "j" || e.key === "ArrowDown") {
+        e.preventDefault();
+        const next = currentIdx < 0 ? 0 : Math.min(shotIds.length - 1, currentIdx + 1);
+        focusShot(shotIds[next]);
+        return;
+      }
+      if (e.key === "k" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const next = currentIdx < 0 ? 0 : Math.max(0, currentIdx - 1);
+        focusShot(shotIds[next]);
+        return;
+      }
+      if (e.key === "?") {
+        e.preventDefault();
+        toast("Keyboard shortcuts", {
+          description:
+            "j/k or ↓/↑ move between shots · Enter applies suggested action · r reshoot · n note · a mark ready · x clear",
+          duration: 6000,
+        });
+        return;
+      }
+
+      if (currentIdx < 0) {
+        if (["Enter", "r", "n", "a", "x"].includes(e.key)) {
+          toast("Press j or ↓ to focus a shot first", { duration: 2000 });
+        }
+        return;
+      }
+      const shotId = shotIds[currentIdx];
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const shot = orderedShots[currentIdx];
+        const primary = classifyAction(shot.feedback?.suggestedNextAction);
+        applyAction(shotId, primary);
+        return;
+      }
+      if (e.key === "r") {
+        e.preventDefault();
+        applyAction(shotId, "reshoot");
+        return;
+      }
+      if (e.key === "n") {
+        e.preventDefault();
+        applyAction(shotId, "note");
+        return;
+      }
+      if (e.key === "a") {
+        e.preventDefault();
+        applyAction(shotId, "ready");
+        return;
+      }
+      if (e.key === "x") {
+        e.preventDefault();
+        setShotDecision(shotId, null);
+        toast(`Cleared decision on “${orderedShots[currentIdx].title}”`);
+        return;
+      }
+    }
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderedShots, focusedShotId]);
+
   return (
     <div className="space-y-6 pb-16 lg:pb-0">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -632,7 +752,24 @@ export default function SubmissionReviewPage() {
               <h2 className="text-sm font-semibold text-foreground">
                 Shots ({orderedShots.filter((s) => !s.missing).length}/{orderedShots.length})
               </h2>
-              <p className="text-xs text-muted-foreground">In requested order</p>
+              <p className="text-xs text-muted-foreground">
+                In requested order ·{" "}
+                <button
+                  type="button"
+                  onClick={() =>
+                    toast("Keyboard shortcuts", {
+                      description:
+                        "j/k or ↓/↑ move between shots · Enter applies suggested action · r reshoot · n note · a mark ready · x clear",
+                      duration: 6000,
+                    })
+                  }
+                  className="underline-offset-2 hover:underline"
+                  title="Show keyboard shortcuts"
+                >
+                  <kbd className="rounded border bg-muted px-1 py-0.5 text-[10px] font-mono text-foreground">?</kbd>{" "}
+                  shortcuts
+                </button>
+              </p>
             </div>
             {orderedShots.length === 0 ? (
               <p className="mt-3 text-sm text-muted-foreground">No shots captured yet.</p>
