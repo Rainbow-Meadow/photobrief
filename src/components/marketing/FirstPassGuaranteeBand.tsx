@@ -12,10 +12,11 @@ export function FirstPassGuaranteeBand() {
   return (
     <section
       id="first-pass-guarantee"
-      className="border-y bg-card"
+      className="relative overflow-hidden bg-background"
       aria-labelledby="first-pass-guarantee-heading"
     >
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-ambient-mesh opacity-60" />
+      <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
         <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr]">
           {/* Pitch ----------------------------------------------------- */}
           <div>
