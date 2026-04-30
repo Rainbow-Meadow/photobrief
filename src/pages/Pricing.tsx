@@ -4,6 +4,7 @@ import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
 import { SEOHead } from "@/components/seo/SEOHead";
 
 import { Button } from "@/components/ui/button";
+import { signupCtaTarget, signupCtaLabel } from "@/config/access";
 import {
   Accordion,
   AccordionContent,

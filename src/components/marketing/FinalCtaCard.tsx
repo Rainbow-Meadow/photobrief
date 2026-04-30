@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { Zap, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trackEvent } from "@/lib/analytics";
+import { signupCtaTarget, signupCtaLabel, INVITE_ONLY_BETA } from "@/config/access";
 
 export function FinalCtaCard() {
   return (
@@ -21,15 +22,17 @@ export function FinalCtaCard() {
           <div className="mt-8 flex justify-center">
             <Button asChild size="xl" className="rounded-full">
               <NavLink
-                to="/auth?mode=signup"
-                onClick={() => trackEvent("cta_click", { location: "final_card", label: "create_account" })}
+                to={signupCtaTarget()}
+                onClick={() => trackEvent("cta_click", { location: "final_card", label: "primary" })}
               >
-                Create Your Free Account <ArrowRight className="ml-1 h-4 w-4" />
+                {INVITE_ONLY_BETA ? signupCtaLabel() : "Create your free account"} <ArrowRight className="ml-1 h-4 w-4" />
               </NavLink>
             </Button>
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
-            Free forever plan · No credit card · Takes 2 minutes
+            {INVITE_ONLY_BETA
+              ? "Invite-only beta · We're onboarding businesses carefully"
+              : "Free forever plan · No credit card · Takes 2 minutes"}
           </p>
         </div>
       </div>
