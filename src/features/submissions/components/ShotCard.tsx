@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, AlertTriangle, XCircle, ImageOff, Check, X, Pencil, HelpCircle, Lightbulb, Briefcase, Loader2, Plus } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, ImageOff, Check, X, Pencil, HelpCircle, Lightbulb, Briefcase, Loader2, Plus, Camera, StickyNote, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,9 +38,23 @@ interface Props {
   onEditFeedback?: (
     patch: { businessSummary?: string; suggestedNextAction?: string },
   ) => Promise<void> | void;
+  /**
+   * Add an internal note about this shot. Used by the "Note required"
+   * quick action so reviewers can capture the AI's suggestion as a
+   * teammate-visible note without rejecting the photo.
+   */
+  onAddNote?: (body: string) => Promise<void> | void;
 }
 
-export function ShotCard({ shot, pendingDecision, onApprove, onReject, onClearDecision, onEditFeedback }: Props) {
+export function ShotCard({
+  shot,
+  pendingDecision,
+  onApprove,
+  onReject,
+  onClearDecision,
+  onEditFeedback,
+  onAddNote,
+}: Props) {
   const sev = shot.feedback?.severity ?? (shot.missing ? "fail" : "pass");
   const meta = severityMeta[sev];
   const reviewActionsAvailable = !!(onApprove || onReject);
@@ -176,6 +190,17 @@ export function ShotCard({ shot, pendingDecision, onApprove, onReject, onClearDe
           onSave={
             onEditFeedback ? (next) => onEditFeedback({ suggestedNextAction: next }) : undefined
           }
+        />
+
+        {/* Quick actions — one-tap shortcuts that apply the AI's suggested
+            next action. Only visible when no decision has been made yet,
+            actions are wired up, and there's something to act on. */}
+        <QuickActions
+          shot={shot}
+          decisionMade={isApproved || isRejected}
+          onApprove={onApprove}
+          onReject={onReject}
+          onAddNote={onAddNote}
         />
 
         {/* Reviewer actions */}
@@ -464,5 +489,184 @@ function EditableFeedbackField({
         </Button>
       ) : null}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// QuickActions
+// ---------------------------------------------------------------------------
+// Three one-tap shortcuts mapped from the AI's suggested next action:
+//   • Reshoot       → reject with the suggestion as the comment
+//   • Note required → add an internal note (does not block; auto-approves)
+//   • Mark ready    → approve as-is
+// We classify the suggestion text to highlight the most likely action,
+// but always render all three so the reviewer can pick a different one.
+
+type QuickActionKind = "reshoot" | "note" | "ready";
+
+const RESHOOT_KEYWORDS = [
+  "retake", "reshoot", "re-shoot", "re-take", "redo", "blurry", "out of focus",
+  "too dark", "lighting", "ask for", "request another", "request a new",
+  "unreadable", "illegible", "unclear", "obscured", "wider shot", "closer shot",
+  "different angle", "from a different", "zoom in", "zoom out",
+];
+const NOTE_KEYWORDS = [
+  "note", "flag", "follow up", "follow-up", "for the team", "internal",
+  "remember", "double-check", "verify with", "confirm with",
+];
+const READY_KEYWORDS = [
+  "approve", "looks good", "looks great", "ready", "no action", "accept",
+  "mark as reviewed", "mark reviewed", "good to go", "all set", "proceed",
+];
+
+function classifyAction(text: string | undefined | null): QuickActionKind {
+  if (!text) return "ready";
+  const t = text.toLowerCase();
+  // Order matters — reshoot wins over note wins over ready, since a
+  // suggestion that says "reshoot and note the model number" should
+  // primarily trigger a reshoot.
+  if (RESHOOT_KEYWORDS.some((k) => t.includes(k))) return "reshoot";
+  if (NOTE_KEYWORDS.some((k) => t.includes(k))) return "note";
+  if (READY_KEYWORDS.some((k) => t.includes(k))) return "ready";
+  return "ready";
+}
+
+interface QuickActionsProps {
+  shot: SubmissionShot;
+  decisionMade: boolean;
+  onApprove?: () => void;
+  onReject?: (comment: string) => void;
+  onAddNote?: (body: string) => Promise<void> | void;
+}
+
+function QuickActions({
+  shot,
+  decisionMade,
+  onApprove,
+  onReject,
+  onAddNote,
+}: QuickActionsProps) {
+  const [busy, setBusy] = useState<QuickActionKind | null>(null);
+
+  // Hide entirely once a decision has already been made — the reviewer
+  // can clear it via the existing controls below if they change their
+  // mind. Also hide when the shot is missing (no photo to act on).
+  if (decisionMade || shot.missing) return null;
+  // Need at least one action wired up to be useful.
+  if (!onApprove && !onReject && !onAddNote) return null;
+
+  const suggestion = shot.feedback?.suggestedNextAction?.trim();
+  const primary = classifyAction(suggestion);
+
+  // Default copy when the AI didn't supply a suggestion.
+  const fallbackComment =
+    suggestion || `Please retake "${shot.title}" — current photo isn't usable.`;
+  const fallbackNote =
+    suggestion || `Follow up on "${shot.title}" before acting on this submission.`;
+
+  async function handleReshoot() {
+    if (!onReject) return;
+    setBusy("reshoot");
+    try {
+      onReject(fallbackComment);
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function handleNote() {
+    if (!onAddNote) return;
+    setBusy("note");
+    try {
+      await onAddNote(`[${shot.title}] ${fallbackNote}`);
+      // Auto-approve so the note doesn't block the submission — the
+      // reviewer captured the follow-up, the photo itself is fine.
+      onApprove?.();
+    } finally {
+      setBusy(null);
+    }
+  }
+  function handleReady() {
+    if (!onApprove) return;
+    setBusy("ready");
+    try {
+      onApprove();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+      <span className="mr-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        Quick action
+      </span>
+      <QuickActionButton
+        kind="reshoot"
+        primary={primary}
+        disabled={!onReject || busy !== null}
+        loading={busy === "reshoot"}
+        onClick={handleReshoot}
+        Icon={Camera}
+        label="Reshoot"
+      />
+      <QuickActionButton
+        kind="note"
+        primary={primary}
+        disabled={!onAddNote || busy !== null}
+        loading={busy === "note"}
+        onClick={handleNote}
+        Icon={StickyNote}
+        label="Note required"
+      />
+      <QuickActionButton
+        kind="ready"
+        primary={primary}
+        disabled={!onApprove || busy !== null}
+        loading={busy === "ready"}
+        onClick={handleReady}
+        Icon={Sparkles}
+        label="Mark ready"
+      />
+    </div>
+  );
+}
+
+function QuickActionButton({
+  kind,
+  primary,
+  disabled,
+  loading,
+  onClick,
+  Icon,
+  label,
+}: {
+  kind: QuickActionKind;
+  primary: QuickActionKind;
+  disabled?: boolean;
+  loading?: boolean;
+  onClick: () => void;
+  Icon: typeof Camera;
+  label: string;
+}) {
+  const isPrimary = kind === primary;
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant={isPrimary ? "default" : "outline"}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "h-7 gap-1 px-2 text-[11px]",
+        !isPrimary && "text-foreground/80",
+      )}
+    >
+      {loading ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <Icon className="h-3 w-3" />
+      )}
+      {label}
+    </Button>
   );
 }

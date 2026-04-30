@@ -636,6 +636,7 @@ export default function SubmissionReviewPage() {
                         throw e;
                       }
                     }}
+                    onAddNote={(body) => handleAddNote(body)}
                   />
                 ))}
               </div>
