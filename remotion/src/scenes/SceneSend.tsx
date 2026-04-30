@@ -159,14 +159,14 @@ export const SceneSend: React.FC = () => {
           <div
             style={{
               position: "absolute",
-              left: 540,
-              top: 720,
+              left: 580,
+              top: 490,
               transform: `translate(${planeX}px, ${planeY}px) rotate(15deg)`,
               opacity: planeOpacity,
               pointerEvents: "none",
             }}
           >
-            <svg width="56" height="56" viewBox="0 0 24 24" fill="none">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none">
               <path d="M2 12l20-9-9 20-2-9-9-2z" fill={COLORS.primary} />
             </svg>
           </div>
