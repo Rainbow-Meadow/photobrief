@@ -54,6 +54,7 @@ const GuideDetailPage = lazy(() => import("@/features/guides/pages/GuideDetailPa
 const AcceptInvitePage = lazy(() => import("@/features/workspace/pages/AcceptInvitePage"));
 const BetaGuidePage = lazy(() => import("@/features/help/pages/BetaGuidePage"));
 const AdminInvitesPage = lazy(() => import("@/pages/AdminInvites"));
+const AdminAIRerunPage = lazy(() => import("@/pages/AdminAIRerun"));
 
 const queryClient = new QueryClient();
 
@@ -127,6 +128,16 @@ const App = () => (
                 <RequireAuth requireOnboarding={false}>
                   <RequirePlatformAdmin>
                     <AdminInvitesPage />
+                  </RequirePlatformAdmin>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/admin/ai-rerun"
+              element={
+                <RequireAuth requireOnboarding={false}>
+                  <RequirePlatformAdmin>
+                    <AdminAIRerunPage />
                   </RequirePlatformAdmin>
                 </RequireAuth>
               }
