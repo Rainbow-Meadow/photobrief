@@ -12,6 +12,7 @@ import { FinalCtaCard } from "@/components/marketing/FinalCtaCard";
 import { FirstPassGuaranteeBand } from "@/components/marketing/FirstPassGuaranteeBand";
 import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
 import { trackEvent } from "@/lib/analytics";
+import { signupCtaTarget, signupCtaLabel } from "@/config/access";
 
 const LANDING_JSONLD = [
   {

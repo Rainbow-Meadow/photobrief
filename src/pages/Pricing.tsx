@@ -85,8 +85,8 @@ export default function PricingPage() {
               If PhotoBrief isn't a fit in your first month, email us and we'll refund you.
             </p>
             <Button asChild size="xl" className="mt-2 rounded-full">
-              <NavLink to="/auth?mode=signup">
-                Start free <ArrowRight className="ml-1 h-4 w-4" />
+              <NavLink to={signupCtaTarget()}>
+                {signupCtaLabel()} <ArrowRight className="ml-1 h-4 w-4" />
               </NavLink>
             </Button>
           </div>
