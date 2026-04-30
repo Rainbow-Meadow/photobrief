@@ -117,6 +117,16 @@ const App = () => (
             <Route path="/settings/sms" element={<SmsSettingsPage />} />
             <Route path="/settings/billing" element={<BillingSettingsPage />} />
             <Route path="/app/help" element={<BetaGuidePage />} />
+            <Route
+              path="/admin/invites"
+              element={
+                <RequireAuth requireOnboarding={false}>
+                  <RequirePlatformAdmin>
+                    <AdminInvitesPage />
+                  </RequirePlatformAdmin>
+                </RequireAuth>
+              }
+            />
           </Route>
 
           {/* Public recipient (chat-first, no auth) */}
