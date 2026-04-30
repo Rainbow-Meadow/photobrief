@@ -28,10 +28,24 @@ import puppeteer from "puppeteer";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = join(__dirname, "..", "dist");
 
-// Routes to prerender. Keep in sync with the Cloudflare Worker allow-list
-// (workers/router/index.ts) — anything listed here MUST be routed to Pages,
-// and anything routed to Pages MUST be listed here.
-const ROUTES = ["/", "/pricing", "/help", "/for-ai-agents", "/waitlist"];
+// Routes to prerender are derived from public/sitemap.xml so the sitemap is
+// the single source of truth. Anything listed there MUST also be in the
+// Cloudflare Worker allow-list (workers/router/src/index.ts) so requests
+// reach Pages instead of falling through to the Lovable app origin.
+async function loadRoutesFromSitemap() {
+  const sitemapPath = join(DIST_DIR, "sitemap.xml");
+  const xml = await readFile(sitemapPath, "utf8");
+  const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim());
+  const routes = locs.map((loc) => {
+    try {
+      return new URL(loc).pathname || "/";
+    } catch {
+      return loc.startsWith("/") ? loc : `/${loc}`;
+    }
+  });
+  // De-dupe while preserving order.
+  return [...new Set(routes)];
+}
 
 // Origin the Cloudflare-hosted prerender will be served from in production.
 // Used for canonical link tags injected during prerender.
@@ -110,8 +124,11 @@ async function main() {
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
+  const routes = await loadRoutesFromSitemap();
+  console.log(`[prerender] routes from sitemap: ${routes.join(", ")}`);
+
   try {
-    for (const route of ROUTES) {
+    for (const route of routes) {
       const url = `http://127.0.0.1:${port}${route}`;
       console.log(`[prerender] rendering ${route}`);
       const page = await browser.newPage();
