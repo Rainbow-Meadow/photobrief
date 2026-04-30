@@ -33,3 +33,11 @@ project_id = "ymuhxcdjdlwfstekkzmp"
     verify_jwt = true
   [functions.twilio-inbound]
     verify_jwt = false
+  [functions.waitlist-submit]
+    verify_jwt = false
+  [functions.invite-validate]
+    verify_jwt = false
+  [functions.invite-accept]
+    verify_jwt = false
+  [functions.admin-invites]
+    verify_jwt = false
