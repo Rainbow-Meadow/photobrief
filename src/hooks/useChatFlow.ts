@@ -201,8 +201,10 @@ export function useChatFlow({ guide, businessName, introBody, uploadCapture, res
       photo.checks = checks.map((c) => ({ id: c.type, severity: c.severity, message: c.message }));
       append({ id: nextId(), kind: "ai_feedback", photo, verdict: verdict as AICheckSeverity });
 
-      if (verdict === "pass") {
-        // Auto-accept and advance.
+      if (verdict === "pass" || verdict === "unavailable") {
+        // Auto-accept and advance. When AI is unavailable we never block the
+        // recipient — they already see the "AI review unavailable" message
+        // above and the photo is kept as-is.
         photosRef.current.push(photo);
         rerender();
         setTimeout(() => advanceAfterStep(), 350);
