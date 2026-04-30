@@ -36,53 +36,58 @@ Rules:
 - Friendly intro message (1-2 sentences) the recipient reads first.
 - Match the tone the business would use: warm, simple, no jargon.
 
-Always call the build_guide function.`;
+Always call build_guide and populate the full envelope:
+  result.title, result.category, result.introMessage,
+  result.assistantReply, result.steps[], result.questions[]
+  confidence (0..1), flags[] (e.g. low_confidence, ambiguous_request),
+  recipient_feedback (null — this task is for the business owner),
+  business_summary (one short sentence describing the drafted brief),
+  missing_items[] (empty for this task),
+  suggested_next_action (e.g. "Review draft and send").`;
 
-const TOOL = {
-  type: "function",
-  function: {
-    name: "build_guide",
-    description: "Return a complete request draft.",
-    parameters: {
-      type: "object",
-      properties: {
-        title: { type: "string" },
-        category: { type: "string" },
-        introMessage: { type: "string" },
-        assistantReply: { type: "string", description: "Friendly chat reply describing what was drafted." },
-        steps: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              instruction: { type: "string" },
-              captureType: { type: "string", enum: ["photo", "video", "document"] },
-              required: { type: "boolean" },
-            },
-            required: ["title", "instruction", "captureType"],
-            additionalProperties: false,
+const TOOL = buildEnvelopeTool({
+  name: "build_guide",
+  description: "Return a complete request draft.",
+  resultSchema: {
+    type: "object",
+    properties: {
+      title: { type: "string" },
+      category: { type: "string" },
+      introMessage: { type: "string" },
+      assistantReply: { type: "string", description: "Friendly chat reply describing what was drafted." },
+      steps: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            instruction: { type: "string" },
+            captureType: { type: "string", enum: ["photo", "video", "document"] },
+            required: { type: "boolean" },
           },
-        },
-        questions: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              prompt: { type: "string" },
-              inputType: {
-                type: "string",
-                enum: ["short_text", "long_text", "single_select", "multi_select", "yes_no", "number"],
-              },
-              options: { type: "array", items: { type: "string" } },
-              required: { type: "boolean" },
-            },
-            required: ["prompt", "inputType"],
-            additionalProperties: false,
-          },
+          required: ["title", "instruction", "captureType"],
+          additionalProperties: false,
         },
       },
-      required: ["title", "introMessage", "steps", "assistantReply"],
+      questions: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            prompt: { type: "string" },
+            inputType: {
+              type: "string",
+              enum: ["short_text", "long_text", "single_select", "multi_select", "yes_no", "number"],
+            },
+            options: { type: "array", items: { type: "string" } },
+            required: { type: "boolean" },
+          },
+          required: ["prompt", "inputType"],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ["title", "introMessage", "steps", "assistantReply"],
       additionalProperties: false,
     },
   },
