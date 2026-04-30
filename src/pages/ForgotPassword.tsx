@@ -77,6 +77,7 @@ export default function ForgotPasswordPage() {
           </NavLink>
         </p>
       </div>
+      </div>
     </div>
   );
 }
