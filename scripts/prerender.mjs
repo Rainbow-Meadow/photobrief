@@ -129,6 +129,7 @@ async function main() {
 
   try {
     for (const route of routes) {
+      const url = `http://127.0.0.1:${port}${route}`;
       console.log(`[prerender] rendering ${route}`);
       const page = await browser.newPage();
       await page.setViewport({ width: 1280, height: 900 });
