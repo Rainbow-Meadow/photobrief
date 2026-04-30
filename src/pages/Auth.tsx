@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, NavLink, useNavigate } from "react-router-dom";
+import { useSearchParams, NavLink, useNavigate, Navigate } from "react-router-dom";
+import { INVITE_ONLY_BETA, PUBLIC_SIGNUP_ENABLED } from "@/config/access";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,8 +16,18 @@ export default function AuthPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { session, loading: authLoading } = useAuth();
-  const mode = params.get("mode") === "signup" ? "signup" : "signin";
+  const requestedSignup = params.get("mode") === "signup";
+  // Force sign-in mode while public signup is disabled. Visitors trying to
+  // sign up are redirected to the waitlist (or signup-with-invite flow).
+  const signupAllowed = PUBLIC_SIGNUP_ENABLED && !INVITE_ONLY_BETA;
+  const mode = requestedSignup && signupAllowed ? "signup" : "signin";
   const otherMode = mode === "signup" ? "signin" : "signup";
+
+  // If a logged-out visitor asks for ?mode=signup while signup is closed,
+  // bounce them to the waitlist instead of silently flipping to sign-in.
+  if (requestedSignup && !signupAllowed && !session && !authLoading) {
+    return <Navigate to="/waitlist" replace />;
+  }
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -316,9 +327,15 @@ export default function AuthPage() {
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           {mode === "signup" ? "Already have an account?" : "New to PhotoBrief?"}{" "}
-          <NavLink to={`/auth?mode=${otherMode}`} className="font-medium text-primary hover:underline">
-            {otherMode === "signup" ? "Create one" : "Sign in"}
-          </NavLink>
+          {mode === "signin" && !signupAllowed ? (
+            <NavLink to="/waitlist" className="font-medium text-primary hover:underline">
+              Join the waitlist
+            </NavLink>
+          ) : (
+            <NavLink to={`/auth?mode=${otherMode}`} className="font-medium text-primary hover:underline">
+              {otherMode === "signup" ? "Create one" : "Sign in"}
+            </NavLink>
+          )}
         </p>
       </div>
       </div>
