@@ -1,18 +1,18 @@
-import { CheckCircle2, Sparkles, Camera, ShieldCheck, FileText, AlertTriangle } from "lucide-react";
-import leakPhoto from "@/assets/leak-photo.jpg";
-import wideScene from "@/assets/submission/wide-scene.jpg";
-import pipeConnections from "@/assets/submission/pipe-connections.jpg";
-import shutoffValve from "@/assets/submission/shutoff-valve.jpg";
-import waterDamage from "@/assets/submission/water-damage.jpg";
-import blurryRetake from "@/assets/submission/blurry-retake.jpg";
+import { CheckCircle2, Sparkles, Camera, ShieldCheck, FileText } from "lucide-react";
+import wideGarage from "@/assets/junk-removal/wide-garage.jpg";
+import pileCloseup from "@/assets/junk-removal/pile-closeup.jpg";
+import mattress from "@/assets/junk-removal/mattress.jpg";
+import appliances from "@/assets/junk-removal/appliances.jpg";
+import drivewayAccess from "@/assets/junk-removal/driveway-access.jpg";
+import threshold from "@/assets/junk-removal/threshold.jpg";
 
 const SHOTS = [
-  { src: wideScene, label: "Wide scene", ok: true },
-  { src: leakPhoto, label: "Close-up of leak", ok: true },
-  { src: pipeConnections, label: "Pipe connections", ok: true },
-  { src: shutoffValve, label: "Shutoff valve", ok: true },
-  { src: blurryRetake, label: "Under-sink area", ok: false },
-  { src: waterDamage, label: "Water damage", ok: true },
+  { src: wideGarage, label: "Wide garage", ok: true },
+  { src: pileCloseup, label: "Main pile", ok: true },
+  { src: mattress, label: "Mattress + box spring", ok: true },
+  { src: appliances, label: "Appliances", ok: true },
+  { src: drivewayAccess, label: "Driveway access", ok: true },
+  { src: threshold, label: "Threshold", ok: true },
 ];
 
 /**
@@ -52,9 +52,9 @@ export function HeroGlassStory() {
                 <span aria-hidden className="lens-ring absolute -inset-0.5 rounded-full opacity-70" />
               </span>
               <div className="glass max-w-[88%] rounded-2xl rounded-tl-sm px-3.5 py-2.5">
-                <p className="text-[13px] font-semibold text-foreground">Close-up of the leak</p>
+                <p className="text-[13px] font-semibold text-foreground">Close-up of the main pile</p>
                 <p className="mt-0.5 text-[12px] leading-relaxed text-foreground/80">
-                  Get within arm's reach so we can see where water is coming from.
+                  Stand about 6 feet back so we can see the full volume.
                 </p>
               </div>
             </div>
@@ -67,8 +67,8 @@ export function HeroGlassStory() {
               <div className="overflow-hidden rounded-2xl rounded-tr-sm bg-gradient-primary p-1 shadow-glow">
                 <div className="relative aspect-[4/3] w-[220px] overflow-hidden rounded-[14px] sm:w-[260px]">
                   <img
-                    src={leakPhoto}
-                    alt="Close-up of a leaking P-trap pipe"
+                    src={pileCloseup}
+                    alt="Close-up of a household junk pile inside a single-car garage"
                     className="absolute inset-0 h-full w-full object-cover"
                     loading="eager"
                     width={520}
@@ -88,7 +88,7 @@ export function HeroGlassStory() {
                   <CheckCircle2 className="h-3 w-3" /> Looks great
                 </p>
                 <p className="mt-0.5 text-[12px] leading-relaxed text-foreground/80">
-                  Sharp focus on the joint. One more — the shutoff valve.
+                  Clear view of the pile. One more — the driveway where our truck will park.
                 </p>
               </div>
             </div>
@@ -110,7 +110,7 @@ export function HeroGlassStory() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <span className="text-eyebrow">Business-ready brief</span>
-                <p className="mt-1 text-[15px] font-semibold text-foreground">Sarah M. — Plumbing Leak</p>
+                <p className="mt-1 text-[15px] font-semibold text-foreground">Marcus T. — Garage Cleanout</p>
                 <p className="text-[12px] text-muted-foreground">Submitted 2 min ago · 6 of 6 photos</p>
               </div>
 
@@ -122,13 +122,13 @@ export function HeroGlassStory() {
                     cx="18"
                     cy="18"
                     r="15.5"
-                    className="fill-none stroke-success [stroke-dasharray:97.4] [stroke-dashoffset:13.6]"
+                    className="fill-none stroke-success [stroke-dasharray:97.4] [stroke-dashoffset:5.8]"
                     strokeWidth="3"
                     strokeLinecap="round"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-semibold leading-none text-foreground tabular-nums">86</span>
+                  <span className="text-lg font-semibold leading-none text-foreground tabular-nums">94</span>
                   <span className="text-[8px] font-semibold uppercase tracking-wide text-muted-foreground">Readiness</span>
                 </div>
               </div>
@@ -140,7 +140,7 @@ export function HeroGlassStory() {
                 <Sparkles className="h-3 w-3" /> AI summary
               </p>
               <p className="mt-1 text-[13px] leading-relaxed text-foreground">
-                P-trap leak under the kitchen sink. Shutoff valve accessible. All critical photos captured — ready to quote.
+                Single-car garage cleanout, ~½ truckload. Mattress, box spring, and a mini-fridge flagged for oversize and appliance handling. Ground-level access, driveway fits a 16-ft truck — ready to dispatch.
               </p>
             </div>
 
@@ -148,7 +148,7 @@ export function HeroGlassStory() {
             <div className="mt-4">
               <div className="flex items-center justify-between">
                 <p className="text-eyebrow">Captured shots</p>
-                <span className="text-[11px] text-muted-foreground">5 pass · 1 retake</span>
+                <span className="text-[11px] text-muted-foreground">6 pass · 0 retakes</span>
               </div>
               <div className="mt-2 grid grid-cols-6 gap-1.5">
                 {SHOTS.map((shot, i) => (
@@ -161,13 +161,8 @@ export function HeroGlassStory() {
                       width={120}
                       height={120}
                     />
-                    <span
-                      className={
-                        "absolute right-1 top-1 inline-flex h-4 w-4 items-center justify-center rounded-full shadow " +
-                        (shot.ok ? "bg-success text-success-foreground" : "bg-warning text-warning-foreground")
-                      }
-                    >
-                      {shot.ok ? <CheckCircle2 className="h-2.5 w-2.5" /> : <AlertTriangle className="h-2.5 w-2.5" />}
+                    <span className="absolute right-1 top-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-success text-success-foreground shadow">
+                      <CheckCircle2 className="h-2.5 w-2.5" />
                     </span>
                   </div>
                 ))}
@@ -180,7 +175,7 @@ export function HeroGlassStory() {
                 <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   <FileText className="h-3 w-3" /> Extracted
                 </p>
-                <p className="mt-1 text-[12px] text-foreground">Brand: Moen · Pipe: 1¼" PVC</p>
+                <p className="mt-1 text-[12px] text-foreground">Volume: ~½ truck · Oversize: mattress, mini-fridge</p>
               </div>
               <div className="glass rounded-2xl px-3.5 py-2.5">
                 <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-success">
