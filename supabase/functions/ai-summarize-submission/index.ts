@@ -1,20 +1,26 @@
 // ai-summarize-submission — generates the reviewer-facing AI summary,
-// readiness score (0-100, blended per 05_AI_System/03_readiness_scoring.md),
-// suggested next action, missing items, and extracted details for a submission.
+// readiness score, suggested next action, missing items, and extracted
+// details for a submission.
 //
-// Uses google/gemini-2.5-pro multimodal so the model can actually look at the
-// captured photos when summarising and pulling structured details.
+// Routed via the centralized aiModelRouter (task: submission_summary, vision tier).
+// Auto-escalates one retry to the escalation tier when the model reports
+// low confidence (<0.5) or flags include "low_confidence".
 //
 // Two modes:
 //  1) { submissionId } — reads everything from DB and persists results.
-//  2) { guideName, recipientName, shots, customerAnswers? } — pure compute,
-//     used by client-side hooks during the recipient flow before the
-//     submission row exists.
+//  2) { guideName, recipientName, shots, customerAnswers? } — pure compute.
 //
 // Output: { summary, highlights[], readinessScore, band, nextAction,
-//           missingItems[], extractedDetails[] }
+//           missingItems[], extractedDetails[], confidence, flags,
+//           businessSummary, model }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import {
+  buildEnvelopeTool,
+  callAIWithRouter,
+  routerErrorResponse,
+  AIUnavailableError,
+} from "../_shared/aiModelRouter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
