@@ -1,53 +1,69 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { ArrowRight, PlayCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { SEOHead } from "@/components/seo/SEOHead";
+import { PageMeta } from "@/hooks/seo/usePageMeta";
+import { buildHowToJsonLd } from "@/hooks/seo/buildHowToJsonLd";
+import { buildFaqJsonLd } from "@/hooks/seo/buildFaqJsonLd";
 import { HeroGlassStory } from "@/components/marketing/HeroGlassStory";
 import { TrustLogosStrip } from "@/components/marketing/TrustLogosStrip";
-import { HowItWorksSteps } from "@/components/marketing/HowItWorksSteps";
+import { HowItWorksSteps, howItWorksSteps } from "@/components/marketing/HowItWorksSteps";
 import { StatsBand } from "@/components/marketing/StatsBand";
 import { IndustryGrid } from "@/components/marketing/IndustryGrid";
 import { TestimonialsRow } from "@/components/marketing/TestimonialsRow";
 import { FinalCtaCard } from "@/components/marketing/FinalCtaCard";
 import { FirstPassGuaranteeBand } from "@/components/marketing/FirstPassGuaranteeBand";
 import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
+import { faqItems } from "@/features/help/content/faq";
 import { trackEvent } from "@/lib/analytics";
 import { signupCtaTarget, signupCtaLabel } from "@/config/access";
 
-const LANDING_JSONLD = [
-  {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "PhotoBrief",
-    url: "https://photobrief.ai",
-    logo: "https://photobrief.ai/og-image.png",
-    sameAs: [],
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    name: "PhotoBrief",
-    applicationCategory: "BusinessApplication",
-    operatingSystem: "Web",
-    description:
-      "PhotoBrief turns vague customer photos into business-ready briefs. Chat-guided capture, AI quality checks, clean summaries.",
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-  },
-];
+const SOFTWARE_APP_JSONLD: Record<string, unknown> = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "PhotoBrief",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  description:
+    "PhotoBrief turns vague customer photos into business-ready briefs. Chat-guided capture, AI quality checks, clean summaries.",
+  offers: [
+    { "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD" },
+    { "@type": "Offer", name: "Starter", price: "19", priceCurrency: "USD" },
+    { "@type": "Offer", name: "Pro", price: "49", priceCurrency: "USD" },
+    { "@type": "Offer", name: "Team", price: "99", priceCurrency: "USD" },
+    { "@type": "Offer", name: "Business", price: "199", priceCurrency: "USD" },
+  ],
+  featureList: [
+    "AI-guided photo capture",
+    "Per-photo quality checks (blur, lighting, framing, distance)",
+    "Missing-shot follow-up",
+    "Auto-generated brief and summary",
+    "Branded recipient links",
+    "REST API and outbound webhooks (Business plan)",
+  ],
+};
 
 
 export default function LandingPage() {
   const [demoOpen, setDemoOpen] = useState(false);
+  const jsonLd = useMemo(
+    () => [
+      SOFTWARE_APP_JSONLD,
+      buildHowToJsonLd("Send a PhotoBrief request", howItWorksSteps),
+      buildFaqJsonLd(faqItems),
+    ],
+    [],
+  );
   return (
     <>
-      <SEOHead
+      <PageMeta
         title="PhotoBrief | Send a link. Get a complete brief."
         description="PhotoBrief turns customer photos into AI-guided, business-ready submissions with quality checks, missing-shot prompts, and clean summaries."
         canonicalPath="/"
-        jsonLd={LANDING_JSONLD}
+        jsonLd={jsonLd}
+        breadcrumbs={[{ name: "Home", path: "/" }]}
       />
 
       {/* HERO ---------------------------------------------------------------- */}
