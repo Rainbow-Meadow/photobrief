@@ -192,6 +192,17 @@ export function ShotCard({
           }
         />
 
+        {/* Quick actions — one-tap shortcuts that apply the AI's suggested
+            next action. Only visible when no decision has been made yet,
+            actions are wired up, and there's something to act on. */}
+        <QuickActions
+          shot={shot}
+          decisionMade={isApproved || isRejected}
+          onApprove={onApprove}
+          onReject={onReject}
+          onAddNote={onAddNote}
+        />
+
         {/* Reviewer actions */}
         {reviewActionsAvailable ? (
           <div className="space-y-2 pt-1">
