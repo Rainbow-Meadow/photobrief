@@ -607,7 +607,7 @@ export default function OnboardingPage() {
         </div>
       ) : null}
 
-      <div className="rounded-xl border bg-card p-6 shadow-elev-sm">
+      <div className="glass-strong rounded-3xl p-6 sm:p-7 animate-lift-in">
         {step === 1 ? (
           <div className="space-y-5">
             <div className="space-y-1.5">
