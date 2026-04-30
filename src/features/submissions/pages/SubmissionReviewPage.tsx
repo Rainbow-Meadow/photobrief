@@ -58,6 +58,7 @@ import type {
 } from "@/types/photobrief";
 
 import { ShotCard } from "@/features/submissions/components/ShotCard";
+import { ReviewProgressSummary } from "@/features/submissions/components/ReviewProgressSummary";
 import { ActivityTimeline } from "@/features/submissions/components/ActivityTimeline";
 import { AskForMorePhotosDialog } from "@/features/submissions/components/AskForMorePhotosDialog";
 import { InternalNotesPanel } from "@/features/submissions/components/InternalNotesPanel";
