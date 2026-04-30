@@ -187,7 +187,7 @@ export const aiService = {
    * the caller didn't provide a usable media URL (e.g. blob: previews).
    */
   async analyzeCapturedMedia(input: AnalyzeMediaInput): Promise<AnalyzeMediaOutput> {
-    const { step, mediaUrl, capturedMediaId, recipientNote } = input;
+    const { step, mediaUrl, capturedMediaId, recipientNote, escalate } = input;
     const usableUrl = mediaUrl && /^https?:\/\//.test(mediaUrl) ? mediaUrl : null;
 
     if (usableUrl) {
@@ -203,9 +203,17 @@ export const aiService = {
             imageUrl: usableUrl,
             recipientNote,
             capturedMediaId,
+            priority: escalate ? "admin_review" : undefined,
+            task: "photo_quality_check",
           },
         });
         if (error) throw error;
+
+        // Graceful AI-unavailable envelope from the router (HTTP 200).
+        if (data && data.error === "ai_unavailable") {
+          return aiUnavailableResult(step.title);
+        }
+
         if (data && data.checks) {
           const checks = data.checks.map((c: any) => ({
             type: c.type as AICheckType,
@@ -219,6 +227,10 @@ export const aiService = {
             headline: data.headline ?? feedbackHeadline(verdict, step.title),
             detail: data.detail ?? checks.find((c: any) => c.severity !== "pass")?.message,
             checks: checks.map((c: any) => ({ type: c.type, severity: c.severity, label: c.label })),
+            confidence: typeof data.confidence === "number" ? data.confidence : undefined,
+            flags: Array.isArray(data.flags) ? data.flags : undefined,
+            businessSummary: data.businessSummary ?? undefined,
+            suggestedNextAction: data.suggestedNextAction ?? undefined,
           };
           return {
             checks: checks.map(({ type, severity, message }: any) => ({ type, severity, message })),
@@ -231,29 +243,8 @@ export const aiService = {
       }
     }
 
-    // Honest fallback. We never fabricate a `pass` from random numbers —
-    // if we can't reach the AI (no usable URL, network error, gateway
-    // down) we emit a single neutral `warn` so the recipient can still
-    // submit if they choose.
-    const checks = [
-      {
-        type: "manual_review" as unknown as AICheckType,
-        severity: "warn" as AICheckSeverity,
-        message: "We couldn't check this photo — you can still submit it.",
-        label: "Manual review",
-      },
-    ];
-    const feedback: ShotAIFeedback = {
-      severity: "warn",
-      headline: "We couldn't check this photo",
-      detail: "You can submit it as-is or retake.",
-      checks: checks.map((c) => ({ type: c.type, severity: c.severity, label: c.label })),
-    };
-    return {
-      checks: checks.map(({ type, severity, message }) => ({ type, severity, message })),
-      verdict: "warn",
-      feedback,
-    };
+    // Total failure path (no usable URL, network error, etc.) — graceful state.
+    return aiUnavailableResult(step.title);
   },
 
   /**
