@@ -121,6 +121,8 @@ export function BrandMark({
       <img
         src={pickSrc(resolvedVariant, resolvedTone)}
         alt={ALT}
+        width={intrinsicWidth}
+        height={intrinsicHeight}
         style={style}
         loading={loading}
         draggable={false}
