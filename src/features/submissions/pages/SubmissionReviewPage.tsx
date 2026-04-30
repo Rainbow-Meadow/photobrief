@@ -59,6 +59,7 @@ import type {
 
 import { ShotCard } from "@/features/submissions/components/ShotCard";
 import { ReviewProgressSummary } from "@/features/submissions/components/ReviewProgressSummary";
+import { EscalationQueue } from "@/features/submissions/components/EscalationQueue";
 import { ActivityTimeline } from "@/features/submissions/components/ActivityTimeline";
 import { AskForMorePhotosDialog } from "@/features/submissions/components/AskForMorePhotosDialog";
 import { InternalNotesPanel } from "@/features/submissions/components/InternalNotesPanel";
@@ -170,6 +171,14 @@ export default function SubmissionReviewPage() {
       else next[mediaId] = decision;
       return next;
     });
+  }
+
+  function focusShot(shotId: string) {
+    const el = document.querySelector<HTMLElement>(`[data-shot-id="${shotId}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("ring-2", "ring-primary");
+    window.setTimeout(() => el.classList.remove("ring-2", "ring-primary"), 1600);
   }
 
   function buildRejectMessage(shots: SubmissionShot[]): string {
@@ -588,14 +597,13 @@ export default function SubmissionReviewPage() {
         shots={orderedShots}
         pending={pending}
         missingItemsCount={submission.missingItems?.length ?? 0}
-        onFocusShot={(shotId) => {
-          const el = document.querySelector<HTMLElement>(`[data-shot-id="${shotId}"]`);
-          if (el) {
-            el.scrollIntoView({ behavior: "smooth", block: "center" });
-            el.classList.add("ring-2", "ring-primary");
-            window.setTimeout(() => el.classList.remove("ring-2", "ring-primary"), 1600);
-          }
-        }}
+        onFocusShot={focusShot}
+      />
+
+      <EscalationQueue
+        shots={orderedShots}
+        onFocusShot={focusShot}
+        onRerunShot={() => navigate("/admin/ai-rerun")}
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
