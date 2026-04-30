@@ -75,6 +75,9 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/unsubscribe" element={<UnsubscribePage />} />
             <Route path="/help" element={<BetaGuidePage />} />
+            <Route path="/waitlist" element={<WaitlistPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/beta-invite/:token" element={<BetaInvitePage />} />
           </Route>
 
           {/* Onboarding + invite acceptance (no sidebar, but still auth-only).
