@@ -310,3 +310,159 @@ export function ShotCard({ shot, pendingDecision, onApprove, onReject, onClearDe
     </article>
   );
 }
+
+// ---------------------------------------------------------------------------
+// EditableFeedbackField
+// ---------------------------------------------------------------------------
+// Inline-editable text row for AI envelope fields (business summary &
+// suggested next action). When `editable` is false it falls back to a
+// read-only display (and renders nothing if value is empty). When editable
+// and empty, shows an "Add" affordance so the reviewer can write their own.
+
+interface EditableFieldProps {
+  label: string;
+  /** Visual tone — `accent` for next-action, `neutral` for summary. */
+  tone: "neutral" | "accent";
+  Icon: typeof Briefcase;
+  value: string;
+  editable: boolean;
+  /** Returns a promise so we can show a saving spinner. */
+  onSave?: (next: string) => Promise<void> | void;
+}
+
+function EditableFeedbackField({
+  label,
+  tone,
+  Icon,
+  value,
+  editable,
+  onSave,
+}: EditableFieldProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const [saving, setSaving] = useState(false);
+
+  // Reset draft if the underlying value changes from outside (e.g. refetch
+  // after a parent invalidation) and we aren't actively editing.
+  useEffect(() => {
+    if (!editing) setDraft(value);
+  }, [value, editing]);
+
+  const empty = value.trim().length === 0;
+
+  // Read-only: hide entirely when empty and not editable.
+  if (!editable && empty) return null;
+
+  const containerTone =
+    tone === "accent"
+      ? "border-accent/40 bg-accent/30 text-foreground"
+      : "bg-muted/30 text-foreground/90";
+  const iconTone =
+    tone === "accent" ? "text-accent-foreground" : "text-muted-foreground";
+
+  // Empty + editable: "Add" affordance.
+  if (empty && !editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setDraft("");
+          setEditing(true);
+        }}
+        className="flex w-full items-center gap-1.5 rounded-md border border-dashed bg-muted/10 px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+      >
+        <Plus className="h-3 w-3" /> Add {label.toLowerCase()}
+      </button>
+    );
+  }
+
+  if (editing) {
+    return (
+      <div className={cn("rounded-md border px-3 py-2 text-xs", containerTone)}>
+        <div className="flex items-center gap-1.5">
+          <Icon className={cn("h-3.5 w-3.5 shrink-0", iconTone)} />
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {label}
+          </p>
+        </div>
+        <Textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          rows={2}
+          autoFocus
+          className="mt-1.5 min-h-0 text-xs"
+          placeholder={`Edit the ${label.toLowerCase()}…`}
+        />
+        <div className="mt-2 flex items-center justify-end gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={saving}
+            onClick={() => {
+              setEditing(false);
+              setDraft(value);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            disabled={saving || draft.trim() === value.trim()}
+            onClick={async () => {
+              if (!onSave) {
+                setEditing(false);
+                return;
+              }
+              try {
+                setSaving(true);
+                await onSave(draft.trim());
+                setEditing(false);
+              } finally {
+                setSaving(false);
+              }
+            }}
+            className="gap-1"
+          >
+            {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+            Save
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Read-only / display mode (with edit affordance when editable).
+  return (
+    <div
+      className={cn(
+        "group/field flex items-start gap-2 rounded-md border px-3 py-2 text-xs",
+        containerTone,
+      )}
+    >
+      <Icon className={cn("mt-0.5 h-3.5 w-3.5 shrink-0", iconTone)} />
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        <p className="mt-0.5 leading-snug">{value}</p>
+      </div>
+      {editable ? (
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          aria-label={`Edit ${label.toLowerCase()}`}
+          className="-mr-1 h-6 w-6 opacity-0 transition-opacity group-hover/field:opacity-100 focus-visible:opacity-100"
+          onClick={() => {
+            setDraft(value);
+            setEditing(true);
+          }}
+        >
+          <Pencil className="h-3 w-3" />
+        </Button>
+      ) : null}
+    </div>
+  );
+}
