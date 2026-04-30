@@ -147,3 +147,35 @@ export default {
     return proxyTo(env.LOVABLE_HOST, request);
   },
 };
+
+/**
+ * Proxy the incoming request to the given origin host, preserving the path,
+ * query string, method, headers, and body. The Host header is rewritten so
+ * the upstream sees its own hostname (required by both Pages and Lovable).
+ */
+async function proxyTo(host: string, request: Request): Promise<Response> {
+  if (!host) {
+    return new Response("Router misconfigured: missing origin host", { status: 500 });
+  }
+  const incoming = new URL(request.url);
+  const target = new URL(incoming.pathname + incoming.search, `https://${host}`);
+
+  const headers = new Headers(request.headers);
+  headers.set("host", host);
+  // Preserve the original client info for the upstream.
+  const cfIp = request.headers.get("cf-connecting-ip");
+  if (cfIp) headers.set("x-forwarded-for", cfIp);
+  headers.set("x-forwarded-host", incoming.hostname);
+  headers.set("x-forwarded-proto", "https");
+
+  const init: RequestInit = {
+    method: request.method,
+    headers,
+    redirect: "manual",
+  };
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    init.body = request.body;
+  }
+
+  return fetch(target.toString(), init);
+}
