@@ -89,10 +89,10 @@ export default function LandingPage() {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Button asChild size="xl" className="rounded-full">
                 <NavLink
-                  to="/auth?mode=signup"
-                  onClick={() => trackEvent("cta_click", { location: "hero", label: "start_free" })}
+                  to={signupCtaTarget()}
+                  onClick={() => trackEvent("cta_click", { location: "hero", label: "primary" })}
                 >
-                  Start Free <ArrowRight className="ml-1 h-4 w-4" />
+                  {signupCtaLabel()} <ArrowRight className="ml-1 h-4 w-4" />
                 </NavLink>
               </Button>
               <Button asChild size="xl" variant="glass" className="rounded-full">
