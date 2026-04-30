@@ -33,7 +33,7 @@ export function HowItWorksSteps() {
         <div className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           {steps.map((s, i) => (
             <div key={s.title} className="relative">
-              <div className="text-5xl font-bold leading-none tracking-tight text-muted-foreground/25 tabular-nums">
+              <div aria-hidden="true" className="text-5xl font-bold leading-none tracking-tight text-muted-foreground/25 tabular-nums">
                 0{i + 1}
               </div>
               <h3 className="mt-5 text-base font-semibold text-foreground">

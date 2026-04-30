@@ -19,7 +19,7 @@ export function FirstPassGuaranteeBand() {
         <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr]">
           {/* Pitch ----------------------------------------------------- */}
           <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
               <Sparkles className="h-3 w-3" /> Industry first
             </span>
             <h2

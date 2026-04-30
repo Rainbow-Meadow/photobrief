@@ -49,10 +49,10 @@ export function BillingIntervalToggle({ value, onChange, variant = "default", cl
                 className={cn(
                   "rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
                   active
-                    ? "bg-success/15 text-success"
+                    ? "bg-white text-primary"
                     : onDark
                       ? "bg-white/15 text-white"
-                      : "bg-success/10 text-success",
+                      : "bg-success/15 text-success-foreground",
                 )}
               >
                 Save 20%

@@ -19,7 +19,7 @@ export function TrustLogosStrip() {
           {wordmarks.map((w) => (
             <span
               key={w}
-              className="select-none text-base font-semibold tracking-tight text-muted-foreground/70 transition hover:text-muted-foreground"
+              className="select-none text-base font-semibold tracking-tight text-muted-foreground transition hover:text-foreground"
             >
               {w}
             </span>
