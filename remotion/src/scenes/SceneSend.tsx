@@ -12,11 +12,11 @@ export const SceneSend: React.FC = () => {
   const panelOp = interpolate(panelS, [0, 1], [0, 1]);
   const panelY = interpolate(panelS, [0, 1], [22, 0]);
 
-  // Cursor moves toward the Send button (anchored at the panel's bottom-right).
-  // The cursor is absolutely positioned inside the panel wrapper; (0,0) = top-left
-  // of the wrapper. Panel is 720px wide; button center sits roughly at (560, 750).
-  const cursorX = interpolate(frame, [30, 90], [240, 540], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const cursorY = interpolate(frame, [30, 90], [380, 740], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  // Cursor moves toward the Send button (panel-wrapper relative coords).
+  // Wrapper is 720px wide, panel is full width, button sits at the panel's
+  // bottom-right (~x:600, y:540 inside the wrapper).
+  const cursorX = interpolate(frame, [30, 90], [240, 590], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const cursorY = interpolate(frame, [30, 90], [220, 510], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
   // Button "click" pulse + paper plane fly-off after frame 92
   const click = spring({ frame: frame - 92, fps, config: { damping: 14, stiffness: 220 } });
