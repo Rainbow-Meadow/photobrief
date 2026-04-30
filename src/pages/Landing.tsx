@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { ArrowRight, PlayCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { HeroProductMockup } from "@/components/marketing/HeroProductMockup";
 import { TrustLogosStrip } from "@/components/marketing/TrustLogosStrip";
 import { HowItWorksSteps } from "@/components/marketing/HowItWorksSteps";
@@ -11,6 +12,32 @@ import { FinalCtaCard } from "@/components/marketing/FinalCtaCard";
 import { FirstPassGuaranteeBand } from "@/components/marketing/FirstPassGuaranteeBand";
 import { PricingCardGrid } from "@/components/pricing/PricingCardGrid";
 import { trackEvent } from "@/lib/analytics";
+
+const LANDING_JSONLD = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "PhotoBrief",
+    url: "https://photobrief.ai",
+    logo: "https://photobrief.ai/og-image.png",
+    sameAs: [],
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "PhotoBrief",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    description:
+      "PhotoBrief turns vague customer photos into business-ready briefs. Chat-guided capture, AI quality checks, clean summaries.",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+  },
+];
+
 
 export default function LandingPage() {
   return (
