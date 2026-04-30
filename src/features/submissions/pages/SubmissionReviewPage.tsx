@@ -623,6 +623,19 @@ export default function SubmissionReviewPage() {
                     onApprove={() => setShotDecision(shot.id, { status: "approved" })}
                     onReject={(comment) => setShotDecision(shot.id, { status: "rejected", comment })}
                     onClearDecision={() => setShotDecision(shot.id, null)}
+                    onEditFeedback={async (patch) => {
+                      try {
+                        await submissionsService.updateShotFeedbackText({
+                          mediaId: shot.id,
+                          ...patch,
+                        });
+                        invalidate();
+                        toast.success("AI wording updated");
+                      } catch (e) {
+                        toast.error(e instanceof Error ? e.message : "Couldn't save edit");
+                        throw e;
+                      }
+                    }}
                   />
                 ))}
               </div>
