@@ -25,6 +25,40 @@ import type {
 } from "@/types/photobrief";
 
 // ============================================================
+// Model routing — client-side metadata only.
+// The actual model selection happens server-side in
+// supabase/functions/_shared/aiModelRouter.ts. This client export
+// exists only so analytics / debug surfaces can describe which task
+// tier a call belongs to. UI components MUST NOT use this to pick
+// models — every AI call goes through aiService and the edge router.
+// ============================================================
+
+export type AITask =
+  | "recipient_guidance"
+  | "photo_quality_check"
+  | "detail_extraction"
+  | "readiness_scoring"
+  | "submission_summary"
+  | "guide_generation"
+  | "followup_message"
+  | "admin_review"
+  | "classification";
+
+export type AITier = "default" | "vision" | "escalation" | "cheap";
+
+export const aiModelRouter: Record<AITask, AITier> = {
+  recipient_guidance: "default",
+  guide_generation: "default",
+  followup_message: "default",
+  photo_quality_check: "vision",
+  detail_extraction: "vision",
+  readiness_scoring: "vision",
+  submission_summary: "vision",
+  admin_review: "escalation",
+  classification: "cheap",
+};
+
+// ============================================================
 // Shared types (mirror prompt contract response schemas)
 // ============================================================
 
@@ -37,15 +71,19 @@ export interface AnalyzeMediaInput {
   capturedMediaId?: string;
   /** Optional recipient note attached to the photo. */
   recipientNote?: string;
+  /** When true, route through escalation tier (admin re-runs). */
+  escalate?: boolean;
 }
 
 export interface AnalyzeMediaOutput {
   /** Per-check results matching step.aiChecks. */
   checks: { type: AICheckType; severity: AICheckSeverity; message: string }[];
-  /** Aggregate verdict — worst of any check. */
+  /** Aggregate verdict — worst of any check, or "unavailable" if AI is down. */
   verdict: AICheckSeverity;
   /** Reviewer-facing feedback object usable directly in SubmissionShot.feedback. */
   feedback: ShotAIFeedback;
+  /** True when the edge function returned a graceful AI-unavailable envelope. */
+  unavailable?: boolean;
 }
 
 export interface SubmissionSummaryInput {
