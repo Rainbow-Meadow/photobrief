@@ -175,6 +175,33 @@ function feedbackHeadline(verdict: AICheckSeverity, stepTitle: string): string {
   return `${stepTitle}: needs a retake`;
 }
 
+/**
+ * Build a graceful "AI review unavailable" result. Submission is NOT blocked
+ * by AI being down — only app-logic gating (required photo missing) blocks.
+ */
+function aiUnavailableResult(stepTitle: string): AnalyzeMediaOutput {
+  const checks = [
+    {
+      type: "manual_review" as unknown as AICheckType,
+      severity: "unavailable" as AICheckSeverity,
+      message: "AI review is temporarily unavailable — you can still submit this photo.",
+      label: "AI review unavailable",
+    },
+  ];
+  const feedback: ShotAIFeedback = {
+    severity: "unavailable",
+    headline: `${stepTitle}: AI review unavailable`,
+    detail: "You can submit it as-is or retake.",
+    checks: checks.map((c) => ({ type: c.type, severity: c.severity, label: c.label })),
+  };
+  return {
+    checks: checks.map(({ type, severity, message }) => ({ type, severity, message })),
+    verdict: "unavailable",
+    feedback,
+    unavailable: true,
+  };
+}
+
 // ============================================================
 // The service
 // ============================================================
