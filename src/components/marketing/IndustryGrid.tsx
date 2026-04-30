@@ -18,10 +18,12 @@ const industries = [
 
 export function IndustryGrid() {
   return (
-    <section id="use-cases" className="bg-muted/30">
-      <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
+    <section id="use-cases" className="relative overflow-hidden bg-background">
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-ambient-sky opacity-50" />
+      <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          <p className="text-eyebrow">Industries</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
             Built for your industry
           </h2>
           <p className="mt-4 text-base text-muted-foreground">
@@ -33,14 +35,12 @@ export function IndustryGrid() {
           {industries.map((i) => (
             <article
               key={i.title}
-              className="group rounded-xl border bg-card p-5 shadow-elev-sm transition hover:-translate-y-0.5 hover:shadow-elev-md"
+              className="group glass-strong rounded-2xl p-5 lift-on-hover"
             >
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-foreground transition group-hover:bg-primary group-hover:text-primary-foreground">
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow transition">
                 <i.icon className="h-5 w-5" />
               </span>
-              <h3 className="mt-4 text-base font-semibold text-foreground">
-                {i.title}
-              </h3>
+              <h3 className="mt-4 text-base font-semibold text-foreground">{i.title}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{i.outcome}</p>
             </article>
           ))}
