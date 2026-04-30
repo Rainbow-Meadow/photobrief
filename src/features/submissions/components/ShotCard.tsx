@@ -154,32 +154,29 @@ export function ShotCard({ shot, pendingDecision, onApprove, onReject, onClearDe
           </div>
         ) : null}
 
-        {/* Business-facing context: helps the reviewer decide what to do next.
-            Rendered outside the severity-tinted block so it always reads as
-            neutral guidance, regardless of pass/warn/fail tone. */}
-        {shot.feedback?.businessSummary ? (
-          <div className="flex items-start gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs text-foreground/90">
-            <Briefcase className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Business summary
-              </p>
-              <p className="mt-0.5 leading-snug">{shot.feedback.businessSummary}</p>
-            </div>
-          </div>
-        ) : null}
-
-        {shot.feedback?.suggestedNextAction ? (
-          <div className="flex items-start gap-2 rounded-md border border-accent/40 bg-accent/30 px-3 py-2 text-xs text-foreground">
-            <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-foreground" />
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Suggested next action
-              </p>
-              <p className="mt-0.5 leading-snug">{shot.feedback.suggestedNextAction}</p>
-            </div>
-          </div>
-        ) : null}
+        {/* Business-facing context: helps the reviewer decide what to do
+            next. Rendered outside the severity-tinted block so it always
+            reads as neutral guidance regardless of pass/warn/fail tone.
+            Inline-editable when an `onEditFeedback` handler is provided so
+            reviewers can correct AI wording before acting on the submission. */}
+        <EditableFeedbackField
+          label="Business summary"
+          tone="neutral"
+          Icon={Briefcase}
+          value={shot.feedback?.businessSummary ?? ""}
+          editable={!!onEditFeedback}
+          onSave={onEditFeedback ? (next) => onEditFeedback({ businessSummary: next }) : undefined}
+        />
+        <EditableFeedbackField
+          label="Suggested next action"
+          tone="accent"
+          Icon={Lightbulb}
+          value={shot.feedback?.suggestedNextAction ?? ""}
+          editable={!!onEditFeedback}
+          onSave={
+            onEditFeedback ? (next) => onEditFeedback({ suggestedNextAction: next }) : undefined
+          }
+        />
 
         {/* Reviewer actions */}
         {reviewActionsAvailable ? (
