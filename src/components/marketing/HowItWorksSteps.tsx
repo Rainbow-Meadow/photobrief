@@ -1,6 +1,10 @@
 import { Send, Camera, Sparkles } from "lucide-react";
 
-const steps = [
+/**
+ * Exported so structured-data hooks (HowTo JSON-LD) can read the same
+ * source of truth the page renders. Do not duplicate this array.
+ */
+export const howItWorksSteps = [
   {
     icon: Send,
     title: "Send a branded request link",
@@ -17,6 +21,8 @@ const steps = [
     body: "Quality checks, missing-shot prompts, extracted details, and a clean summary land in your inbox — quote-ready.",
   },
 ];
+
+const steps = howItWorksSteps;
 
 export function HowItWorksSteps() {
   return (

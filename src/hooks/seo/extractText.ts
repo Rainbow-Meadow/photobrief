@@ -12,9 +12,11 @@ export function extractText(node: ReactNode): string {
   if (node == null || typeof node === "boolean") return "";
   if (typeof node === "string" || typeof node === "number") return String(node);
   if (Array.isArray(node)) return node.map(extractText).join("");
-  if (typeof node === "object" && "props" in (node as Record<string, unknown>)) {
-    const props = (node as { props?: { children?: ReactNode } }).props;
-    return extractText(props?.children ?? "");
+  if (typeof node === "object") {
+    const maybe = node as unknown as { props?: { children?: ReactNode } };
+    if (maybe.props && "children" in maybe.props) {
+      return extractText(maybe.props.children ?? "");
+    }
   }
   return "";
 }
