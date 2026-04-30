@@ -51,6 +51,7 @@ const GuideBuilderPage = lazy(() => import("@/features/guides/pages/GuideBuilder
 const GuideDetailPage = lazy(() => import("@/features/guides/pages/GuideDetailPage"));
 const AcceptInvitePage = lazy(() => import("@/features/workspace/pages/AcceptInvitePage"));
 const BetaGuidePage = lazy(() => import("@/features/help/pages/BetaGuidePage"));
+const AdminInvitesPage = lazy(() => import("@/pages/AdminInvites"));
 
 const queryClient = new QueryClient();
 
