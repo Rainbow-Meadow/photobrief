@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { formatRelativeTime } from "@/utils/format";
 import type { ShotFeedbackSeverity, ShotReviewStatus, SubmissionShot } from "@/types/photobrief";
+import { classifyAction, type QuickActionKind } from "@/features/submissions/lib/quickAction";
 
 const severityMeta: Record<
   ShotFeedbackSeverity,
