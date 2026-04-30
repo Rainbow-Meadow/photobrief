@@ -107,7 +107,7 @@ export default function TeamSettingsPage() {
         <UpgradePromptCard feature="team_members" />
       ) : (
         <>
-          <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
+          <section className="surface-card p-5">
             <h2 className="text-sm font-semibold text-foreground">Invite a teammate</h2>
             <p className="mt-1 text-xs text-muted-foreground">
               They'll get an email link to join this workspace.
@@ -143,7 +143,7 @@ export default function TeamSettingsPage() {
             </div>
           </section>
 
-          <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
+          <section className="surface-card p-5">
             <h2 className="text-sm font-semibold text-foreground">Members ({members.length})</h2>
             <div className="mt-4 space-y-2">
               {members.length === 0 ? (
@@ -168,7 +168,7 @@ export default function TeamSettingsPage() {
           </section>
 
           {invites.length > 0 && (
-            <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
+            <section className="surface-card p-5">
               <h2 className="text-sm font-semibold text-foreground">Pending invites</h2>
               <div className="mt-4 space-y-2">
                 {invites.map((inv) => (

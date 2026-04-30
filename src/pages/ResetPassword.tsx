@@ -65,17 +65,20 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="mx-auto flex min-h-[80vh] w-full max-w-md flex-col justify-center px-4 py-10">
-      <div className="mb-8 flex justify-center">
-        <BrandMark variant="stacked" tone="color" size={120} eager withGlow />
-      </div>
-      <div className="rounded-lg border bg-card p-6 shadow-elev-md">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Choose a new password</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {ready
-            ? "Enter a new password for your account."
-            : "Verifying your reset link…"}
-        </p>
+    <div className="relative isolate min-h-[100vh] overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-ambient-mesh" aria-hidden />
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[60vh] bg-ambient-sky" aria-hidden />
+      <div className="mx-auto flex min-h-[100vh] w-full max-w-md flex-col justify-center px-4 py-10">
+        <div className="mb-8 flex justify-center">
+          <BrandMark variant="stacked" tone="color" size={120} eager withGlow />
+        </div>
+        <div className="glass-strong rounded-3xl p-7 animate-lift-in">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Choose a new password</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {ready
+              ? "Enter a new password for your account."
+              : "Verifying your reset link…"}
+          </p>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-1.5">
@@ -106,6 +109,7 @@ export default function ResetPasswordPage() {
             {submitting ? "Updating..." : "Update password"}
           </Button>
         </form>
+      </div>
       </div>
     </div>
   );

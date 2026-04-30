@@ -27,14 +27,16 @@ export function DashboardLayout() {
   return (
     <RequireAuth>
       <SidebarProvider>
-        <div className="flex min-h-screen w-full bg-gradient-subtle">
+        <div className="relative flex min-h-screen w-full bg-gradient-subtle">
+          {/* Ambient glow behind the app shell — sits behind sidebar + content */}
+          <div className="pointer-events-none absolute inset-0 -z-10 bg-ambient-mesh opacity-70" aria-hidden />
           {/* Desktop sidebar — hidden on phone/tablet, where the bottom tab bar takes over. */}
           <div className="hidden lg:block">
             <AppSidebar />
           </div>
 
           <div className="flex min-w-0 flex-1 flex-col">
-            <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/85 px-3 backdrop-blur pt-safe sm:px-4">
+            <header className="sticky top-0 z-30 flex h-14 items-center gap-3 glass-nav px-3 pt-safe sm:px-4">
               {/* Sidebar toggle only on desktop where the sidebar exists. */}
               <div className="hidden lg:block">
                 <SidebarTrigger />
@@ -51,7 +53,7 @@ export function DashboardLayout() {
 
               <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
                 {/* New request lives in the FAB on mobile, in the header from sm: up. */}
-                <Button asChild size="sm" className="hidden gap-1.5 sm:inline-flex">
+                <Button asChild size="sm" className="hidden gap-1.5 sm:inline-flex btn-primary-glass">
                   <NavLink to="/requests/new">
                     <Plus className="h-4 w-4" />
                     New request
@@ -120,7 +122,7 @@ export function DashboardLayout() {
         <NavLink
           to="/app/help"
           aria-label="Open help and beta guide"
-          className="fixed right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-6"
+          className="fixed right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full btn-primary-glass text-primary-foreground shadow-lg transition-transform hover:scale-105 bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-6"
         >
           <LifeBuoy className="h-5 w-5" />
         </NavLink>

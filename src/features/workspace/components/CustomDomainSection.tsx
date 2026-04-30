@@ -65,7 +65,7 @@ export function CustomDomainSection({ workspaceId }: Props) {
   const dirty = (domain.trim().toLowerCase() || null) !== (original || null);
 
   return (
-    <section className="space-y-3 rounded-lg border bg-card p-5 shadow-elev-sm">
+    <section className="space-y-3 surface-card p-5">
       <div className="flex items-center gap-2">
         <Globe className="h-4 w-4 text-muted-foreground" />
         <h3 className="text-sm font-semibold text-foreground">Custom domain</h3>

@@ -43,19 +43,19 @@ export function MetricCard({
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card p-3 shadow-elev-sm transition-shadow hover:shadow-elev-md sm:p-4 lg:p-5",
+        "surface-card lift-on-hover p-3 sm:p-4 lg:p-5",
         className,
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-medium text-muted-foreground sm:text-sm">{label}</p>
+        <p className="text-eyebrow text-[10px] sm:text-[11px]">{label}</p>
         {Icon ? (
-          <span className="rounded-md bg-accent p-1 text-accent-foreground sm:p-1.5">
+          <span className="rounded-lg bg-accent/80 p-1.5 text-accent-foreground ring-1 ring-inset ring-accent-foreground/10">
             <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </span>
         ) : null}
       </div>
-      <p className="mt-1.5 text-2xl font-semibold tracking-tight text-foreground sm:mt-2 sm:text-3xl">
+      <p className="mt-2 text-3xl font-semibold tracking-tight text-foreground tabular-nums sm:mt-3 sm:text-[2rem] sm:leading-[1.1]">
         {value}
       </p>
       {hint ? <p className="mt-1 text-[11px] text-muted-foreground sm:text-xs">{hint}</p> : null}

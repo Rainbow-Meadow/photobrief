@@ -74,7 +74,7 @@ export function ApiKeysSection({ workspaceId, canManage }: Props) {
   const active = keys.filter((k) => !k.revoked_at);
 
   return (
-    <section className="rounded-lg border bg-card p-5 shadow-elev-sm">
+    <section className="surface-card p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-foreground">API keys</h2>

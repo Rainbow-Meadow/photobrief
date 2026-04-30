@@ -200,7 +200,7 @@ export default function RequestsInboxPage() {
         assignees={teamMembers}
       />
 
-      <div className="overflow-hidden rounded-lg border bg-card shadow-elev-sm">
+      <div className="overflow-hidden surface-card">
         {selected.size > 0 ? (
           <div className="flex flex-wrap items-center gap-2 border-b bg-primary/5 px-5 py-2 text-xs">
             <span className="font-medium text-foreground">
