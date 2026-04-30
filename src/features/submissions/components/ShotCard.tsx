@@ -40,7 +40,7 @@ interface Props {
   ) => Promise<void> | void;
 }
 
-export function ShotCard({ shot, pendingDecision, onApprove, onReject, onClearDecision }: Props) {
+export function ShotCard({ shot, pendingDecision, onApprove, onReject, onClearDecision, onEditFeedback }: Props) {
   const sev = shot.feedback?.severity ?? (shot.missing ? "fail" : "pass");
   const meta = severityMeta[sev];
   const reviewActionsAvailable = !!(onApprove || onReject);
