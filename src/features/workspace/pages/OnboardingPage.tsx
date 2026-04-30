@@ -495,58 +495,76 @@ export default function OnboardingPage() {
   const progress = useMemo(() => Math.round((step / STEPS.length) * 100), [step]);
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-8 px-4 py-10">
-      <header className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Welcome to PhotoBrief
-        </p>
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          Set up your workspace
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          A few quick details so request links look like you. You can change
-          everything later in settings.
-        </p>
-      </header>
+    <div className="relative isolate min-h-screen overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-ambient-mesh" aria-hidden />
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[60vh] bg-ambient-sky" aria-hidden />
 
-      {/* Stepper */}
-      <ol className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
-        {STEPS.map((s, idx) => {
-          const done = step > s.id;
-          const active = step === s.id;
-          return (
-            <li key={s.id} className="flex flex-1 items-center gap-3">
-              <span
-                className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-full border text-[11px]",
-                  done && "border-primary bg-primary text-primary-foreground",
-                  active && "border-primary text-primary",
-                  !done && !active && "border-muted-foreground/30",
-                )}
-              >
-                {done ? <Check className="h-3.5 w-3.5" /> : s.id}
-              </span>
-              <span className={cn(active && "text-foreground")}>{s.label}</span>
-              {idx < STEPS.length - 1 ? (
-                <span className="ml-1 hidden h-px flex-1 bg-border sm:block" />
-              ) : null}
-            </li>
-          );
-        })}
-      </ol>
+      <div className="mx-auto w-full max-w-2xl space-y-8 px-4 py-10">
+        <header className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <p className="text-eyebrow">Welcome to PhotoBrief</p>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+              Set up your workspace
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              A few quick details so request links look like you. You can change
+              everything later in settings.
+            </p>
+          </div>
+          {/* Lens-ring progress dial */}
+          <div className="relative hidden h-16 w-16 shrink-0 sm:block" aria-hidden>
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: `conic-gradient(hsl(var(--primary)) ${progress}%, hsl(var(--muted)) ${progress}%)`,
+                WebkitMask: "radial-gradient(circle, transparent 56%, #000 57%)",
+                mask: "radial-gradient(circle, transparent 56%, #000 57%)",
+              }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold tabular-nums text-foreground">
+              {progress}%
+            </div>
+          </div>
+        </header>
 
-      <div
-        className="h-1 w-full overflow-hidden rounded-full bg-muted"
-        role="progressbar"
-        aria-valuenow={progress}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      >
+        {/* Stepper */}
+        <ol className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
+          {STEPS.map((s, idx) => {
+            const done = step > s.id;
+            const active = step === s.id;
+            return (
+              <li key={s.id} className="flex flex-1 items-center gap-3">
+                <span
+                  className={cn(
+                    "flex h-7 w-7 items-center justify-center rounded-full border text-[11px] transition-colors",
+                    done && "border-primary btn-primary-glass text-primary-foreground",
+                    active && "border-primary text-primary ring-2 ring-primary/20",
+                    !done && !active && "border-muted-foreground/30",
+                  )}
+                >
+                  {done ? <Check className="h-3.5 w-3.5" /> : s.id}
+                </span>
+                <span className={cn(active && "text-foreground")}>{s.label}</span>
+                {idx < STEPS.length - 1 ? (
+                  <span className="ml-1 hidden h-px flex-1 bg-border sm:block" />
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
+
         <div
-          className="h-full bg-primary transition-all"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
+          className="h-1 w-full overflow-hidden rounded-full bg-muted/60"
+          role="progressbar"
+          aria-valuenow={progress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div
+            className="h-full btn-primary-glass transition-all"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
 
       {!wsLoading && !workspace?.id ? (
         <div
@@ -589,7 +607,7 @@ export default function OnboardingPage() {
         </div>
       ) : null}
 
-      <div className="rounded-xl border bg-card p-6 shadow-elev-sm">
+      <div className="glass-strong rounded-3xl p-6 sm:p-7 animate-lift-in">
         {step === 1 ? (
           <div className="space-y-5">
             <div className="space-y-1.5">
@@ -780,6 +798,7 @@ export default function OnboardingPage() {
             </Button>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

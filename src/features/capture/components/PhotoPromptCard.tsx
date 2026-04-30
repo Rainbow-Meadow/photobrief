@@ -12,8 +12,8 @@ interface PhotoPromptCardProps {
  */
 export function PhotoPromptCard({ step, index, total }: PhotoPromptCardProps) {
   return (
-    <div className="space-y-1">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <div className="space-y-1.5">
+      <p className="text-eyebrow text-[10px]">
         Photo {index} of {total}
       </p>
       <p className="text-sm font-semibold text-foreground">{step.title}</p>

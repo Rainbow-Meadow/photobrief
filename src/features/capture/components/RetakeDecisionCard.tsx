@@ -15,10 +15,10 @@ interface RetakeDecisionCardProps {
 export function RetakeDecisionCard({ photo, step, onRetake, onUseAnyway }: RetakeDecisionCardProps) {
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium text-foreground">What would you like to do?</p>
-      <p className="text-xs text-muted-foreground">For: {step.title}</p>
+      <p className="text-sm font-semibold text-foreground">What would you like to do?</p>
+      <p className="text-eyebrow text-[10px]">For: {step.title}</p>
       <div className="flex flex-wrap gap-2 pt-1">
-        <Button size="sm" className="gap-1.5" onClick={onRetake}>
+        <Button size="sm" className="gap-1.5 btn-primary-glass" onClick={onRetake}>
           <RefreshCw className="h-4 w-4" /> {microcopy.recipient.retake}
         </Button>
         <Button
