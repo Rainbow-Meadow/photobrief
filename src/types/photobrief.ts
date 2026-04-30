@@ -77,7 +77,7 @@ export type AICheckType =
   | "receipt_detected"
   | "unsafe_condition";
 
-export type AICheckSeverity = "pass" | "warn" | "fail";
+export type AICheckSeverity = "pass" | "warn" | "fail" | "unavailable";
 
 export type ContextQuestionInputType =
   | "short_text"
