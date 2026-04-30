@@ -293,6 +293,7 @@ export const aiService = {
             feedbackHeadline: s.feedback?.headline,
           })),
           customerAnswers: input.customerAnswers,
+          task: "submission_summary",
         },
       });
       if (error) throw error;
@@ -442,7 +443,7 @@ export const aiService = {
     // Try the AI gateway first (Pro+ gated server-side).
     try {
       const { data, error } = await supabase.functions.invoke("ai-generate-guide", {
-        body: { prompt, category: input.category },
+        body: { prompt, category: input.category, task: "guide_generation" },
       });
       if (error) throw error;
       if (data?.draft) {
