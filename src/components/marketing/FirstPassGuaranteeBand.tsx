@@ -77,7 +77,7 @@ export function FirstPassGuaranteeBand() {
           </div>
 
           {/* Bullet card --------------------------------------------- */}
-          <div className="rounded-2xl border border-primary/20 bg-gradient-subtle p-6 shadow-elev-sm sm:p-8">
+          <div className="glass-strong rounded-3xl p-6 shadow-glass-lg sm:p-8 animate-lift-in">
             <div className="flex items-center gap-3">
               <span className="rounded-xl bg-primary/10 p-3 text-primary">
                 <ShieldCheck className="h-6 w-6" />
