@@ -4,8 +4,9 @@
  *
  * Splits incoming requests between two origins:
  *
- *   - Static assets (/assets/*, /og-image, /robots.txt, /sitemap.xml,
- *     /llms*.txt, /.well-known/*, etc.) → Cloudflare Pages, edge-cached.
+ *   - Pages-only static files (/og-image, /robots.txt, /sitemap.xml,
+ *     /llms*.txt, /openapi.json, /mcp.json, /.well-known/*) → Cloudflare
+ *     Pages, edge-cached. Stable filenames, only the Pages build emits them.
  *
  *   - Marketing HTML routes (/, /pricing, /help, /for-ai-agents, /waitlist):
  *       • Bots / crawlers / LLM fetchers → Pages (prerendered static HTML
@@ -13,22 +14,13 @@
  *       • Real users → Lovable hosting (live SPA with the latest dynamic
  *         behavior, no prerender hydration delay).
  *
- *   - Everything else (/auth, /dashboard, /requests, /r/*, /onboarding,
- *     /settings/*, …) → Lovable hosting, regardless of client.
+ *   - Hashed JS/CSS bundles (/assets/*) and everything else (/auth, /dashboard,
+ *     /requests, /r/*, /onboarding, /settings/*, …) → Lovable hosting.
+ *     /assets/* MUST come from the same origin that served the HTML, because
+ *     Vite hash filenames differ between the Lovable build and the Pages build.
  *
  * The marketing allow-list MUST stay in sync with scripts/prerender.mjs,
  * which reads its routes from public/sitemap.xml.
- *
- * Asset routing strategy
- * ----------------------
- * Vite emits hashed filenames into /assets/*. Both the Pages build and
- * the Lovable build produce the SAME bundle (same source repo), so a
- * request for /assets/index-CM16Y4DE.js can be served by either origin.
- * We route /assets/* to Pages because:
- *   1. Pages caches at the edge with a 1y TTL out of the box.
- *   2. Pages → Lovable would add an extra hop with no benefit.
- * If Pages 404s on an asset (because the Lovable build is one commit
- * ahead, say), we fall back to Lovable transparently.
  */
 
 interface Env {
@@ -46,10 +38,18 @@ const MARKETING_PATHS = new Set<string>([
   "/waitlist",
 ]);
 
-// Path prefixes for static files emitted by the Pages build, including
-// the AI / answer-engine discovery files.
-const STATIC_PREFIXES = [
-  "/assets/",
+// Path prefixes for files that ONLY exist on the Pages build (AI/answer-engine
+// discovery files, prerender artifacts, marketing OG image). These have stable
+// filenames so it's safe to serve them from Pages regardless of which origin
+// rendered the HTML.
+//
+// IMPORTANT: /assets/* is intentionally NOT in this list. Vite emits hashed
+// filenames (index-XYZ.js) and the Lovable build and the Pages build produce
+// DIFFERENT hashes for the same source. Routing /assets/* to Pages while the
+// HTML came from Lovable causes 404s/MIME-type mismatches and a blank page.
+// Assets must come from the same origin as the HTML — which is Lovable for
+// real users — so we let /assets/* fall through to Lovable.
+const PAGES_STATIC_PREFIXES = [
   "/og-image",
   "/favicon",
   "/apple-touch-icon",
@@ -70,8 +70,8 @@ function isMarketingPath(pathname: string): boolean {
   return false;
 }
 
-function isStaticAsset(pathname: string): boolean {
-  return STATIC_PREFIXES.some((p) => pathname.startsWith(p));
+function isPagesStatic(pathname: string): boolean {
+  return PAGES_STATIC_PREFIXES.some((p) => pathname.startsWith(p));
 }
 
 // Known bot / crawler / answer-engine user agents. Matched case-insensitively
@@ -114,10 +114,12 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Static assets always come from Pages (edge-cached, hashed filenames).
-    if (isStaticAsset(path)) {
+    // Pages-only static files (sitemap, robots, llms.txt, .well-known, og-image…).
+    // These have stable filenames and only the Pages build emits them.
+    // /assets/* is deliberately NOT included here — see PAGES_STATIC_PREFIXES.
+    if (isPagesStatic(path)) {
       const res = await proxyTo(env.PAGES_HOST, request);
-      // Transparent fallback for build skew (Lovable build one commit ahead).
+      // Transparent fallback if Pages doesn't have it for any reason.
       if (res.status === 404) {
         return proxyTo(env.LOVABLE_HOST, request);
       }
