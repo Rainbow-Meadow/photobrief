@@ -74,6 +74,12 @@ export default {
         "gradient-subtle": "var(--gradient-subtle)",
         "gradient-brand": "var(--gradient-brand)",
         "gradient-radial-glow": "var(--gradient-radial-glow)",
+        "ambient-sky": "var(--ambient-sky)",
+        "ambient-mesh": "var(--ambient-mesh)",
+      },
+      backdropBlur: {
+        glass: "16px",
+        "glass-lg": "24px",
       },
       boxShadow: {
         "elev-sm": "var(--shadow-sm)",
@@ -81,6 +87,8 @@ export default {
         "elev-lg": "var(--shadow-lg)",
         glow: "var(--shadow-glow)",
         brand: "var(--shadow-brand)",
+        glass: "var(--glass-shadow)",
+        "glass-lg": "var(--glass-shadow-lg)",
       },
       borderRadius: {
         lg: "var(--radius)",
