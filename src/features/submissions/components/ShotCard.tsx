@@ -30,6 +30,14 @@ interface Props {
   onReject?: (comment: string) => void;
   /** Called when the user clears their pending decision on this shot. */
   onClearDecision?: () => void;
+  /**
+   * Called when the reviewer edits the AI-generated business summary or
+   * suggested next action. Empty string clears the field. Should persist
+   * the change and refresh the parent's view of `shot.feedback`.
+   */
+  onEditFeedback?: (
+    patch: { businessSummary?: string; suggestedNextAction?: string },
+  ) => Promise<void> | void;
 }
 
 export function ShotCard({ shot, pendingDecision, onApprove, onReject, onClearDecision }: Props) {
