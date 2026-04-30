@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Play, Sparkles, FlaskConical, Copy, Check, AlertTriangle } from "lucide-react";
+import { Loader2, Play, Sparkles, Copy, Check, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
