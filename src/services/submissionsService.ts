@@ -270,7 +270,7 @@ export const submissionsService = {
 
     const { error } = await supabase
       .from("captured_media")
-      .update({ ai_feedback: next })
+      .update({ ai_feedback: next as any })
       .eq("id", args.mediaId);
     if (error) throw error;
   },
