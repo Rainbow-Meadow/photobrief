@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, AlertTriangle, XCircle, ImageOff, Check, X, Pencil, HelpCircle } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, ImageOff, Check, X, Pencil, HelpCircle, Lightbulb, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -143,6 +143,33 @@ export function ShotCard({ shot, pendingDecision, onApprove, onReject, onClearDe
                 ))}
               </ul>
             ) : null}
+          </div>
+        ) : null}
+
+        {/* Business-facing context: helps the reviewer decide what to do next.
+            Rendered outside the severity-tinted block so it always reads as
+            neutral guidance, regardless of pass/warn/fail tone. */}
+        {shot.feedback?.businessSummary ? (
+          <div className="flex items-start gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs text-foreground/90">
+            <Briefcase className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Business summary
+              </p>
+              <p className="mt-0.5 leading-snug">{shot.feedback.businessSummary}</p>
+            </div>
+          </div>
+        ) : null}
+
+        {shot.feedback?.suggestedNextAction ? (
+          <div className="flex items-start gap-2 rounded-md border border-accent/40 bg-accent/30 px-3 py-2 text-xs text-foreground">
+            <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-foreground" />
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Suggested next action
+              </p>
+              <p className="mt-0.5 leading-snug">{shot.feedback.suggestedNextAction}</p>
+            </div>
           </div>
         ) : null}
 
