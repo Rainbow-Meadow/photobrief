@@ -59,6 +59,7 @@ import type {
 
 import { ShotCard } from "@/features/submissions/components/ShotCard";
 import { ReviewProgressSummary } from "@/features/submissions/components/ReviewProgressSummary";
+import { EscalationQueue } from "@/features/submissions/components/EscalationQueue";
 import { ActivityTimeline } from "@/features/submissions/components/ActivityTimeline";
 import { AskForMorePhotosDialog } from "@/features/submissions/components/AskForMorePhotosDialog";
 import { InternalNotesPanel } from "@/features/submissions/components/InternalNotesPanel";
