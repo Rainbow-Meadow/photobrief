@@ -21,43 +21,67 @@ export function MarketingLayout() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur pt-safe">
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:h-20 sm:px-6 lg:px-8">
-          <NavLink to="/" aria-label="PhotoBrief home" className="flex items-center">
-            {/* Smaller wordmark on phone, full size from sm: up. */}
-            <BrandMark variant="horizontal" tone="dark" size={36} eager className="sm:hidden" />
-            <BrandMark variant="horizontal" tone="dark" size={44} eager className="hidden sm:block" />
+      <div className="sticky top-0 z-40 px-3 pt-3 sm:px-6 sm:pt-4 pt-safe">
+        <header className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 rounded-full glass-nav px-3 sm:h-16 sm:px-5">
+          <NavLink to="/" aria-label="PhotoBrief home" className="flex items-center pl-1">
+            <BrandMark variant="horizontal" tone="dark" size={32} eager className="sm:hidden" />
+            <BrandMark variant="horizontal" tone="dark" size={38} eager className="hidden sm:block" />
           </NavLink>
 
-          <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground sm:flex">
-            <a href="/#how-it-works" className="hover:text-foreground">How it works</a>
-            <a href="/#use-cases" className="hover:text-foreground">Use cases</a>
-            <NavLink to="/pricing" className="hover:text-foreground">Pricing</NavLink>
-            <NavLink to="/help" className="hover:text-foreground">Help</NavLink>
+          <nav className="hidden items-center gap-1 text-sm font-medium sm:flex">
+            {[
+              { href: "/#how-it-works", label: "How it works" },
+              { href: "/#use-cases", label: "Use cases" },
+            ].map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              >
+                {l.label}
+              </a>
+            ))}
+            {[
+              { to: "/pricing", label: "Pricing" },
+              { to: "/help", label: "Help" },
+            ].map((l) => (
+              <NavLink
+                key={l.to}
+                to={l.to}
+                className={({ isActive }) =>
+                  `rounded-full px-3 py-1.5 transition-colors ${
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  }`
+                }
+              >
+                {l.label}
+              </NavLink>
+            ))}
           </nav>
 
-          <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+          <div className="flex items-center gap-1.5">
+            <Button asChild variant="ghost" size="sm" className="hidden rounded-full sm:inline-flex">
               <NavLink to="/auth">Sign in</NavLink>
             </Button>
             <Button asChild size="sm" className="rounded-full px-4">
               <NavLink to="/auth?mode=signup">Try Free</NavLink>
             </Button>
 
-            {/* Hamburger trigger — mobile only. */}
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="h-10 w-10 sm:hidden"
+              className="h-10 w-10 rounded-full sm:hidden"
               aria-label="Open menu"
               onClick={() => setMenuOpen(true)}
             >
               <Menu className="h-5 w-5" />
             </Button>
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
       {/* Mobile nav sheet */}
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
