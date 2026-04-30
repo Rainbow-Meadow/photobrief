@@ -155,18 +155,18 @@ export const SceneSend: React.FC = () => {
             </svg>
           </div>
 
-          {/* Paper plane fly-off */}
+          {/* Paper plane fly-off — emerges from the Send button area */}
           <div
             style={{
               position: "absolute",
-              right: 80,
-              bottom: 80,
-              transform: `translate(${planeX}px, ${planeY}px) rotate(20deg)`,
+              left: 540,
+              top: 720,
+              transform: `translate(${planeX}px, ${planeY}px) rotate(15deg)`,
               opacity: planeOpacity,
               pointerEvents: "none",
             }}
           >
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none">
               <path d="M2 12l20-9-9 20-2-9-9-2z" fill={COLORS.primary} />
             </svg>
           </div>
