@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { ArrowRight, PlayCircle, Sparkles, Send, Camera, FileText } from "lucide-react";
+import { ArrowRight, PlayCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { HeroGlassStory } from "@/components/marketing/HeroGlassStory";
@@ -35,23 +35,6 @@ const LANDING_JSONLD = [
   },
 ];
 
-const VALUE_STEPS = [
-  {
-    icon: Send,
-    title: "Send a branded request link",
-    body: "SMS, email, or QR. No app for your customer to install.",
-  },
-  {
-    icon: Camera,
-    title: "Customer follows guided prompts",
-    body: "Step-by-step photo prompts with framing tips and live AI feedback.",
-  },
-  {
-    icon: FileText,
-    title: "AI returns a review-ready brief",
-    body: "Quality checks, missing-shot prompts, summary, and extracted details.",
-  },
-];
 
 export default function LandingPage() {
   return (
@@ -127,31 +110,6 @@ export default function LandingPage() {
 
       {/* TRUST STRIP --------------------------------------------------------- */}
       <TrustLogosStrip />
-
-      {/* 3-STEP VALUE STRIP -------------------------------------------------- */}
-      <section className="relative overflow-hidden bg-background">
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-ambient-sky opacity-60" />
-        <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-          <div className="grid gap-4 sm:grid-cols-3 sm:gap-6">
-            {VALUE_STEPS.map((s, i) => (
-              <div
-                key={s.title}
-                className="glass-strong rounded-2xl p-6 lift-on-hover animate-lift-in"
-                style={{ animationDelay: `${i * 80}ms` }}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
-                    <s.icon className="h-5 w-5" />
-                  </span>
-                  <span className="text-eyebrow">Step {i + 1}</span>
-                </div>
-                <h3 className="mt-4 text-base font-semibold text-foreground">{s.title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{s.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* HOW IT WORKS -------------------------------------------------------- */}
       <HowItWorksSteps />
