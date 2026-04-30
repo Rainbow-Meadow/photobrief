@@ -12,17 +12,19 @@ export const SceneSend: React.FC = () => {
   const panelOp = interpolate(panelS, [0, 1], [0, 1]);
   const panelY = interpolate(panelS, [0, 1], [22, 0]);
 
-  // Cursor moves toward Send button between frames 60–90
-  const cursorX = interpolate(frame, [40, 90], [320, 540], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const cursorY = interpolate(frame, [40, 90], [320, 470], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  // Cursor moves toward the Send button (anchored at the panel's bottom-right).
+  // The cursor is absolutely positioned inside the panel wrapper; (0,0) = top-left
+  // of the wrapper. Panel is 720px wide; button center sits roughly at (560, 750).
+  const cursorX = interpolate(frame, [30, 90], [240, 540], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const cursorY = interpolate(frame, [30, 90], [380, 740], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
-  // Button "click" pulse + paper plane fly-off after frame 90
+  // Button "click" pulse + paper plane fly-off after frame 92
   const click = spring({ frame: frame - 92, fps, config: { damping: 14, stiffness: 220 } });
-  const btnScale = interpolate(click, [0, 1], [1, 0.94]);
+  const btnScale = interpolate(click, [0, 0.5, 1], [1, 0.92, 0.97]);
   const planeS = spring({ frame: frame - 96, fps, config: { damping: 18, stiffness: 90 } });
-  const planeX = interpolate(planeS, [0, 1], [0, 700]);
-  const planeY = interpolate(planeS, [0, 1], [0, -200]);
-  const planeOpacity = interpolate(frame, [96, 100, 130], [0, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const planeX = interpolate(planeS, [0, 1], [0, 900]);
+  const planeY = interpolate(planeS, [0, 1], [0, -260]);
+  const planeOpacity = interpolate(frame, [96, 102, 130], [0, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
   return (
     <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", padding: 80 }}>
