@@ -38,9 +38,23 @@ interface Props {
   onEditFeedback?: (
     patch: { businessSummary?: string; suggestedNextAction?: string },
   ) => Promise<void> | void;
+  /**
+   * Add an internal note about this shot. Used by the "Note required"
+   * quick action so reviewers can capture the AI's suggestion as a
+   * teammate-visible note without rejecting the photo.
+   */
+  onAddNote?: (body: string) => Promise<void> | void;
 }
 
-export function ShotCard({ shot, pendingDecision, onApprove, onReject, onClearDecision, onEditFeedback }: Props) {
+export function ShotCard({
+  shot,
+  pendingDecision,
+  onApprove,
+  onReject,
+  onClearDecision,
+  onEditFeedback,
+  onAddNote,
+}: Props) {
   const sev = shot.feedback?.severity ?? (shot.missing ? "fail" : "pass");
   const meta = severityMeta[sev];
   const reviewActionsAvailable = !!(onApprove || onReject);
