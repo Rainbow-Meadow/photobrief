@@ -30,12 +30,14 @@ export function EmptyState({
   secondaryAction,
   className,
   size = "default",
+  compact,
 }: EmptyStateProps) {
+  const effectiveSize = compact ? "default" : size;
   return (
     <div
       className={cn(
         "surface-card relative isolate overflow-hidden text-center",
-        size === "lg" ? "px-6 py-16" : "px-6 py-12",
+        compact ? "px-4 py-8" : effectiveSize === "lg" ? "px-6 py-16" : "px-6 py-12",
         className,
       )}
     >
