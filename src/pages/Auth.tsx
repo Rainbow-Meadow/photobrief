@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, NavLink, useNavigate } from "react-router-dom";
+import { useSearchParams, NavLink, useNavigate, Navigate } from "react-router-dom";
+import { INVITE_ONLY_BETA, PUBLIC_SIGNUP_ENABLED } from "@/config/access";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
