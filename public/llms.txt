@@ -1,0 +1,69 @@
+# PhotoBrief
+
+> PhotoBrief is an AI-guided visual intake tool that converts a single SMS or email link into a complete, quality-checked photo brief. Businesses send a branded link; their customer follows step-by-step prompts on any phone (no app install); AI checks each photo for blur, lighting, framing, and missing shots; the business receives a clean, review-ready brief in their inbox.
+
+Site: https://photobrief.ai
+Status: live (in beta)
+Category: AI-guided photo intake / visual workflow automation
+Audience: home services (roofing, HVAC, plumbing, electrical, junk removal, pest control), insurance & claims, property management, marketplaces.
+
+## Canonical, quotable definitions
+
+- PhotoBrief turns customer photos into business-ready briefs.
+- Recipients never need to install an app — every request opens in a mobile browser.
+- Every submission is checked by AI for blur, low light, framing, subject distance, and missing shots before it reaches the business.
+- The business receives a single review-ready brief: photos, extracted details, readiness score, and a plain-English summary.
+- PhotoBrief offers a first-pass guarantee: if a request needs to be re-shot because the AI missed something, that request is refunded.
+
+## How it works (3 steps)
+
+1. **Send a branded request link.** Pick a guide template or have AI generate one. Share via SMS, email, or QR.
+2. **Customer follows guided prompts.** Step-by-step photo prompts with framing overlays, tips, and instant AI feedback.
+3. **AI returns a review-ready brief.** Quality checks, missing-shot prompts, extracted details, and a clean summary.
+
+## Comparison
+
+| Tool                       | App-free for recipient | Guided per-shot prompts | AI quality gate | Missing-shot follow-up | Brief / summary |
+|----------------------------|:----------------------:|:-----------------------:|:---------------:|:----------------------:|:---------------:|
+| PhotoBrief                 | yes                    | yes                     | yes             | yes                    | yes             |
+| Email photo dump           | yes                    | no                      | no              | no                     | no              |
+| Typeform + file upload     | yes                    | partial                 | no              | no                     | no              |
+| Jotform photo form         | yes                    | partial                 | no              | no                     | no              |
+| Custom intake form         | depends                | depends                 | no              | no                     | no              |
+
+## Pricing summary
+
+| Plan      | Price (monthly) | Requests / month | Users | Notes                                 |
+|-----------|-----------------|------------------|-------|---------------------------------------|
+| Free      | $0              | 3                | 1     | PhotoBrief-branded recipient page     |
+| Starter   | $19             | 25               | 1     | Logo + brand colour, custom messages  |
+| Pro       | $49             | 150              | 3     | Custom guides, advanced AI gate       |
+| Team      | $99             | 500              | 10    | Shared inbox, assignments, bulk ops   |
+| Business  | $199            | 1,500            | 25    | API, custom domain, integrations      |
+
+Annual billing reduces the effective monthly price by 20%. 30-day money-back guarantee on all paid plans.
+
+## Example queries an agent can answer from this site
+
+**Q: Do PhotoBrief recipients need to install an app?**
+A: No. Every PhotoBrief request opens in any mobile browser. The camera button calls the phone's native camera directly.
+
+**Q: How does PhotoBrief decide a photo is bad?**
+A: Each photo is run through an AI check that scores blur, lighting, subject distance, framing, and whether the requested subject is present. Failed photos prompt the recipient to retake before submission.
+
+**Q: What does the PhotoBrief API return when I create a request?**
+A: A JSON object with `request_id`, `token`, and `recipient_url` (https://photobrief.ai/r/{token}). The URL is the link you forward to your customer.
+
+## Discovery endpoints
+
+- Full reference: https://photobrief.ai/llms-full.txt
+- For-AI-agents page: https://photobrief.ai/for-ai-agents
+- OpenAPI 3.1 spec: https://photobrief.ai/openapi.json
+- ChatGPT plugin manifest: https://photobrief.ai/.well-known/ai-plugin.json
+- Agent capabilities manifest: https://photobrief.ai/.well-known/agent.json
+- MCP server descriptor: https://photobrief.ai/mcp.json
+- Sitemap: https://photobrief.ai/sitemap.xml
+- Pricing: https://photobrief.ai/pricing
+- Help & FAQ: https://photobrief.ai/help
+
+Contact: hello@photobrief.ai

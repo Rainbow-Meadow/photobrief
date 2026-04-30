@@ -1,0 +1,19 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "PhotoBrief",
+  "name_for_model": "photobrief",
+  "description_for_human": "Send AI-guided photo requests and receive review-ready briefs.",
+  "description_for_model": "PhotoBrief turns a single shareable link into a complete, AI-quality-checked photo brief. Use this plugin to create photo requests on behalf of a business, retrieve recipient URLs to forward by SMS or email, and look up plan limits, pricing, and FAQ content. Recipients never need to install an app. The plugin authenticates with a bearer API key issued on the Business plan.",
+  "auth": {
+    "type": "user_http",
+    "authorization_type": "bearer"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://photobrief.ai/openapi.json",
+    "is_user_authenticated": true
+  },
+  "logo_url": "https://photobrief.ai/apple-touch-icon.png",
+  "contact_email": "hello@photobrief.ai",
+  "legal_info_url": "https://photobrief.ai/help"
+}

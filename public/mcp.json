@@ -1,0 +1,43 @@
+{
+  "schema_version": "0.1",
+  "name": "photobrief",
+  "display_name": "PhotoBrief",
+  "description": "Create AI-guided photo requests and look up pricing, plan limits, and FAQ content via MCP.",
+  "status": "planned",
+  "homepage": "https://photobrief.ai/for-ai-agents",
+  "contact_email": "hello@photobrief.ai",
+  "transport": {
+    "type": "streamable_http",
+    "url": "https://app.photobrief.ai/functions/v1/mcp",
+    "auth": {
+      "type": "bearer_token",
+      "header": "Authorization",
+      "description": "Workspace API key (prefix pb_) issued on the Business plan."
+    }
+  },
+  "tools": [
+    {
+      "name": "create_request",
+      "description": "Create a photo request and return a recipient URL the business can forward.",
+      "input_schema": "https://photobrief.ai/openapi.json#/components/schemas/CreateRequestBody",
+      "output_schema": "https://photobrief.ai/openapi.json#/components/schemas/CreateRequestResponse"
+    },
+    {
+      "name": "lookup_pricing",
+      "description": "Return current PhotoBrief plans, monthly and annual prices, and per-plan request quotas."
+    },
+    {
+      "name": "read_faq",
+      "description": "Return canonical FAQ answers for businesses and recipients."
+    }
+  ],
+  "resources": [
+    { "uri": "https://photobrief.ai/llms.txt", "name": "Short LLM brief" },
+    { "uri": "https://photobrief.ai/llms-full.txt", "name": "Full LLM reference" },
+    { "uri": "https://photobrief.ai/openapi.json", "name": "OpenAPI 3.1 spec" }
+  ],
+  "fallback": {
+    "note": "Until the live MCP endpoint ships, agents should call the REST endpoint documented in /openapi.json.",
+    "rest_endpoint": "https://app.photobrief.ai/functions/v1/api-create-request"
+  }
+}
