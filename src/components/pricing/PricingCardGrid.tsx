@@ -191,7 +191,7 @@ export function PricingCardGrid({
                       "border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white",
                   )}
                 >
-                  {ctaLabel(plan, currentPlan, pendingPlan === plan.id)}
+                  {ctaLabel(plan, currentPlan, pendingPlan === plan.id, "billing")}
                   {!isCurrent ? <ArrowRight className="ml-1 h-4 w-4" /> : null}
                 </Button>
               ) : (
@@ -212,7 +212,7 @@ export function PricingCardGrid({
                       href={ctaTo(plan, ctaTarget)}
                       onClick={() => trackEvent("plan_upgrade_clicked", { plan: plan.id, interval, surface: ctaTarget })}
                     >
-                      {ctaLabel(plan, currentPlan)}
+                      {ctaLabel(plan, currentPlan, false, ctaTarget)}
                       <ArrowRight className="ml-1 h-4 w-4" />
                     </a>
                   ) : (
@@ -220,7 +220,7 @@ export function PricingCardGrid({
                       to={ctaTo(plan, ctaTarget)}
                       onClick={() => trackEvent("plan_upgrade_clicked", { plan: plan.id, interval, surface: ctaTarget })}
                     >
-                      {ctaLabel(plan, currentPlan)}
+                      {ctaLabel(plan, currentPlan, false, ctaTarget)}
                       {!isCurrent && plan.id !== "free" ? <ArrowRight className="ml-1 h-4 w-4" /> : null}
                     </NavLink>
                   )}
