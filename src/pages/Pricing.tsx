@@ -37,6 +37,11 @@ const faqs = [
 export default function PricingPage() {
   return (
     <>
+      <SEOHead
+        title="Pricing | PhotoBrief"
+        description="Simple, transparent PhotoBrief pricing. Start free, automate intake with Pro, coordinate your team with Business, scale with Enterprise."
+        canonicalPath="/pricing"
+      />
       <section className="relative overflow-hidden bg-gradient-subtle">
         <div
           aria-hidden
