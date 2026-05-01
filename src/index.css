@@ -140,6 +140,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     --background: 222 47% 6%;
     --foreground: 0 0% 98%;
 
