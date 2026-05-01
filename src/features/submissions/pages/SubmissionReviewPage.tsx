@@ -26,6 +26,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
 import { ReadinessScoreBadge } from "@/components/shared/ReadinessScoreBadge";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { BriefHeader } from "@/features/submissions/components/BriefHeader";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -48,7 +49,7 @@ import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
 import { formatRelativeTime } from "@/utils/format";
 import { usePlan } from "@/hooks/usePlan";
-import { getPlanLimit, minPlanFor } from "@/config/planLimits";
+import { lockedFeatureCopy } from "@/config/planLimits";
 import type {
   ActivityEvent,
   InternalNote,
