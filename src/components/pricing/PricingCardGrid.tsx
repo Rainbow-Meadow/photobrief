@@ -45,8 +45,8 @@ function ctaLabel(plan: PlanLimit, currentPlan?: Plan, pending?: boolean, target
 }
 
 function ctaTo(plan: PlanLimit, target: "signup" | "billing"): string {
-  if (plan.id === "business") return "mailto:hello@photobrief.app?subject=Business%20plan";
-  if (target === "billing") return `/app/settings/billing?plan=${plan.id}`;
+  if (plan.id === "business") return "mailto:hello@photobrief.ai?subject=Business%20plan";
+  if (target === "billing") return `/settings/billing?plan=${plan.id}`;
   if (INVITE_ONLY_BETA) return `/waitlist?interest=${plan.id}`;
   return `/auth?mode=signup&plan=${plan.id}`;
 }

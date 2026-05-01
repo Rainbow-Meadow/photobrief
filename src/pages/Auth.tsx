@@ -142,6 +142,9 @@ export default function AuthPage() {
     }
   };
 
+  // Demo credentials are managed server-side by `ensure-demo-user`. They are
+  // intentionally NOT exposed in client code or in the UI to avoid leaking
+  // a working login from a public, invite-only marketing surface.
   const DEMO_EMAIL = "demo@photobrief.app";
   const DEMO_PASSWORD = "DemoPass1234!";
 
@@ -158,8 +161,6 @@ export default function AuthPage() {
         error: await edgeFunctionErrorDebug(demoErr),
       });
       if (demoErr) throw demoErr;
-      setEmail(DEMO_EMAIL);
-      setPassword(DEMO_PASSWORD);
       const { error } = await supabase.auth.signInWithPassword({
         email: DEMO_EMAIL,
         password: DEMO_PASSWORD,
@@ -213,18 +214,11 @@ export default function AuthPage() {
         {mode === "signin" && (
           <div className="mt-6 rounded-lg border border-primary/30 bg-primary/5 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-              Demo account
+              Want to try it first?
             </p>
-            <dl className="mt-2 space-y-1 text-sm text-foreground">
-              <div className="flex items-center justify-between gap-2">
-                <dt className="text-muted-foreground">Email</dt>
-                <dd className="font-mono text-xs">{DEMO_EMAIL}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <dt className="text-muted-foreground">Password</dt>
-                <dd className="font-mono text-xs">{DEMO_PASSWORD}</dd>
-              </div>
-            </dl>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Sign in to a sandbox workspace with sample data. No personal info needed.
+            </p>
             <Button
               type="button"
               size="sm"
@@ -232,7 +226,7 @@ export default function AuthPage() {
               onClick={handleDemoSignIn}
               disabled={submitting}
             >
-              Sign in as demo
+              Try the demo
             </Button>
           </div>
         )}
