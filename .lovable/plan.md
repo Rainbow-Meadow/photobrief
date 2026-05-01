@@ -1,39 +1,50 @@
-## Light / Dark mode pill toggle
+## Goal
 
-The app already has full dark-mode tokens defined in `src/index.css` (`.dark { ... }`) and `next-themes` is installed but no provider is wired up. I'll add a provider, persist the user's choice, and surface a compact pill-style toggle in the sidebar footer.
+When someone joins the waitlist, send two emails:
+1. A beautifully branded **confirmation email** to the person who just signed up.
+2. An **internal notification** to `hello@rainbow-meadow.org` with their submission details.
 
-### Scope
-- The toggle controls the **authenticated app** (`.app-shell`). Marketing, auth, and recipient flows stay on their fixed light branding so the public/customer experience doesn't shift.
-- Default theme = `light` (matches today). Stored in localStorage by `next-themes`.
+Both go through Lovable's existing email infrastructure (already verified on `notify.photobrief.ai`).
 
-### Changes
+## What gets built
 
-1. **`src/components/theme/ThemeProvider.tsx`** (new)
-   - Thin wrapper around `next-themes`' `ThemeProvider`.
-   - `attribute="class"`, `defaultTheme="light"`, `enableSystem={false}`, `storageKey="pb-theme"`, `disableTransitionOnChange`.
+### 1. New transactional email template: `waitlist-confirmation`
+File: `supabase/functions/_shared/transactional-email-templates/waitlist-confirmation.tsx`
 
-2. **`src/App.tsx`**
-   - Wrap the tree (inside `QueryClientProvider`, outside `AuthProvider`) with `<ThemeProvider>` so the `dark` class lands on `<html>` before any authed page paints.
+- React Email component matching the existing PhotoBrief brand style used in `workspace-welcome.tsx` (electric blue `#0A6BFF` accent, navy heading `#101828`, white background, SF/Inter system font, 12px rounded button).
+- Friendly greeting using the recipient's first name.
+- Short copy explaining: they're on the list, beta seats are limited, we'll reach out personally when their seat is ready.
+- "What happens next" section (3 short bullets: review → invite email → guided onboarding).
+- Subtle CTA button linking back to `https://photobrief.ai` ("Visit photobrief.ai") — no false dashboard promise since they don't have access yet.
+- Closing line inviting them to reply with questions.
+- Subject: `You're on the PhotoBrief waitlist`.
+- Preview text: `Thanks for joining — here's what happens next.`
 
-3. **`src/components/shared/ThemeToggle.tsx`** (new)
-   - Pill-shaped two-segment switch (Sun / Moon icons), styled with the existing `.pill` look:
-     - Container: `rounded-full border bg-muted p-0.5 inline-flex`
-     - Each segment: `rounded-full px-2.5 py-1 text-xs` — active segment uses `bg-background text-foreground shadow-sm`, inactive is `text-muted-foreground`.
-   - Uses `useTheme()` from `next-themes`. Guards against SSR/hydration with a `mounted` flag.
-   - Accessible: `role="group"`, each segment is a `<button>` with `aria-pressed` and an `aria-label` ("Light mode" / "Dark mode"). Arrow-key support to flip between segments.
-   - Collapsed-sidebar variant: when the sidebar is collapsed, render a single icon-only round button that toggles between the two modes (keeps the rail tidy).
+### 2. New transactional email template: `waitlist-admin-notification`
+File: `supabase/functions/_shared/transactional-email-templates/waitlist-admin-notification.tsx`
 
-4. **`src/components/layout/AppSidebar.tsx`**
-   - Add a small footer row above the existing `UpgradePromptCard` containing `<ThemeToggle />`. Always rendered (independent of `showUpgradeCard`). Uses `collapsed` from `useSidebar()` to pick the compact variant.
+- Plain, info-dense internal layout (no marketing styling — simple labeled rows).
+- Shows: name, email, business name, business type, website, use case, estimated monthly requests, notes, source, signup time.
+- Subject (function): `New waitlist signup: {name} ({business_name || email})`.
+- No unsubscribe footer concerns — system handles it; this is fine since it's a 1:1 transactional alert to one operator address.
 
-5. **`src/index.css`** (tiny addition)
-   - The existing `.dark .app-shell` block already handles the teal-on-navy accents. Confirmed `--app-bg`, `--app-sidebar-bg`, etc. are defined under `.dark` (lines 207–220), so no new tokens needed. Only add a `color-scheme: dark` declaration inside `.dark` so native form controls / scrollbars switch too.
+### 3. Register both templates
+File: `supabase/functions/_shared/transactional-email-templates/registry.ts`
 
-### Out of scope
-- No system-preference auto-detection (kept off to avoid surprising returning users; can add later behind the same toggle by exposing a third "Auto" segment).
-- No theming changes to marketing pages — they remain light by design.
-- Sonner already reads `useTheme()` via `next-themes`, so toasts will follow the toggle automatically once the provider is wired.
+Add imports + entries for `waitlist-confirmation` and `waitlist-admin-notification`.
 
-### Files
-- New: `src/components/theme/ThemeProvider.tsx`, `src/components/shared/ThemeToggle.tsx`
-- Edited: `src/App.tsx`, `src/components/layout/AppSidebar.tsx`, `src/index.css`
+### 4. Wire sends into `waitlist-submit`
+File: `supabase/functions/waitlist-submit/index.ts`
+
+After a successful insert (and only on first-time signup, not the dedupe `already` path):
+- Invoke `send-transactional-email` for `waitlist-confirmation` → `recipientEmail = email`, `idempotencyKey = waitlist-confirm-{entryId}`, `templateData = { name }`.
+- Invoke `send-transactional-email` for `waitlist-admin-notification` → `recipientEmail = "hello@rainbow-meadow.org"`, `idempotencyKey = waitlist-admin-{entryId}`, `templateData = { all submitted fields + createdAt }`.
+- Both calls wrapped in try/catch — email failure must NOT fail the waitlist submission.
+- Capture the inserted row's `id` by adding `.select('id').single()` to the insert.
+
+### 5. Deploy
+Deploy `send-transactional-email` (picks up new templates from the registry it imports) and `waitlist-submit`.
+
+## Out of scope
+- No changes to existing templates, the waitlist form UI, or DB schema.
+- No marketing/drip sequences — these are strictly transactional (1:1, triggered by the user's own action / one operator alert per signup).
