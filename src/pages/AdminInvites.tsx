@@ -447,6 +447,13 @@ export default function AdminInvitesPage() {
           <div className="rounded-lg border bg-muted/40 p-3 font-mono text-xs break-all">
             {tokenModal?.link}
           </div>
+          <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-foreground">
+            <p className="font-semibold">Single-use link</p>
+            <p className="mt-1 text-muted-foreground">
+              The first signup with this link claims it. After that the token is locked and cannot be reused —
+              if the recipient needs another, use <span className="font-medium">Resend</span> to issue a fresh one.
+            </p>
+          </div>
           <DialogFooter>
             <Button
               variant="outline"
