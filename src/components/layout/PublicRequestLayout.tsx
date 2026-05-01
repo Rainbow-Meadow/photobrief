@@ -13,7 +13,7 @@ import { useRecipientBranding } from "@/features/capture/RecipientBrandingContex
 export function PublicRequestLayout() {
   const { businessName, logoUrl, hidePhotobriefBranding } = useRecipientBranding();
   return (
-    <div className="relative isolate flex min-h-screen flex-col bg-gradient-subtle">
+    <div className="recipient-shell relative isolate flex min-h-screen flex-col bg-gradient-subtle">
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[40vh] bg-ambient-sky" aria-hidden />
       <header className="sticky top-0 z-30 glass-nav">
         <div className="mx-auto flex h-14 w-full max-w-2xl items-center justify-between px-4">
