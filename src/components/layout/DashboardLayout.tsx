@@ -27,16 +27,17 @@ export function DashboardLayout() {
   return (
     <RequireAuth>
       <SidebarProvider>
-        <div className="relative flex min-h-screen w-full bg-gradient-subtle">
-          {/* Ambient glow behind the app shell — sits behind sidebar + content */}
-          <div className="pointer-events-none absolute inset-0 -z-10 bg-ambient-mesh opacity-70" aria-hidden />
-          {/* Desktop sidebar — hidden on phone/tablet, where the bottom tab bar takes over. */}
+        {/* `app-shell` re-points the design tokens to the in-product
+            navy + teal palette; `bg-background` then resolves to the
+            in-app off-white surface. */}
+        <div className="app-shell relative flex min-h-screen w-full bg-background">
+          {/* Desktop sidebar - hidden on phone/tablet, where the bottom tab bar takes over. */}
           <div className="hidden lg:block">
             <AppSidebar />
           </div>
 
           <div className="flex min-w-0 flex-1 flex-col">
-            <header className="sticky top-0 z-30 flex h-14 items-center gap-3 glass-nav px-3 pt-safe sm:px-4">
+            <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-3 pt-safe backdrop-blur sm:px-4">
               {/* Sidebar toggle only on desktop where the sidebar exists. */}
               <div className="hidden lg:block">
                 <SidebarTrigger />
@@ -53,7 +54,7 @@ export function DashboardLayout() {
 
               <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
                 {/* New request lives in the FAB on mobile, in the header from sm: up. */}
-                <Button asChild size="sm" className="hidden gap-1.5 sm:inline-flex btn-primary-glass">
+                <Button asChild size="sm" className="hidden gap-1.5 sm:inline-flex">
                   <NavLink to="/requests/new">
                     <Plus className="h-4 w-4" />
                     New request
@@ -78,7 +79,7 @@ export function DashboardLayout() {
                     <DropdownMenuLabel className="font-normal">
                       <p className="text-xs text-muted-foreground">Signed in as</p>
                       <p className="truncate text-sm font-medium text-foreground">
-                        {email ?? "—"}
+                        {email ?? "-"}
                       </p>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
@@ -90,7 +91,7 @@ export function DashboardLayout() {
                       disabled={resetting || !email}
                     >
                       <KeyRound className="mr-2 h-4 w-4" />
-                      {resetting ? "Sending link…" : "Reset password"}
+                      {resetting ? "Sending link..." : "Reset password"}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onSelect={(e) => {
@@ -101,7 +102,7 @@ export function DashboardLayout() {
                       className="text-destructive focus:text-destructive"
                     >
                       <LogOut className="mr-2 h-4 w-4" />
-                      {signingOut ? "Signing out…" : "Log out"}
+                      {signingOut ? "Signing out..." : "Log out"}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -117,17 +118,17 @@ export function DashboardLayout() {
           </div>
         </div>
 
-        {/* Floating Help button — visible on every authenticated screen.
+        {/* Floating Help button - visible on every authenticated screen.
             Positioned above the MobileTabBar on phones, bottom-right on desktop. */}
         <NavLink
           to="/app/help"
           aria-label="Open help and beta guide"
-          className="fixed right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full btn-primary-glass text-primary-foreground shadow-lg transition-transform hover:scale-105 bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-6"
+          className="fixed right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-6"
         >
           <LifeBuoy className="h-5 w-5" />
         </NavLink>
 
-        {/* Mobile bottom navigation — replaces the desktop sidebar on phones/tablets. */}
+        {/* Mobile bottom navigation - replaces the desktop sidebar on phones/tablets. */}
         <MobileTabBar />
       </SidebarProvider>
     </RequireAuth>
