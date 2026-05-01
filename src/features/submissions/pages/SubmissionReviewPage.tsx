@@ -267,8 +267,7 @@ export default function SubmissionReviewPage() {
 
   async function handleSendReminder() {
     if (!canReminders) {
-      const plan = minPlanFor("reminders");
-      toast.error(`Reminders are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`);
+      toast.error(lockedFeatureCopy("reminders").toast);
       return;
     }
     const t = toast.loading(`Sending reminder to ${submission.recipientName}…`);
@@ -345,8 +344,7 @@ export default function SubmissionReviewPage() {
 
   async function handleExportPdf() {
     if (!canPdf) {
-      const plan = minPlanFor("pdf_export");
-      toast.error(`PDF export is on ${plan ? getPlanLimit(plan).name : "a higher plan"}`);
+      toast.error(lockedFeatureCopy("pdf_export").toast);
       return;
     }
     const t = toast.loading("Generating PDF…");
