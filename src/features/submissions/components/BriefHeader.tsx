@@ -58,7 +58,7 @@ export function BriefHeader({
       <div className="grid gap-6 lg:grid-cols-[auto_1fr_auto] lg:items-start">
         {/* Readiness ring */}
         <div className="flex shrink-0 items-center gap-4 lg:flex-col lg:items-start">
-          <ScoreRing score={submission.readinessScore} size={96} strokeWidth={8} />
+          <ScoreRing score={submission.readinessScore} size={96} />
           <div className="lg:hidden">
             <p className="text-base font-semibold text-foreground">{submission.recipientName}</p>
             <p className="text-xs text-muted-foreground">
