@@ -110,10 +110,27 @@ function RecipientChat({
       const client = getTokenClient(token);
       const filename = `${crypto.randomUUID()}.${ext}`;
       const path = `${ctx.workspaceId}/${ctx.requestId}/${filename}`;
-      const { error: upErr } = await client.storage
-        .from("submission-media")
-        .upload(path, blob, { contentType: blob.type, upsert: false });
-      if (upErr) throw upErr;
+
+      // Mobile networks (LTE in a basement, hotel wifi) drop fetch requests
+      // mid-flight. Retry the storage upload up to 3 times with backoff
+      // before bubbling the error up so the user only sees a toast on real
+      // permanent failures.
+      let lastErr: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { error: upErr } = await client.storage
+          .from("submission-media")
+          .upload(path, blob, { contentType: blob.type, upsert: false });
+        if (!upErr) {
+          lastErr = null;
+          break;
+        }
+        lastErr = upErr;
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 600 * Math.pow(2, attempt)));
+        }
+      }
+      if (lastErr) throw lastErr;
+
       const { data: pub } = client.storage.from("submission-media").getPublicUrl(path);
       const { data: row, error: insErr } = await client
         .from("captured_media")
