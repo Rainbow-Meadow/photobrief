@@ -9,9 +9,6 @@ import {
   UserPlus2,
   CheckCircle2,
   Archive,
-  Mail,
-  Phone,
-  CalendarClock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -24,8 +21,6 @@ import { classifyAction } from "@/features/submissions/lib/quickAction";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
-import { ReadinessScoreBadge } from "@/components/shared/ReadinessScoreBadge";
-import { StatusBadge } from "@/components/shared/StatusBadge";
 import { BriefHeader } from "@/features/submissions/components/BriefHeader";
 import { Button } from "@/components/ui/button";
 import {
