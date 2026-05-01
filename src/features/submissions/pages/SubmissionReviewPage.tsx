@@ -595,19 +595,18 @@ export default function SubmissionReviewPage() {
               className="gap-1.5"
               onClick={() => {
                 if (!canAskForMore) {
-                  const plan = minPlanFor("missing_shot_followup");
-                  toast.error(
-                    `Missing-shot follow-up is on ${plan ? getPlanLimit(plan).name : "a higher plan"}`,
-                  );
+                  toast.error(lockedFeatureCopy("missing_shot_followup").toast);
                   return;
                 }
                 setAskOpen(true);
               }}
-              title={canAskForMore ? undefined : "Available on Pro and above"}
+              title={canAskForMore ? undefined : lockedFeatureCopy("missing_shot_followup").tooltip}
             >
               <HelpCircle className="h-3.5 w-3.5" /> Ask for more photos
               {!canAskForMore ? (
-                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Pro</span>
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">
+                  {lockedFeatureCopy("missing_shot_followup").badge}
+                </span>
               ) : null}
             </Button>
             <Button
@@ -615,19 +614,28 @@ export default function SubmissionReviewPage() {
               size="sm"
               className="gap-1.5"
               onClick={handleSendReminder}
-              title={canReminders ? undefined : "Available on a higher plan"}
+              title={canReminders ? undefined : lockedFeatureCopy("reminders").tooltip}
             >
               <Bell className="h-3.5 w-3.5" /> Send reminder
+              {!canReminders ? (
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">
+                  {lockedFeatureCopy("reminders").badge}
+                </span>
+              ) : null}
             </Button>
             <Button
               variant="outline"
               size="sm"
               className="gap-1.5"
               onClick={handleExportPdf}
-              title={canPdf ? undefined : "Available on Pro"}
+              title={canPdf ? undefined : lockedFeatureCopy("pdf_export").tooltip}
             >
               <FileDown className="h-3.5 w-3.5" /> Export PDF
-              {!canPdf ? <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Pro</span> : null}
+              {!canPdf ? (
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">
+                  {lockedFeatureCopy("pdf_export").badge}
+                </span>
+              ) : null}
             </Button>
             {canAssign ? (
               <DropdownMenu>
@@ -649,16 +657,13 @@ export default function SubmissionReviewPage() {
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
-                onClick={() => {
-                  const plan = minPlanFor("assignments");
-                  toast.error(
-                    `Assignments are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`,
-                  );
-                }}
-                title="Available on Pro and above"
+                onClick={() => toast.error(lockedFeatureCopy("assignments").toast)}
+                title={lockedFeatureCopy("assignments").tooltip}
               >
                 <UserPlus2 className="h-3.5 w-3.5" /> Assign
-                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Pro</span>
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">
+                  {lockedFeatureCopy("assignments").badge}
+                </span>
               </Button>
             )}
             <Button size="sm" className="gap-1.5" onClick={handleMarkReviewed}>
