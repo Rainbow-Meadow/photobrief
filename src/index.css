@@ -202,6 +202,28 @@
       inset 0 1px 0 hsl(0 0% 100% / 0.08),
       0 30px 60px -24px hsl(0 0% 0% / 0.65);
     --ambient-sky: radial-gradient(80% 60% at 50% 0%, hsl(217 100% 55% / 0.18), transparent 70%);
+
+    /* In-app palette (dark) */
+    --app-bg: 222 47% 6%;
+    --app-sidebar-bg: 222 50% 5%;
+    --app-sidebar-fg: 0 0% 96%;
+    --app-sidebar-muted: 220 9% 60%;
+    --app-sidebar-active-bg: 222 40% 12%;
+    --app-sidebar-active-fg: 168 76% 60%;
+    --app-sidebar-border: 222 30% 14%;
+
+    --app-primary: 168 76% 45%;
+    --app-primary-glow: 168 76% 55%;
+    --app-primary-fg: 222 47% 8%;
+
+    --app-pill-pass-bg: 152 60% 18%;
+    --app-pill-pass-fg: 152 70% 75%;
+    --app-pill-warn-bg: 38 70% 18%;
+    --app-pill-warn-fg: 38 90% 75%;
+    --app-pill-fail-bg: 0 60% 22%;
+    --app-pill-fail-fg: 0 80% 80%;
+    --app-pill-info-bg: 217 60% 22%;
+    --app-pill-info-fg: 217 90% 80%;
   }
 }
 
