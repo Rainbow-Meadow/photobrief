@@ -64,6 +64,22 @@ function statusVariant(status: string): "default" | "secondary" | "destructive" 
   return "secondary";
 }
 
+function effectiveStatus(inv: BetaInvite): string {
+  if (inv.status === "invited" && new Date(inv.expires_at).getTime() < Date.now()) {
+    return "expired";
+  }
+  return inv.status;
+}
+
+function relativeExpiry(expiresAt: string): { label: string; tone: "muted" | "warning" | "danger" } {
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  const days = Math.round(ms / 86_400_000);
+  if (ms <= 0) return { label: "Expired", tone: "danger" };
+  if (days <= 2) return { label: `${days}d left`, tone: "warning" };
+  if (days <= 7) return { label: `${days}d left`, tone: "muted" };
+  return { label: new Date(expiresAt).toLocaleDateString(), tone: "muted" };
+}
+
 export default function AdminInvitesPage() {
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [invites, setInvites] = useState<BetaInvite[]>([]);
