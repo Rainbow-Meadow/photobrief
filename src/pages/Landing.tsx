@@ -77,17 +77,21 @@ export default function LandingPage() {
               <Sparkles className="h-3 w-3 text-primary" /> AI-guided visual intake
             </span>
             <h1 className="text-display mt-6 text-foreground">
-              Send a link.
+              Stop chasing customers
               <br />
-              Get a complete{" "}
+              for{" "}
               <span className="bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-                brief
+                photos
               </span>
               .
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
-              PhotoBrief turns customer photos into AI-guided, business-ready submissions with
-              quality checks, missing-shot prompts, and clean summaries.
+              Send one branded link. Your customer follows step-by-step prompts on their phone.
+              You get a complete, AI-checked brief — photos, details, and a plain-English summary —
+              ready to quote, dispatch, or file.
+            </p>
+            <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground/90">
+              Built for roofing, HVAC, plumbing, electrical, junk removal, claims, and property management.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -108,11 +112,11 @@ export default function LandingPage() {
                   setDemoOpen(true);
                 }}
               >
-                <PlayCircle className="mr-1 h-5 w-5" /> Watch Demo
+                <PlayCircle className="mr-1 h-5 w-5" /> Watch 60-sec demo
               </Button>
             </div>
             <p className="mt-4 text-xs text-muted-foreground">
-              Free plan includes 5 requests/month · No install for your customers
+              No app for your customer · Works on any phone · Invite-only beta
             </p>
             <a
               href="#first-pass-guarantee"

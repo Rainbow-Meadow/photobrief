@@ -137,11 +137,13 @@ export default function DashboardPage() {
     [requests],
   );
 
+  const isEmpty = requests.length === 0;
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Dashboard"
-        description="Your inbox at a glance."
+        description={isEmpty ? "Let's send your first request." : "Your inbox at a glance."}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -164,6 +166,8 @@ export default function DashboardPage() {
         }
       />
 
+      {isEmpty ? <FirstRequestHero /> : null}
+      {!isEmpty ? (
       <div className="grid gap-6 lg:grid-cols-3">
         <div className={cn("space-y-6", assistantOpen ? "lg:col-span-2" : "lg:col-span-3")}>
           <div className="grid gap-3 grid-cols-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -259,6 +263,8 @@ export default function DashboardPage() {
         ) : null}
       </div>
 
+      ) : null}
+
       {/* Mobile: same panel rendered as a bottom sheet so it doesn't push page content. */}
       <Sheet open={assistantOpen} onOpenChange={setAssistantOpen}>
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0 lg:hidden">
@@ -339,5 +345,88 @@ function DashboardList({ title, emptyLabel, items, ctaLabel, ctaHref, showRemind
         </ul>
       )}
     </section>
+  );
+}
+
+/**
+ * Zero-state hero shown to brand-new workspaces with no requests yet.
+ * Surfaces three example use cases as one-click actions and a path to the
+ * 60-second demo so a fresh beta user has an obvious next move.
+ */
+function FirstRequestHero() {
+  return (
+    <section className="surface-card relative isolate overflow-hidden p-6 sm:p-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64 bg-ambient-sky opacity-70"
+      />
+      <div className="mx-auto max-w-2xl text-center">
+        <span className="inline-flex items-center gap-1.5 rounded-full glass px-3 py-1 text-xs font-medium text-foreground/80">
+          <Sparkles className="h-3 w-3 text-primary" /> Welcome to PhotoBrief
+        </span>
+        <h2 className="mt-4 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          Send your first request
+        </h2>
+        <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+          Pick an example to start with — you can edit everything before you send.
+          Your customer just taps the link, no app required.
+        </p>
+
+        <div className="mx-auto mt-7 grid max-w-xl gap-3 sm:grid-cols-3">
+          <ExampleTemplateButton
+            title="Roof inspection"
+            subtitle="Pre-quote condition shots"
+            href="/requests/new?template=roof_inspection"
+          />
+          <ExampleTemplateButton
+            title="Junk removal"
+            subtitle="Pile + access photos"
+            href="/requests/new?template=junk_removal"
+          />
+          <ExampleTemplateButton
+            title="Damage claim"
+            subtitle="Loss documentation"
+            href="/requests/new?template=damage_claim"
+          />
+        </div>
+
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+          <Button asChild size="lg">
+            <NavLink to="/requests/new">
+              <Plus className="mr-1 h-4 w-4" /> Start from scratch
+            </NavLink>
+          </Button>
+          <Button asChild size="lg" variant="outline">
+            <NavLink to="/help">Watch 60-sec demo</NavLink>
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ExampleTemplateButton({
+  title,
+  subtitle,
+  href,
+}: {
+  title: string;
+  subtitle: string;
+  href: string;
+}) {
+  return (
+    <NavLink
+      to={href}
+      className="group glass-strong flex flex-col items-start rounded-2xl p-4 text-left transition lift-on-hover"
+    >
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <Plus className="h-4 w-4" />
+      </span>
+      <p className="mt-3 text-sm font-semibold text-foreground">{title}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+      <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary opacity-0 transition group-hover:opacity-100">
+        Use this <ArrowRight className="h-3 w-3" />
+      </span>
+    </NavLink>
   );
 }

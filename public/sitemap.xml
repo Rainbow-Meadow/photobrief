@@ -22,7 +22,12 @@
   </url>
   <url>
     <loc>https://photobrief.ai/waitlist</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://photobrief.ai/auth</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.4</priority>
   </url>
 </urlset>
