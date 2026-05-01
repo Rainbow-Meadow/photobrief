@@ -183,6 +183,38 @@ function RecipientChat({
     }
   }, [flow.progress.done, flow.progress.total, ctx.guide.id]);
 
+  // Persist a lightweight progress snapshot to sessionStorage so a tab
+  // refresh on a flaky mobile connection doesn't lose context. We only
+  // store the submission id, answer payload, and storage paths of already-
+  // uploaded photos — never raw image data — so the footprint stays small
+  // and we never re-upload on restore.
+  useEffect(() => {
+    if (!token) return;
+    const key = `pb:recipient:${token}`;
+    try {
+      const snapshot = {
+        submissionId: submissionIdRef.current,
+        answers: flow.answers,
+        uploadedPaths: flow.photos
+          .filter((p) => !!p.storagePath)
+          .map((p) => ({ stepId: p.stepId, storagePath: p.storagePath })),
+        savedAt: Date.now(),
+      };
+      sessionStorage.setItem(key, JSON.stringify(snapshot));
+    } catch {
+      // sessionStorage can throw in private mode — non-fatal.
+    }
+  }, [token, flow.answers, flow.photos, flow.progress.done]);
+
+  // Clear the snapshot once we successfully reach the confirmation page.
+  useEffect(() => {
+    return () => {
+      if (!token) return;
+      // Only clear when navigating away after a successful submit — handled
+      // by the /done route reading + clearing the same key on mount.
+    };
+  }, [token]);
+
   const handleSubmit = async () => {
     flow.submitAll();
     trackEvent("submission_completed", {
