@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { error } = await admin.from("waitlist_entries").insert({
+  const insertPayload = {
     name,
     email,
     business_name: clean(body.business_name, 200),
@@ -86,7 +86,13 @@ Deno.serve(async (req) => {
     estimated_monthly_requests: clean(body.estimated_monthly_requests, 50),
     notes: clean(body.notes, 2000),
     source: clean(body.source, 50) ?? "web",
-  });
+  };
+
+  const { data: inserted, error } = await admin
+    .from("waitlist_entries")
+    .insert(insertPayload)
+    .select("id, created_at")
+    .single();
 
   if (error) {
     // Unique violation race
@@ -100,6 +106,43 @@ Deno.serve(async (req) => {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+
+  // Fire-and-forget transactional emails. Email failures must NOT fail the
+  // waitlist submission — the user is already on the list at this point.
+  const entryId = inserted?.id;
+  const createdAt = inserted?.created_at
+    ? new Date(inserted.created_at).toISOString()
+    : new Date().toISOString();
+  const ADMIN_EMAIL = "hello@rainbow-meadow.org";
+
+  try {
+    await admin.functions.invoke("send-transactional-email", {
+      body: {
+        templateName: "waitlist-confirmation",
+        recipientEmail: email,
+        idempotencyKey: `waitlist-confirm-${entryId ?? email}`,
+        templateData: { name },
+      },
+    });
+  } catch (e) {
+    console.error("waitlist-submit: confirmation email failed", e);
+  }
+
+  try {
+    await admin.functions.invoke("send-transactional-email", {
+      body: {
+        templateName: "waitlist-admin-notification",
+        recipientEmail: ADMIN_EMAIL,
+        idempotencyKey: `waitlist-admin-${entryId ?? email}`,
+        templateData: {
+          ...insertPayload,
+          created_at: createdAt,
+        },
+      },
+    });
+  } catch (e) {
+    console.error("waitlist-submit: admin email failed", e);
   }
 
   return new Response(JSON.stringify({ ok: true, already: false }), {
