@@ -1,116 +1,100 @@
-# PhotoBrief AI — Model Routing & Structured Outputs
+## What changes (visually)
 
-Today every AI call hardcodes a single model in its edge function (`google/gemini-2.5-flash` for analyze + guide, `google/gemini-2.5-pro` for summarize). We will replace that with a centralized router that picks the right model per task, normalizes structured output, and degrades gracefully on failure — without touching any UI components.
+The generated mockups show a tighter, more product-shot-friendly look than the current UI:
 
-## 1. New shared module: `supabase/functions/_shared/aiModelRouter.ts`
+1. **Navy sidebar** (charcoal `#0F172A`-ish) with white text on a light app body, instead of today's all-light sidebar.
+2. **Teal/emerald primary** (`#14b8a6`) for primary buttons, progress, focus rings, score ring — replacing the current electric blue `#0A6BFF`.
+3. **Flatter, simpler cards**: white surface, hairline border, soft shadow only, no glass/blur on internal app surfaces. (Glass stays on marketing pages.)
+4. **Smaller, calmer status pills**: compact green/amber/red/blue pills instead of larger badges with icons.
+5. **Tighter spacing + slightly smaller card radius** (`rounded-xl` ≈ 12px) on dashboard/inbox/review surfaces.
 
-Single source of truth for which model handles which task.
+## Surfaces in scope
 
-```ts
-export type AITask =
-  | "recipient_guidance"
-  | "photo_quality_check"
-  | "detail_extraction"
-  | "readiness_scoring"
-  | "submission_summary"
-  | "guide_generation"
-  | "followup_message"
-  | "admin_review"
-  | "classification";
-
-export type AITier = "default" | "vision" | "escalation" | "cheap";
+```text
+Dashboard            → src/features/workspace/pages/DashboardPage.tsx
+Requests inbox       → src/features/requests/pages/RequestsInboxPage.tsx
+New request          → src/features/requests/pages/CreateRequestPage.tsx
+                       + TemplatePicker, RequestDraftPreview, RequestBuilderModeTabs
+Recipient capture    → src/features/capture/pages/PublicRecipientPage.tsx
+                       + ChatBubble / capture tile / AI feedback components
+Submission review    → src/features/submissions/pages/SubmissionReviewPage.tsx
+                       + ShotCard, ReviewProgressSummary, AskForMorePhotosDialog
+Guide builder        → src/features/guides/pages/GuideBuilderPage.tsx
+Billing              → src/features/billing/pages/BillingSettingsPage.tsx
+                       + TopupPackCards
+Brand + Team         → src/features/workspace/pages/BrandSettingsPage.tsx
+                       + TeamSettingsPage.tsx
+App chrome           → src/components/layout/AppSidebar.tsx, DashboardLayout.tsx,
+                       PageHeader.tsx, BrandMark.tsx
 ```
 
-Tier → model mapping (provider-redundant, with explicit fallback chain):
+Marketing pages (Landing, Pricing, ForAiAgents) and the Remotion video are **not** changed — they keep the current blue/glass identity.
 
-| Tier         | Primary                      | Fallback             | Cheap last-resort         |
-| ------------ | ---------------------------- | -------------------- | ------------------------- |
-| `default`    | `google/gemini-3-flash-preview` | `openai/gpt-5-mini`  | `google/gemini-2.5-flash-lite` |
-| `vision`     | `openai/gpt-5-mini`          | `google/gemini-2.5-flash` | `google/gemini-2.5-flash-lite` |
-| `escalation` | `openai/gpt-5.2`             | `google/gemini-3.1-pro-preview` | `openai/gpt-5-mini` |
-| `cheap`      | `openai/gpt-5-nano`          | `google/gemini-2.5-flash-lite` | — |
+## Design token changes (`src/index.css`)
 
-Task → tier:
+Add a second app palette so the brand stays blue on marketing but the dashboard switches to navy + teal. New tokens (light theme):
 
-- `recipient_guidance`, `guide_generation`, `followup_message` → `default`
-- `photo_quality_check`, `detail_extraction`, `readiness_scoring`, `submission_summary` → `vision`
-- `admin_review` → `escalation`
-- `classification` → `cheap`
+```text
+--app-bg:            220 20% 98%   /* page background behind cards */
+--app-sidebar-bg:    222 47% 11%   /* navy sidebar */
+--app-sidebar-fg:    0 0% 96%
+--app-sidebar-muted: 220 14% 70%
+--app-sidebar-active-bg: 222 47% 16%
+--app-sidebar-active-fg: 168 76% 55%   /* teal text on active row */
 
-Exports:
-- `modelsForTask(task, { escalate?: boolean })` → ordered fallback list of model ids.
-- `callAIWithRouter({ task, messages, tools, tool_choice, escalate? })` — wraps the Lovable AI gateway, iterates the fallback chain on `5xx`, network errors, or empty `tool_calls`. Returns `{ model, response, attempts }`. Surfaces `429` and `402` immediately (no fallback — those are workspace-level signals).
+--app-primary:       168 76% 42%   /* teal #14b8a6 */
+--app-primary-glow:  168 76% 52%
+--app-primary-fg:    0 0% 100%
 
-## 2. Standard structured-output envelope
+--app-pill-pass-bg:  152 70% 92%   --app-pill-pass-fg:  152 60% 28%
+--app-pill-warn-bg:   38 95% 92%   --app-pill-warn-fg:   30 80% 32%
+--app-pill-fail-bg:    0 80% 95%   --app-pill-fail-fg:    0 65% 42%
+--app-pill-info-bg:  217 95% 95%   --app-pill-info-fg:  217 80% 38%
+```
 
-A new helper `buildEnvelopeTool(taskName, innerSchema)` produces the function-tool schema every task uses. Inner result is task-specific; envelope is uniform:
+Dark-mode equivalents added in `.dark { … }`. Existing `--primary` (blue) is left alone so marketing/landing keeps its identity. The sidebar + primary buttons inside `DashboardLayout` will read from the new `--app-*` tokens via a wrapper class `app-shell` that scopes overrides:
 
-```ts
-{
-  result: <task-specific payload>,
-  confidence: number,                // 0-1
-  flags: string[],                   // e.g. ["low_light","ambiguous_label"]
-  recipient_feedback: string | null, // shown to recipient (kind, actionable)
-  business_summary: string | null,   // shown to workspace owner
-  missing_items: string[],
-  suggested_next_action: string | null
+```css
+.app-shell {
+  --primary: var(--app-primary);
+  --primary-glow: var(--app-primary-glow);
+  --primary-foreground: var(--app-primary-fg);
+  --ring: var(--app-primary);
+  --background: var(--app-bg);
+  --sidebar-background: var(--app-sidebar-bg);
+  --sidebar-foreground: var(--app-sidebar-fg);
+  --sidebar-accent: var(--app-sidebar-active-bg);
+  --sidebar-accent-foreground: var(--app-sidebar-active-fg);
+  --sidebar-border: 222 30% 18%;
 }
 ```
 
-Each edge function still returns its existing response shape to keep UI compatibility, but populates it from `envelope.result` plus the envelope-level fields. New fields (`confidence`, `flags`, `business_summary`, `suggested_next_action`) are added to the JSON responses additively.
+`DashboardLayout` gets `className="app-shell …"` on its root. This single switch repaints every authed surface to teal + navy without changing marketing.
 
-## 3. Edge-function updates
+A small `<StatusPill variant="pass|warn|fail|info" />` component is added in `src/components/shared/StatusPill.tsx` and replaces the current `StatusBadge`/`<Badge>` usage on the in-scope surfaces (it reads the `--app-pill-*` tokens).
 
-Refactor each function to:
-1. Build messages.
-2. Call `callAIWithRouter({ task, ... })`.
-3. Parse the envelope.
-4. Map to existing response keys + include the new envelope fields.
-5. On total failure (all fallbacks exhausted) return a typed `{ error: "ai_unavailable", graceful: true }` payload (HTTP 200 for analyze/extract paths so the client can render the "AI review unavailable" state without throwing).
+## Per-surface adjustments
 
-Files:
+- **AppSidebar**: switch text colors, active row uses `bg-sidebar-accent` (now navy-tinted) with teal text and a 2px teal left bar; PhotoBrief wordmark stays white. Settings row pinned to bottom.
+- **DashboardPage**: 4-up metric cards become flatter (`surface-card` already exists — tighten padding, smaller icon chip, larger numeric, label below). Recent requests becomes a clean table with hairline rows and small status pills.
+- **RequestsInboxPage**: same table treatment as Recent requests; status filter chips on top use the new pill style.
+- **CreateRequestPage / TemplatePicker / RequestDraftPreview**: 3-column template grid on desktop, selected card uses teal ring + teal `Ready` chip; right-hand draft preview becomes a single white card with sectioned hairlines and a teal "Create request" CTA.
+- **PublicRecipientPage**: header gets the customer-brand color (unchanged), but the progress bar, capture tile dashed border, and AI-feedback "sparkles" chip switch to teal. Bubble styles use the existing `.bubble-assistant` / `.bubble-user` but the user bubble swaps to teal gradient inside `.app-shell` (recipient page is outside `.app-shell`, so it gets a one-off `.recipient-shell` wrapper that applies the same primary override — keeps the customer-side teal feel from the mockups).
+- **SubmissionReviewPage**: header gets a 64px circular score ring (teal stroke) on the right; below it the existing `ReviewProgressSummary` is restyled into a single hairline strip with small pills `5 pass · 1 warn · 0 fail · 0 missing`. ShotCards become smaller (3-up grid), photo on top, title row with right-aligned status pill, one-line AI summary, and a small "Suggested: Mark ready" chip.
+- **AskForMorePhotosDialog**: dialog body becomes a tight checklist with inline comment inputs only on checked rows + the "First-pass guarantee: this rework is on us." footer line.
+- **GuideBuilderPage**: two-column layout — left is the steps list with drag handles and tiny thumbnails, right is the step detail editor with required/AI-quality toggles in teal.
+- **BillingSettingsPage / TopupPackCards**: current plan card gets the wide usage bar + "Change plan" button; top-up cards become a clean 3-up grid with the middle card highlighted by a teal border + "Most popular" chip.
+- **BrandSettingsPage + TeamSettingsPage**: aligned to be readable side-by-side: logo upload tile, color swatches (teal selected by default), live preview on the brand side; team list with avatar + role pill + top-right "Invite teammate" teal CTA.
 
-- `supabase/functions/ai-analyze-media/index.ts` → task `photo_quality_check`. Vision tier. Allow `escalate: true` when caller passes `priority: "admin_review"` (admin re-runs).
-- `supabase/functions/ai-summarize-submission/index.ts` → split internal calls:
-  - submission summary → `submission_summary` (vision)
-  - readiness score → `readiness_scoring` (vision, but uses already-collected check data so cheap inputs)
-  - extracted details → `detail_extraction` (vision)
-  Currently this function already does all three in one model call; keep the single call but route via `submission_summary` task. Add `escalate=true` when `flags` includes `low_confidence` OR `confidence < 0.5` to retry once on the escalation tier.
-- `supabase/functions/ai-generate-guide/index.ts` → task `guide_generation` (default tier — fast Gemini Flash).
-- New `supabase/functions/ai-followup-message/index.ts` (currently client-only fallback in `aiService.generateFollowupMessage`) → task `followup_message`. Optional, but registers the route end-to-end.
+## Things deliberately NOT touched
 
-Each function imports from `_shared/aiModelRouter.ts`. No model id appears outside that file.
+- Marketing pages, Pricing, Landing hero, Remotion video, ForAiAgents — they keep the current blue identity.
+- Auth pages (`/auth`, `/signup`, `/forgot-password`) — they sit outside `DashboardLayout` and stay blue, matching the marketing brand.
+- DB schema, edge functions, business logic, routing.
 
-## 4. Client side: `src/services/aiService.ts`
+## Risks / call-outs
 
-- Add `import type { AITask } from ...` mirror (string-literal union duplicated client-side, since edge `_shared` isn't importable from the SPA).
-- New top-level `aiModelRouter` export on the client is **only metadata** (task → tier label) used for analytics / debug surfaces. It does NOT pick models — the edge function is the single decision point. This guarantees rule "do not hardcode model names inside components".
-- Update each `aiService.*` method to:
-  - Send `{ task: "..." }` in the function body so the edge router knows which task this is (defense in depth — the function already knows, but explicit task lets a single shared function be reused later).
-  - Read new envelope fields (`confidence`, `flags`, `businessSummary`, `suggestedNextAction`) into the existing typed outputs (additive — `AnalyzeMediaOutput`, `SubmissionSummaryOutput`, `ReadinessScoreOutput` extended with optional `confidence?`, `flags?`).
-- Failure handling chain in `analyzeCapturedMedia`:
-  1. Edge call OK → return real result.
-  2. Edge returns `{ error: "ai_unavailable", graceful: true }` → return a new `verdict: "unavailable"` shape that triggers the "AI review unavailable" UI state (already partially handled today as a `warn` placeholder; we make it explicit). Submission is **not** blocked.
-  3. Required-photo gating remains app-logic only (`step.required && missing`), unchanged.
+- Scoping primary to `.app-shell` means any third-party component that hard-codes `text-primary` inside the dashboard will also turn teal — that's the intent, but worth noting.
+- The recipient page currently inherits the workspace's brand color when set; the teal-by-default look only applies when no brand color is configured, so existing customers keep their custom color.
 
-## 5. Types
-
-- `src/types/photobrief.ts`: extend `AICheckSeverity` with `"unavailable"` (UI maps to neutral grey badge). Extend `ShotAIFeedback` with optional `confidence?: number; flags?: string[]; businessSummary?: string; suggestedNextAction?: string`.
-- `src/services/aiService.ts`: extend output interfaces with optional envelope fields.
-
-## 6. Things explicitly NOT changed
-
-- No UI component edits required — all reads go through `aiService` and the existing severity-driven render paths.
-- No DB migrations. (`captured_media.ai_feedback` is `jsonb`, so the extra envelope fields persist automatically.)
-- No plan-tier changes; `ai-generate-guide` keeps its Pro+ gate.
-- We do not introduce per-request model overrides from the client — only `escalate?: boolean` on admin re-runs.
-
-## Files touched
-
-- new: `supabase/functions/_shared/aiModelRouter.ts`
-- edited: `supabase/functions/ai-analyze-media/index.ts`
-- edited: `supabase/functions/ai-summarize-submission/index.ts`
-- edited: `supabase/functions/ai-generate-guide/index.ts`
-- new (optional): `supabase/functions/ai-followup-message/index.ts`
-- edited: `src/services/aiService.ts`
-- edited: `src/types/photobrief.ts`
+If this looks right, approve and I'll implement it in one pass.
