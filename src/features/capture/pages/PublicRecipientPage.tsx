@@ -110,10 +110,27 @@ function RecipientChat({
       const client = getTokenClient(token);
       const filename = `${crypto.randomUUID()}.${ext}`;
       const path = `${ctx.workspaceId}/${ctx.requestId}/${filename}`;
-      const { error: upErr } = await client.storage
-        .from("submission-media")
-        .upload(path, blob, { contentType: blob.type, upsert: false });
-      if (upErr) throw upErr;
+
+      // Mobile networks (LTE in a basement, hotel wifi) drop fetch requests
+      // mid-flight. Retry the storage upload up to 3 times with backoff
+      // before bubbling the error up so the user only sees a toast on real
+      // permanent failures.
+      let lastErr: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { error: upErr } = await client.storage
+          .from("submission-media")
+          .upload(path, blob, { contentType: blob.type, upsert: false });
+        if (!upErr) {
+          lastErr = null;
+          break;
+        }
+        lastErr = upErr;
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 600 * Math.pow(2, attempt)));
+        }
+      }
+      if (lastErr) throw lastErr;
+
       const { data: pub } = client.storage.from("submission-media").getPublicUrl(path);
       const { data: row, error: insErr } = await client
         .from("captured_media")
@@ -165,6 +182,38 @@ function RecipientChat({
       lastDoneRef.current = flow.progress.done;
     }
   }, [flow.progress.done, flow.progress.total, ctx.guide.id]);
+
+  // Persist a lightweight progress snapshot to sessionStorage so a tab
+  // refresh on a flaky mobile connection doesn't lose context. We only
+  // store the submission id, answer payload, and storage paths of already-
+  // uploaded photos — never raw image data — so the footprint stays small
+  // and we never re-upload on restore.
+  useEffect(() => {
+    if (!token) return;
+    const key = `pb:recipient:${token}`;
+    try {
+      const snapshot = {
+        submissionId: submissionIdRef.current,
+        answers: flow.answers,
+        uploadedPaths: flow.photos
+          .filter((p) => !!p.storagePath)
+          .map((p) => ({ stepId: p.stepId, storagePath: p.storagePath })),
+        savedAt: Date.now(),
+      };
+      sessionStorage.setItem(key, JSON.stringify(snapshot));
+    } catch {
+      // sessionStorage can throw in private mode — non-fatal.
+    }
+  }, [token, flow.answers, flow.photos, flow.progress.done]);
+
+  // Clear the snapshot once we successfully reach the confirmation page.
+  useEffect(() => {
+    return () => {
+      if (!token) return;
+      // Only clear when navigating away after a successful submit — handled
+      // by the /done route reading + clearing the same key on mount.
+    };
+  }, [token]);
 
   const handleSubmit = async () => {
     flow.submitAll();

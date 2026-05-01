@@ -16,6 +16,14 @@ export default function RecipientConfirmationPage() {
         if (!cancelled) setCtx(c);
       })
       .catch(() => {});
+    // Clear the in-progress draft now that submission succeeded.
+    if (token) {
+      try {
+        sessionStorage.removeItem(`pb:recipient:${token}`);
+      } catch {
+        // Non-fatal — private mode may block sessionStorage.
+      }
+    }
     return () => {
       cancelled = true;
     };

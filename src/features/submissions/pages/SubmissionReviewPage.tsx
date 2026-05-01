@@ -9,9 +9,6 @@ import {
   UserPlus2,
   CheckCircle2,
   Archive,
-  Mail,
-  Phone,
-  CalendarClock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -24,8 +21,7 @@ import { classifyAction } from "@/features/submissions/lib/quickAction";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ReadinessProgress } from "@/components/shared/ReadinessProgress";
-import { ReadinessScoreBadge } from "@/components/shared/ReadinessScoreBadge";
-import { StatusBadge } from "@/components/shared/StatusBadge";
+import { BriefHeader } from "@/features/submissions/components/BriefHeader";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -33,22 +29,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { useSubmission } from "@/hooks/useSubmissions";
-import { submissionStatusOptions } from "@/config/statusOptions";
+
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
 import { formatRelativeTime } from "@/utils/format";
 import { usePlan } from "@/hooks/usePlan";
-import { getPlanLimit, minPlanFor } from "@/config/planLimits";
+import { lockedFeatureCopy } from "@/config/planLimits";
 import type {
   ActivityEvent,
   InternalNote,
@@ -157,7 +146,7 @@ export default function SubmissionReviewPage() {
     activity: [...(live.activity ?? []), ...extraActivity],
   };
 
-  const status = submissionStatusOptions[submission.status];
+  
 
   const orderedShots = [...(submission.shots ?? [])].sort(
     (a, b) => a.orderIndex - b.orderIndex,
@@ -266,8 +255,7 @@ export default function SubmissionReviewPage() {
 
   async function handleSendReminder() {
     if (!canReminders) {
-      const plan = minPlanFor("reminders");
-      toast.error(`Reminders are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`);
+      toast.error(lockedFeatureCopy("reminders").toast);
       return;
     }
     const t = toast.loading(`Sending reminder to ${submission.recipientName}…`);
@@ -344,8 +332,7 @@ export default function SubmissionReviewPage() {
 
   async function handleExportPdf() {
     if (!canPdf) {
-      const plan = minPlanFor("pdf_export");
-      toast.error(`PDF export is on ${plan ? getPlanLimit(plan).name : "a higher plan"}`);
+      toast.error(lockedFeatureCopy("pdf_export").toast);
       return;
     }
     const t = toast.loading("Generating PDF…");
@@ -596,19 +583,18 @@ export default function SubmissionReviewPage() {
               className="gap-1.5"
               onClick={() => {
                 if (!canAskForMore) {
-                  const plan = minPlanFor("missing_shot_followup");
-                  toast.error(
-                    `Missing-shot follow-up is on ${plan ? getPlanLimit(plan).name : "a higher plan"}`,
-                  );
+                  toast.error(lockedFeatureCopy("missing_shot_followup").toast);
                   return;
                 }
                 setAskOpen(true);
               }}
-              title={canAskForMore ? undefined : "Available on Pro and above"}
+              title={canAskForMore ? undefined : lockedFeatureCopy("missing_shot_followup").tooltip}
             >
               <HelpCircle className="h-3.5 w-3.5" /> Ask for more photos
               {!canAskForMore ? (
-                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Pro</span>
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">
+                  {lockedFeatureCopy("missing_shot_followup").badge}
+                </span>
               ) : null}
             </Button>
             <Button
@@ -616,19 +602,28 @@ export default function SubmissionReviewPage() {
               size="sm"
               className="gap-1.5"
               onClick={handleSendReminder}
-              title={canReminders ? undefined : "Available on a higher plan"}
+              title={canReminders ? undefined : lockedFeatureCopy("reminders").tooltip}
             >
               <Bell className="h-3.5 w-3.5" /> Send reminder
+              {!canReminders ? (
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">
+                  {lockedFeatureCopy("reminders").badge}
+                </span>
+              ) : null}
             </Button>
             <Button
               variant="outline"
               size="sm"
               className="gap-1.5"
               onClick={handleExportPdf}
-              title={canPdf ? undefined : "Available on Pro"}
+              title={canPdf ? undefined : lockedFeatureCopy("pdf_export").tooltip}
             >
               <FileDown className="h-3.5 w-3.5" /> Export PDF
-              {!canPdf ? <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Pro</span> : null}
+              {!canPdf ? (
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">
+                  {lockedFeatureCopy("pdf_export").badge}
+                </span>
+              ) : null}
             </Button>
             {canAssign ? (
               <DropdownMenu>
@@ -650,16 +645,13 @@ export default function SubmissionReviewPage() {
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
-                onClick={() => {
-                  const plan = minPlanFor("assignments");
-                  toast.error(
-                    `Assignments are on ${plan ? getPlanLimit(plan).name : "a higher plan"}`,
-                  );
-                }}
-                title="Available on Pro and above"
+                onClick={() => toast.error(lockedFeatureCopy("assignments").toast)}
+                title={lockedFeatureCopy("assignments").tooltip}
               >
                 <UserPlus2 className="h-3.5 w-3.5" /> Assign
-                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">Pro</span>
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-primary">
+                  {lockedFeatureCopy("assignments").badge}
+                </span>
               </Button>
             )}
             <Button size="sm" className="gap-1.5" onClick={handleMarkReviewed}>
@@ -672,46 +664,16 @@ export default function SubmissionReviewPage() {
         }
       />
 
-      {/* Customer + status banner */}
-      <section className="surface-card-elevated grid gap-4 p-5 md:grid-cols-[1fr_auto]">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="text-base font-semibold text-foreground">{submission.recipientName}</p>
-            {submission.recipientContact ? (
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                {submission.recipientContact.includes("@") ? (
-                  <Mail className="h-3 w-3" />
-                ) : (
-                  <Phone className="h-3 w-3" />
-                )}
-                {submission.recipientContact}
-              </span>
-            ) : null}
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <CalendarClock className="h-3 w-3" /> Submitted {formatRelativeTime(submission.submittedAt)}
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {submission.requestType ?? submission.guideName}
-            {submission.assigneeName ? ` · Assigned to ${submission.assigneeName}` : " · Unassigned"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <ReadinessScoreBadge score={submission.readinessScore} />
-          <Select value={submission.status} onValueChange={(v) => handleStatusChange(v as SubmissionStatus)}>
-            <SelectTrigger className="h-8 w-[140px] text-xs">
-              <SelectValue>
-                <StatusBadge label={status.label} tone={status.tone} />
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(submissionStatusOptions).map(([key, opt]) => (
-                <SelectItem key={key} value={key}>{opt.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </section>
+      {/* Money screen — readiness, AI summary, suggested next action */}
+      <BriefHeader
+        submission={submission}
+        onStatusChange={handleStatusChange}
+        onCopySummary={handleCopySummary}
+        onExportPdf={handleExportPdf}
+        canPdf={canPdf}
+        onPrimaryAction={handleMarkReviewed}
+        primaryActionLabel="Mark reviewed"
+      />
 
       <ReviewProgressSummary
         shots={orderedShots}
@@ -728,22 +690,9 @@ export default function SubmissionReviewPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          {/* AI summary + readiness */}
+          {/* Readiness progress bar (summary, score, and next action live in BriefHeader above) */}
           <section className="surface-card p-5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">AI summary</h2>
-              <span className="text-xs text-muted-foreground">Auto-generated</span>
-            </div>
-            <p className="mt-2 text-sm leading-relaxed text-foreground/90">{submission.aiSummary}</p>
-            <div className="mt-4">
-              <ReadinessProgress value={submission.readinessScore} />
-              <div className="mt-3 rounded-md border border-accent/40 bg-accent/30 p-3 text-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Suggested next action
-                </p>
-                <p className="mt-1 text-foreground">{submission.suggestedNextAction}</p>
-              </div>
-            </div>
+            <ReadinessProgress value={submission.readinessScore} />
           </section>
 
           {/* Shots */}

@@ -64,6 +64,22 @@ function statusVariant(status: string): "default" | "secondary" | "destructive" 
   return "secondary";
 }
 
+function effectiveStatus(inv: BetaInvite): string {
+  if (inv.status === "invited" && new Date(inv.expires_at).getTime() < Date.now()) {
+    return "expired";
+  }
+  return inv.status;
+}
+
+function relativeExpiry(expiresAt: string): { label: string; tone: "muted" | "warning" | "danger" } {
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  const days = Math.round(ms / 86_400_000);
+  if (ms <= 0) return { label: "Expired", tone: "danger" };
+  if (days <= 2) return { label: `${days}d left`, tone: "warning" };
+  if (days <= 7) return { label: `${days}d left`, tone: "muted" };
+  return { label: new Date(expiresAt).toLocaleDateString(), tone: "muted" };
+}
+
 export default function AdminInvitesPage() {
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [invites, setInvites] = useState<BetaInvite[]>([]);
@@ -332,10 +348,27 @@ export default function AdminInvitesPage() {
                       <TableCell className="font-mono text-xs">{inv.email}</TableCell>
                       <TableCell className="text-sm">{inv.business_name ?? "—"}</TableCell>
                       <TableCell>
-                        <Badge variant={statusVariant(inv.status)}>{inv.status}</Badge>
+                        {(() => {
+                          const eff = effectiveStatus(inv);
+                          return (
+                            <Badge variant={statusVariant(eff)}>
+                              {eff}
+                              {eff === "accepted" ? " · locked" : ""}
+                            </Badge>
+                          );
+                        })()}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                        {new Date(inv.expires_at).toLocaleDateString()}
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {(() => {
+                          const r = relativeExpiry(inv.expires_at);
+                          const cls =
+                            r.tone === "danger"
+                              ? "text-destructive"
+                              : r.tone === "warning"
+                                ? "text-warning"
+                                : "text-muted-foreground";
+                          return <span className={cls}>{r.label}</span>;
+                        })()}
                       </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">
                         {inv.token_prefix}…
@@ -446,6 +479,13 @@ export default function AdminInvitesPage() {
           </DialogHeader>
           <div className="rounded-lg border bg-muted/40 p-3 font-mono text-xs break-all">
             {tokenModal?.link}
+          </div>
+          <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-foreground">
+            <p className="font-semibold">Single-use link</p>
+            <p className="mt-1 text-muted-foreground">
+              The first signup with this link claims it. After that the token is locked and cannot be reused —
+              if the recipient needs another, use <span className="font-medium">Resend</span> to issue a fresh one.
+            </p>
           </div>
           <DialogFooter>
             <Button

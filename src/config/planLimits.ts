@@ -445,6 +445,34 @@ export function comparePlans(a: Plan, b: Plan): number {
   return planRank[a] - planRank[b];
 }
 
+/**
+ * Single source of truth for "this feature is locked" copy.
+ *
+ * Use everywhere instead of ad-hoc `"X is on the Pro plan"` strings so the
+ * upgrade language stays consistent and is easy to retune.
+ */
+export function lockedFeatureCopy(feature: FeatureKey): {
+  /** Plan that unlocks the feature, capitalized (e.g. "Pro"). */
+  planLabel: string;
+  /** Short toast message: "Reminders are on the Pro plan". */
+  toast: string;
+  /** Tooltip text: "Available on Pro and above". */
+  tooltip: string;
+  /** 2-3 char badge label rendered next to gated buttons. */
+  badge: string;
+} {
+  const plan = minPlanFor(feature);
+  const planLabel = plan ? getPlanLimit(plan).name : "a higher plan";
+  const meta = featureCatalog[feature];
+  const noun = meta?.label ?? "This feature";
+  return {
+    planLabel,
+    toast: `${noun} is on the ${planLabel} plan`,
+    tooltip: `Available on ${planLabel} and above`,
+    badge: planLabel,
+  };
+}
+
 /** Founding-Pro offer config. Sourced from 10_Go_To_Market/03_founding_pro_offer.md. */
 export const FOUNDING_PRO = {
   monthlyPrice: 29,
