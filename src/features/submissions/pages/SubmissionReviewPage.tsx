@@ -702,22 +702,9 @@ export default function SubmissionReviewPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          {/* AI summary + readiness */}
+          {/* Readiness progress bar (summary, score, and next action live in BriefHeader above) */}
           <section className="surface-card p-5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">AI summary</h2>
-              <span className="text-xs text-muted-foreground">Auto-generated</span>
-            </div>
-            <p className="mt-2 text-sm leading-relaxed text-foreground/90">{submission.aiSummary}</p>
-            <div className="mt-4">
-              <ReadinessProgress value={submission.readinessScore} />
-              <div className="mt-3 rounded-md border border-accent/40 bg-accent/30 p-3 text-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Suggested next action
-                </p>
-                <p className="mt-1 text-foreground">{submission.suggestedNextAction}</p>
-              </div>
-            </div>
+            <ReadinessProgress value={submission.readinessScore} />
           </section>
 
           {/* Shots */}
