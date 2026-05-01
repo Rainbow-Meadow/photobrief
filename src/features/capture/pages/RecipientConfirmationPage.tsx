@@ -91,7 +91,7 @@ export default function RecipientConfirmationPage() {
           <div className="mt-6 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
             <Camera className="h-3 w-3" />
             <span>Sent securely with</span>
-            <BrandMark variant="wordmark" tone="muted" size={56} />
+            <BrandMark variant="wordmark" tone="auto" size={56} />
           </div>
         ) : null}
       </div>
