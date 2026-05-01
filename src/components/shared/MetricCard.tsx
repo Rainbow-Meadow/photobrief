@@ -43,22 +43,22 @@ export function MetricCard({
   return (
     <div
       className={cn(
-        "surface-card lift-on-hover p-3 sm:p-4 lg:p-5",
+        "rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5",
         className,
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-eyebrow text-[10px] sm:text-[11px]">{label}</p>
         {Icon ? (
-          <span className="rounded-lg bg-accent/80 p-1.5 text-accent-foreground ring-1 ring-inset ring-accent-foreground/10">
-            <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <span className="rounded-lg bg-accent p-1.5 text-accent-foreground">
+            <Icon className="h-4 w-4" />
           </span>
         ) : null}
       </div>
-      <p className="mt-2 text-3xl font-semibold tracking-tight text-foreground tabular-nums sm:mt-3 sm:text-[2rem] sm:leading-[1.1]">
+      <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground tabular-nums sm:text-[2rem] sm:leading-[1.1]">
         {value}
       </p>
-      {hint ? <p className="mt-1 text-[11px] text-muted-foreground sm:text-xs">{hint}</p> : null}
+      <p className="mt-1 text-xs font-medium text-muted-foreground">{label}</p>
+      {hint ? <p className="mt-0.5 text-[11px] text-muted-foreground/80">{hint}</p> : null}
       {subStat ? (
         <p
           className={cn(
