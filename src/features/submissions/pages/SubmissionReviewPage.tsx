@@ -676,46 +676,16 @@ export default function SubmissionReviewPage() {
         }
       />
 
-      {/* Customer + status banner */}
-      <section className="surface-card-elevated grid gap-4 p-5 md:grid-cols-[1fr_auto]">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="text-base font-semibold text-foreground">{submission.recipientName}</p>
-            {submission.recipientContact ? (
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                {submission.recipientContact.includes("@") ? (
-                  <Mail className="h-3 w-3" />
-                ) : (
-                  <Phone className="h-3 w-3" />
-                )}
-                {submission.recipientContact}
-              </span>
-            ) : null}
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <CalendarClock className="h-3 w-3" /> Submitted {formatRelativeTime(submission.submittedAt)}
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {submission.requestType ?? submission.guideName}
-            {submission.assigneeName ? ` · Assigned to ${submission.assigneeName}` : " · Unassigned"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <ReadinessScoreBadge score={submission.readinessScore} />
-          <Select value={submission.status} onValueChange={(v) => handleStatusChange(v as SubmissionStatus)}>
-            <SelectTrigger className="h-8 w-[140px] text-xs">
-              <SelectValue>
-                <StatusBadge label={status.label} tone={status.tone} />
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(submissionStatusOptions).map(([key, opt]) => (
-                <SelectItem key={key} value={key}>{opt.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </section>
+      {/* Money screen — readiness, AI summary, suggested next action */}
+      <BriefHeader
+        submission={submission}
+        onStatusChange={handleStatusChange}
+        onCopySummary={handleCopySummary}
+        onExportPdf={handleExportPdf}
+        canPdf={canPdf}
+        onPrimaryAction={handleMarkReviewed}
+        primaryActionLabel="Mark reviewed"
+      />
 
       <ReviewProgressSummary
         shots={orderedShots}
