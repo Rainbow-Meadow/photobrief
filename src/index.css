@@ -404,6 +404,96 @@
             mask: radial-gradient(circle, transparent 55%, #000 56%);
   }
 
+  /* -----------------------------------------------------------------
+     App-shell scope: re-paints the authenticated product UI from the
+     marketing electric-blue palette to the in-product navy + teal
+     palette without touching any of the marketing pages or the
+     standalone auth screens.
+     ----------------------------------------------------------------- */
+  .app-shell {
+    --primary: var(--app-primary);
+    --primary-glow: var(--app-primary-glow);
+    --primary-foreground: var(--app-primary-fg);
+    --ring: var(--app-primary);
+    --background: var(--app-bg);
+    --accent: 168 60% 94%;
+    --accent-foreground: 168 76% 22%;
+    --sidebar-background: var(--app-sidebar-bg);
+    --sidebar-foreground: var(--app-sidebar-fg);
+    --sidebar-accent: var(--app-sidebar-active-bg);
+    --sidebar-accent-foreground: var(--app-sidebar-active-fg);
+    --sidebar-border: var(--app-sidebar-border);
+    --sidebar-ring: var(--app-primary);
+    --sidebar-primary: var(--app-primary);
+    --sidebar-primary-foreground: var(--app-primary-fg);
+  }
+  .dark .app-shell {
+    --accent: 168 40% 18%;
+    --accent-foreground: 168 70% 80%;
+  }
+
+  /* Recipient capture flow uses the same teal primary so the customer
+     sees the same look as the in-product screenshots. Workspace brand
+     color (set inline as CSS variables) still overrides this when
+     present. */
+  .recipient-shell {
+    --primary: var(--app-primary);
+    --primary-glow: var(--app-primary-glow);
+    --primary-foreground: var(--app-primary-fg);
+    --ring: var(--app-primary);
+    --accent: 168 60% 94%;
+    --accent-foreground: 168 76% 22%;
+  }
+
+  /* Compact status pill — replaces the larger StatusBadge look on
+     dashboard / inbox / submission surfaces to match the mockups. */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+  }
+  .pill-pass { background: hsl(var(--app-pill-pass-bg)); color: hsl(var(--app-pill-pass-fg)); }
+  .pill-warn { background: hsl(var(--app-pill-warn-bg)); color: hsl(var(--app-pill-warn-fg)); }
+  .pill-fail { background: hsl(var(--app-pill-fail-bg)); color: hsl(var(--app-pill-fail-fg)); }
+  .pill-info { background: hsl(var(--app-pill-info-bg)); color: hsl(var(--app-pill-info-fg)); }
+  .pill-muted { background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
+
+  /* Circular score ring used on the submission review header.
+     `--score` is set inline (0-100) and `--score-color` resolves the
+     stroke color based on tone via the wrapper class. */
+  .score-ring {
+    --size: 64px;
+    --thickness: 6px;
+    --score: 0;
+    --score-color: hsl(var(--app-primary));
+    width: var(--size);
+    height: var(--size);
+    border-radius: 9999px;
+    background:
+      conic-gradient(var(--score-color) calc(var(--score) * 1%), hsl(var(--muted)) 0);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .score-ring::before {
+    content: "";
+    position: absolute;
+    inset: var(--thickness);
+    border-radius: 9999px;
+    background: hsl(var(--card));
+  }
+  .score-ring > * { position: relative; }
+  .score-ring-good { --score-color: hsl(var(--app-primary)); }
+  .score-ring-warn { --score-color: hsl(var(--warning)); }
+  .score-ring-bad  { --score-color: hsl(var(--destructive)); }
+
   @media (prefers-reduced-motion: reduce) {
     .lift-on-hover, .btn-primary-glass { transition: none !important; transform: none !important; }
   }
