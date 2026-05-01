@@ -137,11 +137,13 @@ export default function DashboardPage() {
     [requests],
   );
 
+  const isEmpty = requests.length === 0;
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Dashboard"
-        description="Your inbox at a glance."
+        description={isEmpty ? "Let's send your first request." : "Your inbox at a glance."}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -164,6 +166,8 @@ export default function DashboardPage() {
         }
       />
 
+      {isEmpty ? <FirstRequestHero /> : null}
+      {!isEmpty ? (
       <div className="grid gap-6 lg:grid-cols-3">
         <div className={cn("space-y-6", assistantOpen ? "lg:col-span-2" : "lg:col-span-3")}>
           <div className="grid gap-3 grid-cols-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -258,6 +262,8 @@ export default function DashboardPage() {
           </div>
         ) : null}
       </div>
+
+      ) : null}
 
       {/* Mobile: same panel rendered as a bottom sheet so it doesn't push page content. */}
       <Sheet open={assistantOpen} onOpenChange={setAssistantOpen}>
