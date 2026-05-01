@@ -348,10 +348,27 @@ export default function AdminInvitesPage() {
                       <TableCell className="font-mono text-xs">{inv.email}</TableCell>
                       <TableCell className="text-sm">{inv.business_name ?? "—"}</TableCell>
                       <TableCell>
-                        <Badge variant={statusVariant(inv.status)}>{inv.status}</Badge>
+                        {(() => {
+                          const eff = effectiveStatus(inv);
+                          return (
+                            <Badge variant={statusVariant(eff)}>
+                              {eff}
+                              {eff === "accepted" ? " · locked" : ""}
+                            </Badge>
+                          );
+                        })()}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                        {new Date(inv.expires_at).toLocaleDateString()}
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {(() => {
+                          const r = relativeExpiry(inv.expires_at);
+                          const cls =
+                            r.tone === "danger"
+                              ? "text-destructive"
+                              : r.tone === "warning"
+                                ? "text-warning"
+                                : "text-muted-foreground";
+                          return <span className={cls}>{r.label}</span>;
+                        })()}
                       </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">
                         {inv.token_prefix}…
