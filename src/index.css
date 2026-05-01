@@ -106,6 +106,37 @@
     --sidebar-accent-foreground: 217 100% 35%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217 100% 52%;
+
+    /* -------------------------------------------------------------
+       In-app palette (post-launch product UI).
+       Marketing/landing keeps the electric-blue identity above; the
+       authenticated app shell switches to a navy sidebar + teal primary
+       via the `.app-shell` wrapper applied by DashboardLayout. The
+       recipient capture flow opts in via `.recipient-shell` so the
+       customer-side view keeps the same teal feel from the mockups
+       (still overridden by the workspace's brand color when set).
+       ------------------------------------------------------------- */
+    --app-bg: 220 20% 98%;
+
+    --app-sidebar-bg: 222 47% 11%;
+    --app-sidebar-fg: 0 0% 96%;
+    --app-sidebar-muted: 220 14% 70%;
+    --app-sidebar-active-bg: 222 47% 16%;
+    --app-sidebar-active-fg: 168 76% 55%;
+    --app-sidebar-border: 222 30% 18%;
+
+    --app-primary: 168 76% 38%;            /* teal-600 #0d9488 */
+    --app-primary-glow: 168 76% 46%;       /* teal-500 */
+    --app-primary-fg: 0 0% 100%;
+
+    --app-pill-pass-bg: 152 70% 92%;
+    --app-pill-pass-fg: 152 60% 24%;
+    --app-pill-warn-bg: 38 95% 92%;
+    --app-pill-warn-fg: 30 80% 32%;
+    --app-pill-fail-bg: 0 80% 95%;
+    --app-pill-fail-fg: 0 65% 42%;
+    --app-pill-info-bg: 217 95% 95%;
+    --app-pill-info-fg: 217 80% 38%;
   }
 
   .dark {
