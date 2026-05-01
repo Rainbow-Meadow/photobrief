@@ -32,7 +32,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { useSubmission } from "@/hooks/useSubmissions";
-import { submissionStatusOptions } from "@/config/statusOptions";
+
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { useCurrentWorkspace } from "@/hooks/useCurrentWorkspace";
 import { formatRelativeTime } from "@/utils/format";
@@ -146,7 +146,7 @@ export default function SubmissionReviewPage() {
     activity: [...(live.activity ?? []), ...extraActivity],
   };
 
-  const status = submissionStatusOptions[submission.status];
+  
 
   const orderedShots = [...(submission.shots ?? [])].sort(
     (a, b) => a.orderIndex - b.orderIndex,
