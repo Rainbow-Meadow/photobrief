@@ -1,8 +1,8 @@
 # PhotoBrief database architecture
 
-This repo is two-way linked with the Lovable project and the managed Supabase database. That is a feature, not a blocker: make real changes in this repo/branch, use Lovable preview and the linked Supabase environment to test them, then publish/merge only after preview validation.
+This repo is two-way linked with the Lovable project and the managed Supabase database. That is a feature: make real changes in this repo/branch, use Lovable preview and the linked Supabase environment to test them, then publish/merge only after preview validation.
 
-This document describes the intended database organization and the preview-first rollout path for database hardening.
+Because PhotoBrief is still beta and not yet shipped to external users, the database should be made clean and strict now rather than carrying loose early-prototype conventions forward.
 
 ## Domain map
 
@@ -80,7 +80,7 @@ These are not part of the core request/submission workflow and should not be req
 1. Every workspace-owned table should have either a direct `workspace_id` foreign key or a clear parent chain to one.
 2. If a table duplicates `workspace_id` for RLS/query performance, a trigger should verify it matches the parent request/submission.
 3. Lifecycle/status values used by application logic should be constrained by enum or check constraint.
-4. Provider IDs that must be idempotent, such as Stripe checkout sessions or payment intents, should eventually have partial unique indexes. Add non-unique lookup indexes first, audit for duplicates, then promote to unique in a dedicated migration.
+4. Provider IDs that must be idempotent, such as Stripe checkout sessions or payment intents, should have unique indexes before launch.
 5. Public-token flows should authorize through dedicated database helpers/RLS. Edge Functions must authorize before using service-role reads or paid AI calls.
 
 ## Current PR database behavior
@@ -88,16 +88,10 @@ These are not part of the core request/submission workflow and should not be req
 This PR applies real database work on the preview branch:
 
 - `20260501120000_add_submission_answers.sql` creates durable recipient answer storage.
-- `20260501130000_database_scale_hardening.sql` applies additive hardening: relationship constraints, status-domain constraints, tenant-consistency triggers, and query-path indexes.
+- `20260501130000_database_scale_hardening.sql` adds relationship constraints, status-domain constraints, tenant-consistency triggers, and query-path indexes.
+- `20260501140000_beta_schema_cleanup.sql` converts loose lifecycle text columns to enum types, validates beta-era relationships, adds production-grade uniqueness rules, introduces token-hash foundations, adds data-quality checks, and standardizes `updated_at` triggers.
 
-The hardening migration is designed to be preview-safe and production-conscious:
-
-- no table renames
-- no destructive enum conversions
-- no full-table validation during deploy
-- no duplicate-sensitive unique index creation
-- `NOT VALID` constraints where existing data may need audit
-- non-unique provider lookup indexes first, with unique promotion left for a later audited migration
+The cleanup intentionally keeps app-facing table names stable while making the database strict enough to scale from the start.
 
 ## Preview validation checklist
 
@@ -106,25 +100,25 @@ After Lovable/Supabase preview applies this branch, run these checks and smoke t
 ### Data integrity checks
 
 ```sql
--- Find request messages whose workspace_id disagrees with their request.
+-- Request messages must belong to the same workspace as their request.
 select rm.id, rm.request_id, rm.workspace_id, r.workspace_id as actual_workspace_id
 from public.request_messages rm
 join public.photo_brief_requests r on r.id = rm.request_id
 where rm.workspace_id <> r.workspace_id;
 
--- Find internal notes whose workspace_id disagrees with their submission.
+-- Internal notes must belong to the same workspace as their submission.
 select n.id, n.submission_id, n.workspace_id, s.workspace_id as actual_workspace_id
 from public.internal_notes n
 join public.submissions s on s.id = n.submission_id
 where n.workspace_id <> s.workspace_id;
 
--- Find submission reviews whose workspace_id disagrees with their submission.
+-- Submission reviews must belong to the same workspace as their submission.
 select sr.id, sr.submission_id, sr.workspace_id, s.workspace_id as actual_workspace_id
 from public.submission_reviews sr
 join public.submissions s on s.id = sr.submission_id
 where sr.workspace_id <> s.workspace_id;
 
--- Find submission answers whose workspace/request/submission linkage disagrees.
+-- Submission answers must align submission, request, and workspace.
 select sa.id, sa.submission_id, sa.request_id, sa.workspace_id,
        s.request_id as actual_request_id,
        s.workspace_id as actual_submission_workspace_id,
@@ -136,7 +130,7 @@ where sa.request_id <> s.request_id
    or sa.workspace_id <> s.workspace_id
    or sa.workspace_id <> r.workspace_id;
 
--- Find duplicate provider IDs before promoting lookup indexes to unique.
+-- Provider IDs should be unique before launch.
 select stripe_checkout_session_id, count(*)
 from public.request_credit_packs
 where stripe_checkout_session_id is not null
@@ -165,46 +159,27 @@ having count(*) > 1;
 5. Confirm submission summary uses saved answers.
 6. Confirm reviewer page shows customer answers.
 7. Reject a photo and reopen the public link to confirm resubmission still narrows to rejected steps.
-8. Confirm request messages/reminders still insert correctly under the new relationship/consistency triggers.
+8. Confirm request messages/reminders still insert correctly under relationship/consistency triggers.
 9. Confirm billing checkout/top-up/portal routes return to `/settings/billing`.
+10. Confirm onboarding still creates a workspace/profile/default workspace without violating new FKs or enums.
 
-## Post-preview hardening follow-up
+## Post-preview type generation
 
-When preview validation is clean, the next database PR can promote selected constraints/indexes:
-
-```sql
-alter table public.request_messages validate constraint request_messages_request_id_fkey;
-alter table public.request_messages validate constraint request_messages_workspace_id_fkey;
-alter table public.message_templates validate constraint message_templates_workspace_id_fkey;
-alter table public.request_credit_packs validate constraint request_credit_packs_workspace_id_fkey;
-alter table public.subscriptions validate constraint subscriptions_workspace_id_fkey;
-alter table public.sms_send_log validate constraint sms_send_log_request_id_fkey;
-alter table public.founding_pro_claims validate constraint founding_pro_claims_workspace_id_fkey;
-```
-
-Only promote provider lookup indexes to partial unique indexes after duplicate checks return zero rows.
-
-## Future migration: request token hashing
-
-`photo_brief_requests.token` is currently a raw public token. That is easy to implement but not ideal long term.
-
-Recommended migration path:
-
-1. Add `token_hash text` and `token_prefix text` to `photo_brief_requests`.
-2. Backfill hashes for existing request tokens.
-3. Update `request_id_for_token()` to hash the incoming `x-request-token` and compare against `token_hash`.
-4. Update app code to keep generating the full token client-side/server-side, but only store the hash and prefix.
-5. Stop exposing raw tokens in internal list/detail queries unless specifically needed to build a share link.
-6. Once stable, drop or heavily restrict the raw `token` column.
-
-This should be a dedicated security migration and should include a rollback plan.
-
-## Supabase type generation
-
-After applying migrations, regenerate Supabase types so application code can stop using casts for new tables:
+After Lovable/Supabase preview applies migrations, regenerate Supabase types so app code can stop using casts for new tables/enums:
 
 ```bash
 supabase gen types typescript --project-id <project-id> --schema public > src/integrations/supabase/types.ts
 ```
 
 Run CI after regenerating types.
+
+## Future migration: fully remove raw public request tokens
+
+This PR adds `token_hash` and `token_prefix`, backfills them, and updates `request_id_for_token()` to prefer hashed token comparisons while still supporting the legacy raw `token` column.
+
+After preview validation, the next security migration can remove raw-token dependency:
+
+1. Update app/server code so new request links are generated from a one-time token and only `token_hash`/`token_prefix` are stored.
+2. Stop selecting raw `token` from internal list/detail views unless absolutely needed.
+3. Update RLS helpers to remove fallback raw-token comparison.
+4. Drop or heavily restrict the raw `token` column.
