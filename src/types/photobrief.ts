@@ -1,7 +1,4 @@
-// ============= Full file contents =============
-
-// Shared PhotoBrief domain types — mirrors 03_Data_Model/01_entity_schema.md
-// and 08_Config_Blueprints/types_photobrief.example.ts.
+// Shared PhotoBrief domain types — aligned with Supabase schema and app flows.
 
 export type RequestStatus =
   | "draft"
@@ -19,7 +16,7 @@ export type SubmissionStatus = "new" | "reviewed" | "needs_more" | "archived";
 
 /**
  * Capture type — mirrors DB `capture_type` enum.
- * Workbook uses photo|label|document; legacy values kept for back-compat.
+ * Workbook uses photo|label|document; legacy values kept for request-builder UI compatibility.
  */
 export type ShotType =
   | "photo"
@@ -28,12 +25,11 @@ export type ShotType =
   | "video"
   | "note"
   | "measurement"
-  // legacy aliases used by the request builder UI
   | "wide"
   | "close_up"
   | "serial";
 
-/** Overlay type — mirrors DB `overlay_type` enum. */
+/** Overlay type — mirrors DB `overlay_type` enum plus legacy builder aliases. */
 export type OverlayType =
   | "wide_scene"
   | "close_up"
@@ -47,14 +43,13 @@ export type OverlayType =
   | "scale_reference"
   | "video_motion"
   | "custom"
-  // legacy aliases
   | "full_area"
   | "label"
   | "serial_plate"
   | "before_after"
   | "scale_required";
 
-/** AI check type — mirrors DB `ai_check_type` enum. */
+/** AI check type — mirrors DB `ai_check_type` enum plus legacy aliases used by templates. */
 export type AICheckType =
   | "blur"
   | "low_light"
@@ -72,7 +67,6 @@ export type AICheckType =
   | "wide_shot_detected"
   | "close_up_detected"
   | "unsafe_condition_flag"
-  // legacy aliases
   | "serial_detected"
   | "receipt_detected"
   | "unsafe_condition";
@@ -86,9 +80,11 @@ export type ContextQuestionInputType =
   | "multi_select"
   | "number"
   | "yes_no"
-  | "date";
+  | "date"
+  | "phone"
+  | "email";
 
-/** Workflow archetype — one of 14 capture archetypes from the Template Directory. */
+/** Workflow archetype — one of the capture archetypes from the Template Directory. */
 export type WorkflowType =
   | "service_repair"
   | "equipment_service"
@@ -105,7 +101,7 @@ export type WorkflowType =
   | "vehicle_service"
   | "vehicle_body";
 
-/** Plan tiers — mirrors the DB plan_tier enum and 01_Strategy/02_pricing_and_plan_limits.md. */
+/** Plan tiers — mirrors DB `plan_tier` enum. */
 export type Plan = "free" | "starter" | "pro" | "team" | "business";
 
 export type BillingInterval = "monthly" | "annual";
@@ -145,10 +141,7 @@ export interface ContextQuestion {
   required: boolean;
 }
 
-/**
- * Curated topline category — mirrors DB `topline_category` enum.
- * These are the 5 buckets shown in the public Guide Library.
- */
+/** Curated topline category — mirrors DB `topline_category` enum. */
 export type CuratedCategory =
   | "field_service_quote_intake"
   | "property_realestate_claims"
@@ -166,9 +159,7 @@ export interface PhotoGuide {
   steps: GuideStep[];
   questions: ContextQuestion[];
   curatedCategory?: CuratedCategory;
-  /** Workbook nested category, e.g. "Plumbing", "Pet Services". */
   nestedCategory?: string;
-  /** One of 14 capture archetypes. */
   workflowType?: WorkflowType;
   bestFor?: string;
   estimatedMinutes?: number;
@@ -182,7 +173,20 @@ export interface TeamMember {
   initials: string;
 }
 
-export type PassStatus = "pending" | "accepted" | "rework" | "n_a";
+/**
+ * Canonical values mirror DB `review_pass_status`.
+ * Legacy aliases are kept temporarily for existing requests_inbox_view rows until
+ * that view is regenerated after the managed DB migrations apply.
+ */
+export type PassStatus =
+  | "pending"
+  | "passed"
+  | "failed"
+  | "needs_more"
+  | "not_applicable"
+  | "accepted"
+  | "rework"
+  | "n_a";
 
 export interface PhotoBriefRequest {
   id: string;
@@ -201,9 +205,7 @@ export interface PhotoBriefRequest {
   lastActivityAt?: string;
   assigneeId?: string;
   assigneeName?: string;
-  /** Latest submission's first-pass acceptance state. */
   firstPassStatus?: PassStatus;
-  /** Latest submission's second-pass acceptance state. */
   secondPassStatus?: PassStatus;
 }
 
@@ -214,13 +216,9 @@ export interface ShotAIFeedback {
   headline: string;
   detail?: string;
   checks?: { type: AICheckType; severity: ShotFeedbackSeverity; label: string }[];
-  /** Model self-reported confidence 0..1 (envelope). */
   confidence?: number;
-  /** Machine-readable flags from the model (envelope). */
   flags?: string[];
-  /** One-sentence summary for the business owner (envelope). */
   businessSummary?: string;
-  /** Recommended next action for the workspace (envelope). */
   suggestedNextAction?: string;
 }
 
@@ -237,11 +235,8 @@ export interface SubmissionShot {
   missing?: boolean;
   capturedAt?: string;
   feedback?: ShotAIFeedback;
-  /** Per-photo reviewer state. Defaults to "pending" for newly captured shots. */
   reviewStatus?: ShotReviewStatus;
-  /** Reviewer's note explaining a rejection (only present when reviewStatus === "rejected"). */
   reviewComment?: string;
-  /** When the reviewer made their last decision on this shot. */
   reviewedAt?: string;
 }
 

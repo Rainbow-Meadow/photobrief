@@ -1,6 +1,6 @@
 // Submissions service — thin Supabase wrapper.
 // Combines submissions + captured_media + extracted_details + internal_notes
-// into the legacy Submission shape so existing UI keeps working.
+// + submission_answers into the legacy Submission shape so existing UI keeps working.
 
 import { supabase } from "@/integrations/supabase/client";
 import { getTokenClient } from "@/integrations/supabase/tokenClient";
@@ -10,6 +10,7 @@ import type {
   SubmissionStatus,
   ExtractedDetail,
   InternalNote,
+  CustomerAnswer,
 } from "@/types/photobrief";
 
 function publicUrl(path: string | null): string | undefined {
@@ -24,12 +25,13 @@ async function hydrate(
   shotsRows: any[],
   detailsRows: any[],
   notesRows: any[],
+  answerRows: any[] = [],
 ): Promise<Submission> {
   const shots: SubmissionShot[] = (shotsRows ?? []).map((m) => ({
     id: m.id,
     stepId: m.step_id ?? undefined,
     orderIndex: 0,
-    title: m.note ?? "Photo",
+    title: m.guide_steps?.title ?? m.note ?? "Photo",
     shotType: "wide",
     imageUrl: publicUrl(m.file_url),
     capturedAt: m.created_at,
@@ -52,6 +54,13 @@ async function hydrate(
     body: n.note,
     createdAt: n.created_at,
   }));
+  const customerAnswers: CustomerAnswer[] = (answerRows ?? [])
+    .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+    .map((a) => ({
+      questionId: a.question_id ?? undefined,
+      prompt: a.prompt,
+      answer: a.answer,
+    }));
 
   return {
     id: row.id,
@@ -70,7 +79,7 @@ async function hydrate(
     extractedDetails,
     internalNotes,
     activity: [],
-    customerAnswers: [],
+    customerAnswers,
   };
 }
 
@@ -88,8 +97,8 @@ export const submissionsService = {
       guide_name: r.photo_brief_requests?.photo_guides?.name ?? "",
     }));
 
-    // Hydrate without per-row queries for the list view (shots/details lazy).
-    return Promise.all(rows.map((r: any) => hydrate(r, [], [], [])));
+    // Hydrate without per-row queries for the list view (shots/details/answers lazy).
+    return Promise.all(rows.map((r: any) => hydrate(r, [], [], [], [])));
   },
 
   async getById(id: string): Promise<Submission | null> {
@@ -101,10 +110,15 @@ export const submissionsService = {
     if (error) throw error;
     if (!data) return null;
 
-    const [shotsRes, detailsRes, notesRes] = await Promise.all([
-      supabase.from("captured_media").select("*").eq("submission_id", id),
+    const [shotsRes, detailsRes, notesRes, answersRes] = await Promise.all([
+      supabase.from("captured_media").select("*, guide_steps(title)").eq("submission_id", id),
       supabase.from("extracted_details").select("*").eq("submission_id", id),
       supabase.from("internal_notes").select("*").eq("submission_id", id),
+      (supabase as any)
+        .from("submission_answers")
+        .select("*")
+        .eq("submission_id", id)
+        .order("order_index", { ascending: true }),
     ]);
 
     return hydrate(
@@ -112,6 +126,7 @@ export const submissionsService = {
       shotsRes.data ?? [],
       detailsRes.data ?? [],
       notesRes.data ?? [],
+      answersRes.data ?? [],
     );
   },
 
@@ -193,7 +208,6 @@ export const submissionsService = {
     if (args.items.length === 0) return;
     const reviewedAt = new Date().toISOString();
 
-    // 1. Update each rejected captured_media row.
     for (const item of args.items) {
       const { error: medErr } = await supabase
         .from("captured_media")
@@ -206,7 +220,6 @@ export const submissionsService = {
       if (medErr) throw medErr;
     }
 
-    // 2. Compute the next round number for this submission.
     const { data: prior, error: roundErr } = await supabase
       .from("submission_reviews")
       .select("round")
@@ -216,7 +229,6 @@ export const submissionsService = {
     if (roundErr) throw roundErr;
     const nextRound = (prior?.[0]?.round ?? 0) + 1;
 
-    // 3. Insert the audit row (trigger updates first/second_pass_status).
     const { data: user } = await supabase.auth.getUser();
     const { error: revErr } = await supabase.from("submission_reviews").insert({
       submission_id: args.submissionId,
@@ -229,7 +241,6 @@ export const submissionsService = {
     });
     if (revErr) throw revErr;
 
-    // 4. Move submission to needs_more.
     const { error: statusErr } = await supabase
       .from("submissions")
       .update({ status: "needs_more" })
@@ -237,12 +248,6 @@ export const submissionsService = {
     if (statusErr) throw statusErr;
   },
 
-  /**
-   * Reviewer-side: edit the AI-generated wording on a single shot's feedback
-   * (business summary and/or suggested next action). Merges into the existing
-   * `ai_feedback` jsonb so we don't lose severity, headline, checks, etc.
-   * Pass `null` or "" for a field to clear it.
-   */
   async updateShotFeedbackText(args: {
     mediaId: string;
     businessSummary?: string | null;
@@ -261,11 +266,8 @@ export const submissionsService = {
       next.businessSummary = args.businessSummary === "" ? null : args.businessSummary;
     }
     if (args.suggestedNextAction !== undefined) {
-      next.suggestedNextAction =
-        args.suggestedNextAction === "" ? null : args.suggestedNextAction;
+      next.suggestedNextAction = args.suggestedNextAction === "" ? null : args.suggestedNextAction;
     }
-    // Mark this row as human-edited so admin diff tooling can distinguish
-    // raw model output from reviewer-corrected wording.
     next.editedAt = new Date().toISOString();
 
     const { error } = await supabase
@@ -276,7 +278,8 @@ export const submissionsService = {
   },
 
   /**
-   * Recipient-side: create a submission row + upload media + insert captured_media.
+   * Recipient-side: create/finalize a submission row, upload any remaining
+   * media, persist recipient answers, and trigger AI summary.
    */
   async submitFromRecipient(args: {
     token: string;
@@ -284,19 +287,12 @@ export const submissionsService = {
     workspaceId: string;
     recipientName?: string;
     recipientContact?: string;
-    /**
-     * If a submission row was already created (e.g. lazily during the
-     * chat capture flow so that captured_media inserts had a parent),
-     * pass its id here. Otherwise a new row is created.
-     */
     existingSubmissionId?: string;
-    /** Photos that still need to be uploaded (most are already uploaded during capture). */
     photos: { stepId?: string; blob: Blob; ext: string; note?: string }[];
     answers: { questionId?: string; prompt: string; answer: string }[];
   }) {
     const client = getTokenClient(args.token);
 
-    // 1. Create or finalize the submission.
     let submissionId = args.existingSubmissionId ?? null;
     if (submissionId) {
       const { error: updErr } = await client
@@ -325,7 +321,6 @@ export const submissionsService = {
       submissionId = subRow.id;
     }
 
-    // 2. Upload each remaining media file.
     for (const p of args.photos) {
       const filename = `${crypto.randomUUID()}.${p.ext}`;
       const path = `${args.workspaceId}/${args.requestId}/${filename}`;
@@ -344,14 +339,40 @@ export const submissionsService = {
       if (medErr) throw medErr;
     }
 
-    // 3. Mark the request submitted.
+    // Replace answers for this submission so retries / resumed submits are idempotent.
+    const answerClient = client as any;
+    const normalizedAnswers = (args.answers ?? [])
+      .map((a, idx) => ({
+        submission_id: submissionId,
+        request_id: args.requestId,
+        workspace_id: args.workspaceId,
+        question_id: a.questionId && /^[0-9a-f-]{36}$/i.test(a.questionId) ? a.questionId : null,
+        prompt: a.prompt?.trim() ?? "Question",
+        answer: a.answer?.trim() ?? "",
+        order_index: idx,
+      }))
+      .filter((a) => a.prompt && a.answer);
+
+    const { error: deleteAnswersErr } = await answerClient
+      .from("submission_answers")
+      .delete()
+      .eq("submission_id", submissionId);
+    if (deleteAnswersErr) throw deleteAnswersErr;
+
+    if (normalizedAnswers.length > 0) {
+      const { error: answersErr } = await answerClient
+        .from("submission_answers")
+        .insert(normalizedAnswers);
+      if (answersErr) throw answersErr;
+    }
+
     await client
       .from("photo_brief_requests")
       .update({ status: "submitted" })
       .eq("id", args.requestId);
 
-    // 4. Fire-and-forget AI summary (server reads from DB and persists results).
-    supabase.functions
+    // Use the token-scoped client so the summarizer can authorize this public submit.
+    client.functions
       .invoke("ai-summarize-submission", { body: { submissionId } })
       .catch((e) => console.warn("summary trigger failed", e));
 

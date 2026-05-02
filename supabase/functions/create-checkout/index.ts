@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     const environment: StripeEnv = body?.environment === "live" ? "live" : "sandbox";
     const returnUrl: string =
       body?.returnUrl ??
-      `${req.headers.get("origin") ?? ""}/app/settings/billing?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
+      `${req.headers.get("origin") ?? ""}/settings/billing?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
 
     if (!workspaceId || !plan) {
       return new Response(JSON.stringify({ error: "workspace_id and plan are required" }), {
@@ -55,7 +55,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Authenticate the caller
     const authHeader = req.headers.get("Authorization");
     const token = authHeader?.replace("Bearer ", "");
     const supabase = createClient(
@@ -70,7 +69,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify membership
     const { data: membership } = await supabase
       .from("workspace_members")
       .select("role")
@@ -86,18 +84,15 @@ Deno.serve(async (req) => {
     }
 
     const stripe = createStripeClient(environment);
-
-    // Resolve the price by lookup_key (stable across sandbox/live)
     const prices = await stripe.prices.list({ lookup_keys: [priceId] });
     if (!prices.data.length) {
-      return new Response(
-        JSON.stringify({ error: `Stripe price not found for ${priceId}` }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ error: `Stripe price not found for ${priceId}` }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
     const stripePrice = prices.data[0];
 
-    // Reuse existing customer if we already have one for this workspace
     const { data: existing } = await supabase
       .from("subscriptions")
       .select("stripe_customer_id")
@@ -113,23 +108,9 @@ Deno.serve(async (req) => {
       mode: "subscription",
       ui_mode: "embedded",
       return_url: returnUrl,
-      ...(existingCustomer
-        ? { customer: existingCustomer }
-        : { customer_email: user.email ?? undefined }),
-      metadata: {
-        workspace_id: workspaceId,
-        user_id: user.id,
-        plan,
-        interval,
-      },
-      subscription_data: {
-        metadata: {
-          workspace_id: workspaceId,
-          user_id: user.id,
-          plan,
-          interval,
-        },
-      },
+      ...(existingCustomer ? { customer: existingCustomer } : { customer_email: user.email ?? undefined }),
+      metadata: { workspace_id: workspaceId, user_id: user.id, plan, interval },
+      subscription_data: { metadata: { workspace_id: workspaceId, user_id: user.id, plan, interval } },
     });
 
     return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
