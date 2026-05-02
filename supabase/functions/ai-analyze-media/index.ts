@@ -1,27 +1,15 @@
 // ai-analyze-media — runs vision checks on a single captured photo.
 // Routed via the centralized aiModelRouter (task: photo_quality_check, vision tier).
 //
-// Model selection lives in _shared/aiModelRouter.ts — never hardcode here.
-//
-// Input:
-//  { stepId, stepTitle, instruction, captureType, overlayType,
-//    aiChecks: string[], imageUrl, recipientNote?, capturedMediaId?,
-//    priority?: "admin_review" }   // when "admin_review", escalate to premium
-//
-// Output (success):
-//  { verdict, headline, detail, checks, extractedDetails,
-//    confidence, flags, businessSummary, suggestedNextAction, model }
-//
-// Output (graceful failure):  { error: "ai_unavailable", graceful: true }
-//   — HTTP 200, so the client can render the "AI review unavailable" state
-//   without throwing. Submission is never blocked by AI being down.
+// Authorization happens BEFORE model calls. Public recipient traffic must
+// include x-request-token tied to the captured_media row's request; workspace
+// traffic must be an active member of the media's workspace.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 import {
   buildEnvelopeTool,
   callAIWithRouter,
   routerErrorResponse,
-  type AIEnvelope,
 } from "../_shared/aiModelRouter.ts";
 
 const corsHeaders = {
@@ -33,6 +21,7 @@ const corsHeaders = {
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 const SYSTEM = `You are PhotoBrief's image-quality reviewer. You judge whether a single recipient-submitted photo is usable for a small-business workflow (quotes, claims, intake, support).
 
@@ -108,9 +97,7 @@ interface Body {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (!LOVABLE_API_KEY) {
-    return json({ error: "LOVABLE_API_KEY not configured" }, 500);
-  }
+  if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY not configured" }, 500);
 
   let body: Body;
   try {
@@ -121,6 +108,9 @@ Deno.serve(async (req) => {
   if (!body?.imageUrl || !body?.stepTitle) {
     return json({ error: "imageUrl and stepTitle are required" }, 400);
   }
+
+  const authz = await authorizeAnalyze(req, body.capturedMediaId);
+  if (!authz.ok) return json({ error: authz.error }, authz.status);
 
   const userPrompt = [
     `Step: ${body.stepTitle}`,
@@ -172,7 +162,6 @@ Deno.serve(async (req) => {
       detail: inner.detail,
       checks: enrichedChecks,
       extractedDetails: inner.extractedDetails ?? [],
-      // Envelope-level fields exposed to the client.
       confidence: envelope.confidence,
       flags: envelope.flags,
       recipientFeedback: envelope.recipient_feedback,
@@ -184,11 +173,7 @@ Deno.serve(async (req) => {
     };
 
     if (body.capturedMediaId) {
-      try {
-        await persist(req, body.capturedMediaId, result);
-      } catch (e) {
-        console.warn("persist failed (non-fatal)", e);
-      }
+      await persistAuthorized(body.capturedMediaId, result);
     }
 
     return json(result, 200);
@@ -211,27 +196,58 @@ function prettyLabel(type: string) {
   return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-async function persist(req: Request, capturedMediaId: string, result: any) {
+async function authorizeAnalyze(req: Request, capturedMediaId?: string): Promise<
+  | { ok: true }
+  | { ok: false; status: number; error: string }
+> {
+  // For persisted recipient/admin photo checks, authorize against the media's
+  // backing request. This prevents anonymous callers from spending AI credits
+  // with arbitrary image URLs.
+  if (capturedMediaId) {
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const { data: media } = await admin
+      .from("captured_media")
+      .select("id, submissions!inner(workspace_id, request_id)")
+      .eq("id", capturedMediaId)
+      .maybeSingle();
+    if (!media) return { ok: false, status: 404, error: "Captured media not found" };
+
+    const submission: any = (media as any).submissions;
+    const workspaceId = submission?.workspace_id as string | undefined;
+    const requestId = submission?.request_id as string | undefined;
+    if (!workspaceId || !requestId) {
+      return { ok: false, status: 400, error: "Captured media is missing request context" };
+    }
+
+    if (await isAuthorizedForWorkspaceOrRequest(req, workspaceId, requestId)) {
+      return { ok: true };
+    }
+    return { ok: false, status: 403, error: "Not authorized for this media" };
+  }
+
+  // Allow authenticated app users to run non-persisted admin/debug checks,
+  // but do not allow anonymous no-media analysis.
+  const auth = req.headers.get("Authorization");
+  if (!auth) return { ok: false, status: 401, error: "Authentication required" };
+  const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+    global: { headers: { Authorization: auth } },
+  });
+  const { data } = await userClient.auth.getUser();
+  return data?.user
+    ? { ok: true }
+    : { ok: false, status: 401, error: "Invalid auth token" };
+}
+
+async function isAuthorizedForWorkspaceOrRequest(
+  req: Request,
+  workspaceId: string,
+  requestId: string,
+): Promise<boolean> {
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-
-  // Look up media + the request_id behind its submission.
-  const { data: media } = await admin
-    .from("captured_media")
-    .select("id, submission_id, submissions!inner(workspace_id, request_id)")
-    .eq("id", capturedMediaId)
-    .maybeSingle();
-  if (!media) return;
-  const submission: any = (media as any).submissions;
-  const workspaceId = submission?.workspace_id;
-  const requestId = submission?.request_id;
-
-  // Authorize: either an authenticated workspace member, OR an anon
-  // recipient whose x-request-token header resolves to the same request.
-  let authorized = false;
 
   const auth = req.headers.get("Authorization");
   if (auth) {
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
       global: { headers: { Authorization: auth } },
     });
     const { data: u } = await userClient.auth.getUser();
@@ -243,24 +259,23 @@ async function persist(req: Request, capturedMediaId: string, result: any) {
         .eq("user_id", u.user.id)
         .eq("status", "active")
         .maybeSingle();
-      if (member) authorized = true;
+      if (member) return true;
     }
   }
 
-  if (!authorized) {
-    const token = req.headers.get("x-request-token");
-    if (token && requestId) {
-      const { data: tokReq } = await admin
-        .from("photo_brief_requests")
-        .select("id")
-        .eq("token", token)
-        .eq("id", requestId)
-        .maybeSingle();
-      if (tokReq) authorized = true;
-    }
-  }
+  const token = req.headers.get("x-request-token");
+  if (!token) return false;
+  const { data: tokReq } = await admin
+    .from("photo_brief_requests")
+    .select("id")
+    .eq("token", token)
+    .eq("id", requestId)
+    .maybeSingle();
+  return !!tokReq;
+}
 
-  if (!authorized) return;
+async function persistAuthorized(capturedMediaId: string, result: any) {
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
   await admin
     .from("captured_media")
