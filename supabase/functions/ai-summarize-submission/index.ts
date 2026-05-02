@@ -2,17 +2,9 @@
 // readiness score, suggested next action, missing items, and extracted
 // details for a submission.
 //
-// Routed via the centralized aiModelRouter (task: submission_summary, vision tier).
-// Auto-escalates one retry to the escalation tier when the model reports
-// low confidence (<0.5) or flags include "low_confidence".
-//
-// Two modes:
-//  1) { submissionId } — reads everything from DB and persists results.
-//  2) { guideName, recipientName, shots, customerAnswers? } — pure compute.
-//
-// Output: { summary, highlights[], readinessScore, band, nextAction,
-//           missingItems[], extractedDetails[], confidence, flags,
-//           businessSummary, model }
+// Authorization happens BEFORE model calls. Public recipient traffic must
+// include x-request-token tied to the submission's request; workspace traffic
+// must be an active member of the submission workspace.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 import {
@@ -25,12 +17,13 @@ import {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-request-token",
 };
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 const SYSTEM = `You are PhotoBrief's reviewer assistant. You receive a submission's
 photos, AI quality checks, and recipient answers. You produce a concise reviewer
@@ -140,9 +133,24 @@ Deno.serve(async (req) => {
   if ("submissionId" in body && body.submissionId) {
     const loaded = await loadSubmission(body.submissionId);
     if (!loaded) return json({ error: "Submission not found" }, 404);
+
+    const authorized = await isAuthorizedForWorkspaceOrRequest(
+      req,
+      loaded.workspaceId,
+      loaded.requestId,
+    );
+    if (!authorized) return json({ error: "Not authorized for this submission" }, 403);
+
     computeInput = loaded.computeInput;
     persistTo = { submissionId: body.submissionId, workspaceId: loaded.workspaceId };
   } else {
+    const auth = req.headers.get("Authorization");
+    if (!auth) return json({ error: "Authentication required" }, 401);
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: auth } },
+    });
+    const { data } = await userClient.auth.getUser();
+    if (!data?.user) return json({ error: "Invalid auth token" }, 401);
     computeInput = body as ComputeBody;
   }
 
@@ -164,17 +172,12 @@ Deno.serve(async (req) => {
       "Use the photos below to write the summary, list missing/unusable shots, and extract any visible structured details. Then call summarize_submission.",
     ].join("\n");
 
-    // Build multimodal user message — text + each image (cap at 8 images to
-    // keep token usage sane).
     const imageShots = computeInput.shots
       .filter((s) => !s.missing && s.imageUrl)
       .slice(0, 8);
     const userContent: any[] = [{ type: "text", text: userText }];
     for (const s of imageShots) {
-      userContent.push({
-        type: "image_url",
-        image_url: { url: s.imageUrl },
-      });
+      userContent.push({ type: "image_url", image_url: { url: s.imageUrl } });
     }
 
     const messages = [
@@ -196,7 +199,6 @@ Deno.serve(async (req) => {
       throw e;
     }
 
-    // Auto-escalate one retry if confidence is low or model self-flagged it.
     const lowConf =
       routerResult.envelope.confidence < 0.5 ||
       routerResult.envelope.flags.includes("low_confidence");
@@ -209,15 +211,11 @@ Deno.serve(async (req) => {
           tools: [TOOL],
           tool_choice: { type: "function", function: { name: "summarize_submission" } },
         });
-        // Use escalated only if it actually improved confidence.
         if (escalated.envelope.confidence > routerResult.envelope.confidence) {
           routerResult = escalated;
         }
       } catch (e) {
-        // Escalation is best-effort; ignore failures and keep first result.
-        if (!(e instanceof AIUnavailableError)) {
-          console.warn("escalation retry failed", e);
-        }
+        if (!(e instanceof AIUnavailableError)) console.warn("escalation retry failed", e);
       }
     }
 
@@ -247,7 +245,6 @@ Deno.serve(async (req) => {
       extractedDetails,
       readinessScore,
       band,
-      // Envelope-level fields:
       confidence: envelope.confidence,
       flags: envelope.flags,
       businessSummary: envelope.business_summary,
@@ -268,7 +265,6 @@ Deno.serve(async (req) => {
         })
         .eq("id", persistTo.submissionId);
 
-      // Replace prior AI-extracted details for this submission.
       await admin.from("extracted_details").delete().eq("submission_id", persistTo.submissionId);
       if (extractedDetails.length > 0) {
         await admin.from("extracted_details").insert(
@@ -299,7 +295,6 @@ function json(body: unknown, status = 200) {
   });
 }
 
-// Readiness blend per 03_readiness_scoring.md: shots quality 45 / coverage 20 / details 15 / answers 15 / freshness 5.
 function computeReadiness(shots: ShotIn[]) {
   const total = shots.length || 1;
   const captured = shots.filter((s) => !s.missing);
@@ -318,6 +313,42 @@ function computeReadiness(shots: ShotIn[]) {
   return { readinessScore: Math.min(100, Math.max(0, readinessScore)), band, missingComputed };
 }
 
+async function isAuthorizedForWorkspaceOrRequest(
+  req: Request,
+  workspaceId: string,
+  requestId: string,
+): Promise<boolean> {
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+
+  const auth = req.headers.get("Authorization");
+  if (auth) {
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: auth } },
+    });
+    const { data: u } = await userClient.auth.getUser();
+    if (u?.user) {
+      const { data: member } = await admin
+        .from("workspace_members")
+        .select("user_id")
+        .eq("workspace_id", workspaceId)
+        .eq("user_id", u.user.id)
+        .eq("status", "active")
+        .maybeSingle();
+      if (member) return true;
+    }
+  }
+
+  const token = req.headers.get("x-request-token");
+  if (!token) return false;
+  const { data: tokReq } = await admin
+    .from("photo_brief_requests")
+    .select("id")
+    .eq("token", token)
+    .eq("id", requestId)
+    .maybeSingle();
+  return !!tokReq;
+}
+
 async function loadSubmission(submissionId: string) {
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
   const { data: sub } = await admin
@@ -331,17 +362,19 @@ async function loadSubmission(submissionId: string) {
 
   const guideId = (sub as any).photo_brief_requests?.guide_id as string | null;
 
-  const [{ data: media }, { data: requiredSteps }] = await Promise.all([
+  const [{ data: media }, { data: requiredSteps }, { data: answers }] = await Promise.all([
     admin
       .from("captured_media")
       .select("id, note, ai_feedback, status, step_id, file_url, guide_steps(title)")
       .eq("submission_id", submissionId),
     guideId
-      ? admin
-          .from("guide_steps")
-          .select("id, title, required")
-          .eq("guide_id", guideId)
+      ? admin.from("guide_steps").select("id, title, required").eq("guide_id", guideId)
       : Promise.resolve({ data: [] as any[] }),
+    admin
+      .from("submission_answers")
+      .select("prompt, answer, order_index")
+      .eq("submission_id", submissionId)
+      .order("order_index", { ascending: true }),
   ]);
 
   const SUPABASE_PROJECT_URL = SUPABASE_URL.replace(/\/$/, "");
@@ -351,9 +384,7 @@ async function loadSubmission(submissionId: string) {
     return `${SUPABASE_PROJECT_URL}/storage/v1/object/public/submission-media/${filePath}`;
   };
 
-  const capturedStepIds = new Set<string>(
-    (media ?? []).map((m: any) => m.step_id).filter(Boolean),
-  );
+  const capturedStepIds = new Set<string>((media ?? []).map((m: any) => m.step_id).filter(Boolean));
 
   const capturedShots: ShotIn[] = (media ?? []).map((m: any) => ({
     title: m.guide_steps?.title ?? m.note ?? "Photo",
@@ -369,11 +400,15 @@ async function loadSubmission(submissionId: string) {
 
   return {
     workspaceId: (sub as any).workspace_id,
+    requestId: (sub as any).request_id,
     computeInput: {
       guideName: (sub as any).photo_brief_requests?.photo_guides?.name ?? "Submission",
       recipientName: (sub as any).submitter_name ?? "Recipient",
       shots: [...capturedShots, ...missingShots],
-      customerAnswers: [],
+      customerAnswers: (answers ?? []).map((a: any) => ({
+        prompt: a.prompt,
+        answer: a.answer,
+      })),
     },
   };
 }
