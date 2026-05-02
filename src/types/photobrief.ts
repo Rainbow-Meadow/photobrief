@@ -173,8 +173,20 @@ export interface TeamMember {
   initials: string;
 }
 
-/** Mirrors DB `review_pass_status`. */
-export type PassStatus = "pending" | "passed" | "failed" | "needs_more" | "not_applicable";
+/**
+ * Canonical values mirror DB `review_pass_status`.
+ * Legacy aliases are kept temporarily for existing requests_inbox_view rows until
+ * that view is regenerated after the managed DB migrations apply.
+ */
+export type PassStatus =
+  | "pending"
+  | "passed"
+  | "failed"
+  | "needs_more"
+  | "not_applicable"
+  | "accepted"
+  | "rework"
+  | "n_a";
 
 export interface PhotoBriefRequest {
   id: string;
