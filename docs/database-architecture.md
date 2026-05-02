@@ -1,8 +1,8 @@
 # PhotoBrief database architecture
 
-This repo is two-way linked with the Lovable project and the managed Supabase database. Treat every merge to `main` as a potential deployment, not just a code change.
+This repo is two-way linked with the Lovable project and the managed Supabase database. That is a feature, not a blocker: make real changes in this repo/branch, use Lovable preview and the linked Supabase environment to test them, then publish/merge only after preview validation.
 
-This document describes the intended database organization and the safe rollout path for database hardening.
+This document describes the intended database organization and the preview-first rollout path for database hardening.
 
 ## Domain map
 
@@ -85,29 +85,25 @@ These are not part of the core request/submission workflow and should not be req
 
 ## Current PR database behavior
 
-This PR auto-applies only the low-risk `submission_answers` migration needed by the application code.
+This PR applies real database work on the preview branch:
 
-`20260501130000_database_scale_hardening.sql` is intentionally an advisory no-op because the repo is connected to Lovable and the managed Supabase DB. It records the migration milestone without automatically adding broad constraints, triggers, or indexes to the live managed database on merge.
+- `20260501120000_add_submission_answers.sql` creates durable recipient answer storage.
+- `20260501130000_database_scale_hardening.sql` applies additive hardening: relationship constraints, status-domain constraints, tenant-consistency triggers, and query-path indexes.
 
-The actual hardening work should be applied manually to staging first, then promoted in a dedicated database migration PR after validation.
+The hardening migration is designed to be preview-safe and production-conscious:
 
-## Manual database hardening plan
+- no table renames
+- no destructive enum conversions
+- no full-table validation during deploy
+- no duplicate-sensitive unique index creation
+- `NOT VALID` constraints where existing data may need audit
+- non-unique provider lookup indexes first, with unique promotion left for a later audited migration
 
-After this PR is merged and verified, create a dedicated DB-hardening branch/PR that applies the following categories in staging first:
+## Preview validation checklist
 
-- missing foreign keys as `NOT VALID` constraints where generated Supabase types show missing relationships
-- status-domain check constraints for important string lifecycle fields
-- tenant-consistency triggers for denormalized workspace/request/submission fields
-- query-path indexes for inboxes, review pages, media hydration, billing, messages, and guide editing
-- non-unique provider lookup indexes for Stripe/payment idempotency fields
+After Lovable/Supabase preview applies this branch, run these checks and smoke tests before publishing/merging.
 
-Use `NOT VALID` for relationship/check constraints initially. That avoids long deploy-time table scans while still protecting future writes after the constraint exists. Validate later after data audits.
-
-Do not add duplicate-sensitive unique indexes until production data is audited.
-
-## Pre-hardening validation checklist
-
-Run these checks before applying broad database hardening:
+### Data integrity checks
 
 ```sql
 -- Find request messages whose workspace_id disagrees with their request.
@@ -160,7 +156,33 @@ group by stripe_subscription_id
 having count(*) > 1;
 ```
 
-When these return zero rows in staging and production, the broad hardening migration can be promoted safely.
+### Product smoke tests
+
+1. Create a request.
+2. Open/copy the public `/r/:token` link.
+3. Submit recipient photos and context answers.
+4. Confirm media AI review still runs.
+5. Confirm submission summary uses saved answers.
+6. Confirm reviewer page shows customer answers.
+7. Reject a photo and reopen the public link to confirm resubmission still narrows to rejected steps.
+8. Confirm request messages/reminders still insert correctly under the new relationship/consistency triggers.
+9. Confirm billing checkout/top-up/portal routes return to `/settings/billing`.
+
+## Post-preview hardening follow-up
+
+When preview validation is clean, the next database PR can promote selected constraints/indexes:
+
+```sql
+alter table public.request_messages validate constraint request_messages_request_id_fkey;
+alter table public.request_messages validate constraint request_messages_workspace_id_fkey;
+alter table public.message_templates validate constraint message_templates_workspace_id_fkey;
+alter table public.request_credit_packs validate constraint request_credit_packs_workspace_id_fkey;
+alter table public.subscriptions validate constraint subscriptions_workspace_id_fkey;
+alter table public.sms_send_log validate constraint sms_send_log_request_id_fkey;
+alter table public.founding_pro_claims validate constraint founding_pro_claims_workspace_id_fkey;
+```
+
+Only promote provider lookup indexes to partial unique indexes after duplicate checks return zero rows.
 
 ## Future migration: request token hashing
 
