@@ -1,6 +1,8 @@
 # PhotoBrief database architecture
 
-This document describes the intended organization of the PhotoBrief database. It should be kept in sync with Supabase migrations and generated Supabase types.
+This repo is two-way linked with the Lovable project and the managed Supabase database. Treat every merge to `main` as a potential deployment, not just a code change.
+
+This document describes the intended database organization and the safe rollout path for database hardening.
 
 ## Domain map
 
@@ -81,21 +83,31 @@ These are not part of the core request/submission workflow and should not be req
 4. Provider IDs that must be idempotent, such as Stripe checkout sessions or payment intents, should eventually have partial unique indexes. Add non-unique lookup indexes first, audit for duplicates, then promote to unique in a dedicated migration.
 5. Public-token flows should authorize through dedicated database helpers/RLS. Edge Functions must authorize before using service-role reads or paid AI calls.
 
-## Current hardening layer
+## Current PR database behavior
 
-Migration `20260501130000_database_scale_hardening.sql` adds:
+This PR auto-applies only the low-risk `submission_answers` migration needed by the application code.
 
-- missing foreign keys as `NOT VALID` constraints where generated types showed missing relationships
-- status-domain check constraints for common string status columns
+`20260501130000_database_scale_hardening.sql` is intentionally an advisory no-op because the repo is connected to Lovable and the managed Supabase DB. It records the migration milestone without automatically adding broad constraints, triggers, or indexes to the live managed database on merge.
+
+The actual hardening work should be applied manually to staging first, then promoted in a dedicated database migration PR after validation.
+
+## Manual database hardening plan
+
+After this PR is merged and verified, create a dedicated DB-hardening branch/PR that applies the following categories in staging first:
+
+- missing foreign keys as `NOT VALID` constraints where generated Supabase types show missing relationships
+- status-domain check constraints for important string lifecycle fields
 - tenant-consistency triggers for denormalized workspace/request/submission fields
 - query-path indexes for inboxes, review pages, media hydration, billing, messages, and guide editing
 - non-unique provider lookup indexes for Stripe/payment idempotency fields
 
-The constraints are intentionally additive. `NOT VALID` avoids long deploy-time table scans and allows existing data to be audited later. Provider lookup indexes are intentionally not unique yet, so deploy cannot fail on legacy duplicate provider IDs.
+Use `NOT VALID` for relationship/check constraints initially. That avoids long deploy-time table scans while still protecting future writes after the constraint exists. Validate later after data audits.
 
-## Post-deploy validation checklist
+Do not add duplicate-sensitive unique indexes until production data is audited.
 
-Run these checks after the migration is deployed:
+## Pre-hardening validation checklist
+
+Run these checks before applying broad database hardening:
 
 ```sql
 -- Find request messages whose workspace_id disagrees with their request.
@@ -148,19 +160,7 @@ group by stripe_subscription_id
 having count(*) > 1;
 ```
 
-When these return zero rows, validate the `NOT VALID` constraints in a separate maintenance window:
-
-```sql
-alter table public.request_messages validate constraint request_messages_request_id_fkey;
-alter table public.request_messages validate constraint request_messages_workspace_id_fkey;
-alter table public.message_templates validate constraint message_templates_workspace_id_fkey;
-alter table public.request_credit_packs validate constraint request_credit_packs_workspace_id_fkey;
-alter table public.subscriptions validate constraint subscriptions_workspace_id_fkey;
-alter table public.sms_send_log validate constraint sms_send_log_request_id_fkey;
-alter table public.founding_pro_claims validate constraint founding_pro_claims_workspace_id_fkey;
-```
-
-Validate check constraints after confirming no legacy status values exist.
+When these return zero rows in staging and production, the broad hardening migration can be promoted safely.
 
 ## Future migration: request token hashing
 
