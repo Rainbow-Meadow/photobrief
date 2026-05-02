@@ -37,8 +37,9 @@ create policy "Workspace members can manage submission answers"
   using (public.is_workspace_member(workspace_id))
   with check (public.is_workspace_member(workspace_id));
 
--- Token-scoped public recipient flow can read/insert/update only answers
--- attached to the request resolved from x-request-token.
+-- Token-scoped public recipient flow can read/insert/update/delete only answers
+-- attached to the request resolved from x-request-token. Delete is needed so a
+-- retried final submit can replace the answer set idempotently.
 drop policy if exists "Request token can read submission answers" on public.submission_answers;
 create policy "Request token can read submission answers"
   on public.submission_answers
@@ -57,3 +58,9 @@ create policy "Request token can update submission answers"
   for update
   using (request_id = public.request_id_for_token())
   with check (request_id = public.request_id_for_token());
+
+drop policy if exists "Request token can delete submission answers" on public.submission_answers;
+create policy "Request token can delete submission answers"
+  on public.submission_answers
+  for delete
+  using (request_id = public.request_id_for_token());
