@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Install, lint, test, and build
+    name: Install, lint, typecheck, test, and build
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -51,6 +51,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
 
       - name: Test
         run: npm test
