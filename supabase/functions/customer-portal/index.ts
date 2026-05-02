@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const workspaceId: string | undefined = body?.workspace_id;
     const environment: StripeEnv = body?.environment === "live" ? "live" : "sandbox";
     const returnUrl: string =
-      body?.returnUrl ?? `${req.headers.get("origin") ?? ""}/app/settings/billing`;
+      body?.returnUrl ?? `${req.headers.get("origin") ?? ""}/settings/billing`;
 
     if (!workspaceId) {
       return new Response(JSON.stringify({ error: "workspace_id is required" }), {
