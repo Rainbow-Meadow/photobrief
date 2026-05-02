@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     const environment: StripeEnv = body?.environment === "live" ? "live" : "sandbox";
     const returnUrl: string =
       body?.returnUrl ??
-      `${req.headers.get("origin") ?? ""}/app/settings/billing?topup=success&session_id={CHECKOUT_SESSION_ID}`;
+      `${req.headers.get("origin") ?? ""}/settings/billing?topup=success&session_id={CHECKOUT_SESSION_ID}`;
 
     if (!workspaceId || !priceId) {
       return new Response(
