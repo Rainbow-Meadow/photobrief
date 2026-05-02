@@ -176,7 +176,7 @@ begin
   if not exists (select 1 from pg_constraint where conname = 'request_messages_kind_domain') then
     alter table public.request_messages
       add constraint request_messages_kind_domain
-      check (kind in ('initial', 'reminder', 'followup', 'resubmit', 'status', 'note', 'system')) not valid;
+      check (kind in ('initial', 'reminder', 'followup', 'custom', 'resubmit', 'status', 'note', 'system')) not valid;
   end if;
 
   if not exists (select 1 from pg_constraint where conname = 'sms_send_log_status_domain') then
