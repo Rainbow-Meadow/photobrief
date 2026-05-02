@@ -78,7 +78,7 @@ These are not part of the core request/submission workflow and should not be req
 1. Every workspace-owned table should have either a direct `workspace_id` foreign key or a clear parent chain to one.
 2. If a table duplicates `workspace_id` for RLS/query performance, a trigger should verify it matches the parent request/submission.
 3. Lifecycle/status values used by application logic should be constrained by enum or check constraint.
-4. Provider IDs that must be idempotent, such as Stripe checkout sessions or payment intents, should have partial unique indexes.
+4. Provider IDs that must be idempotent, such as Stripe checkout sessions or payment intents, should eventually have partial unique indexes. Add non-unique lookup indexes first, audit for duplicates, then promote to unique in a dedicated migration.
 5. Public-token flows should authorize through dedicated database helpers/RLS. Edge Functions must authorize before using service-role reads or paid AI calls.
 
 ## Current hardening layer
@@ -89,9 +89,9 @@ Migration `20260501130000_database_scale_hardening.sql` adds:
 - status-domain check constraints for common string status columns
 - tenant-consistency triggers for denormalized workspace/request/submission fields
 - query-path indexes for inboxes, review pages, media hydration, billing, messages, and guide editing
-- partial unique indexes for Stripe/payment idempotency and request tokens
+- non-unique provider lookup indexes for Stripe/payment idempotency fields
 
-The constraints are intentionally additive. `NOT VALID` avoids long deploy-time table scans and allows existing data to be audited later.
+The constraints are intentionally additive. `NOT VALID` avoids long deploy-time table scans and allows existing data to be audited later. Provider lookup indexes are intentionally not unique yet, so deploy cannot fail on legacy duplicate provider IDs.
 
 ## Post-deploy validation checklist
 
@@ -127,6 +127,25 @@ join public.photo_brief_requests r on r.id = sa.request_id
 where sa.request_id <> s.request_id
    or sa.workspace_id <> s.workspace_id
    or sa.workspace_id <> r.workspace_id;
+
+-- Find duplicate provider IDs before promoting lookup indexes to unique.
+select stripe_checkout_session_id, count(*)
+from public.request_credit_packs
+where stripe_checkout_session_id is not null
+group by stripe_checkout_session_id
+having count(*) > 1;
+
+select stripe_payment_intent_id, count(*)
+from public.request_credit_packs
+where stripe_payment_intent_id is not null
+group by stripe_payment_intent_id
+having count(*) > 1;
+
+select stripe_subscription_id, count(*)
+from public.subscriptions
+where stripe_subscription_id is not null
+group by stripe_subscription_id
+having count(*) > 1;
 ```
 
 When these return zero rows, validate the `NOT VALID` constraints in a separate maintenance window:
