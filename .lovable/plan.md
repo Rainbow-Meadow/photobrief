@@ -1,30 +1,58 @@
-## Plan: "Current setup" overview for beta companies
+# Beta Integration Pathways — 21 Companies
 
-This is a one-off data task — no app code changes. I'll run a script that uses Firecrawl + Lovable AI to scrape each company's site and produce a CSV.
+Based on the contact-form audit (`beta-current-setup_v2.md`) plus the screenshots in `beta-contact-shots.pdf`, I've grouped each company by intake archetype and matched it to the lowest-friction PhotoBrief integration. Five archetypes cover all 21 accounts.
 
-### Inputs
-- You upload the beta company list (CSV/XLSX) in your next message. I'll auto-detect columns for company name and website (and use email/notes if present).
+## Archetype Playbook
 
-### Steps
-1. Read the uploaded file (`code--copy` from `user-uploads://`, then parse with pandas).
-2. For each company:
-   a. Firecrawl `map` the site to find a `/contact`, `/get-quote`, `/estimate`, `/book`, etc. page.
-   b. Firecrawl `scrape` the homepage + best contact page (markdown + html + links).
-   c. Pass the scraped content to Lovable AI (`google/gemini-3-flash-preview`) with a structured-output schema to extract:
-      - Contact form URL + form fields (labels, types, required, file upload?)
-      - Contact pathways (emails, phone numbers, SMS/WhatsApp, chat widget, scheduling links like Calendly/HCP/Jobber portals)
-      - Existing photo intake (file upload widgets, "send us a photo" copy, customer portals)
-      - Plain-English 1–2 sentence "current setup" summary
-3. Write results to `/mnt/documents/beta-current-setup.csv` with columns:
-   `company, website, contact_page_url, form_fields, contact_emails, phone_numbers, other_channels, photo_intake, current_setup_summary, scrape_notes`
-4. Also write a companion `/mnt/documents/beta-current-setup.md` with one readable section per company (easier to skim than CSV cells).
-5. Surface both as `<lov-artifact>` so you can download.
+| # | Archetype | Best PhotoBrief pathway |
+|---|-----------|-------------------------|
+| A | **No form, phone/email only** | Hosted PhotoBrief link + QR; share via SMS auto-reply, voicemail script, "Text photos to…" page button |
+| B | **Minimal form (name/email/msg)** | Add a "Send Photos" CTA button next to the form pointing to a hosted PhotoBrief intake; mention in the form's confirmation email |
+| C | **Service-typed form (select/checkbox of services)** | Hosted PhotoBrief intake whose first question mirrors their service picker; replace or augment existing form, route by service |
+| D | **Detailed form (address + services + project)** | Full replacement: rebuild their form in PhotoBrief 1:1 (incl. address, service checkboxes, project notes) and add photo step. Embed via iframe or link from their CTA |
+| E | **Specialty intake (model/serial/parts)** | Custom PhotoBrief template with conditional fields for make/model/serial + photo of nameplate; especially high-value for appliance repair |
 
-### Guardrails
-- Throttle: 1 req/sec to Firecrawl, retry once on 5xx, mark `scrape_notes=error` on failure rather than aborting the whole batch.
-- Skip rows with no website. Normalize URLs (add `https://` if missing).
-- Cap to ~25 companies per run to stay inside Firecrawl credits; if the list is larger I'll confirm before continuing.
-- All work in `/tmp/` for scripts, outputs in `/mnt/documents/`.
+## Per-Company Recommendations
 
-### What I need from you next
-Approve this plan, then upload the beta list file in your next message.
+### Junk Removal (5)
+- **Junkpire** — Archetype C. Mirror the 5-service checkbox; PhotoBrief replaces form, photos drive accurate volume quote. Link from "Contact" button.
+- **YardSmart Lawn Care** — Archetype A. The "GET A FREE ESTIMATE" button is broken (loops to homepage). Point that button at a hosted PhotoBrief link — instant lift.
+- **Junk Under Junk** — Archetype B. Add PhotoBrief CTA above existing form; their "Service" is freetext, so PhotoBrief's structured picker is an upgrade.
+- **Trash Lovers** — Archetype B + social. 3-field form is too thin. Hosted link in IG/TikTok bio + SMS keyword (they already promote SMS).
+- **Green Team** — Archetype A (form is unreachable per audit). Replace "Request a Quote" CTA with hosted PhotoBrief intake.
+- **Junk Removal Inc.** — Archetype D. Already invites photos via SMS to 508-633-8879. Replace form 1:1 in PhotoBrief and route SMS auto-reply to the same link to consolidate.
+
+### Landscaping (4)
+- **Mass Landscape Inc** — Archetype C. Reuse their Subject select (Services/Complaints/etc.); only "Services" branch hits PhotoBrief photo step.
+- **Northeast Landscape** — Archetype D. Their form is the most complete (city select, service checkboxes). Rebuild in PhotoBrief to add photos; embed via iframe so the page UX is unchanged.
+- **Motta Landscaping** — Archetype B. Replace the dated form (incl. spam-checkbox) with PhotoBrief; net upgrade in UX and lead quality.
+- **John's Landscape** — Archetype D. Keep promo-offer checkbox + "How did you hear" question in PhotoBrief; add photo step for design/install needs.
+
+### Pest Control (2)
+- **Ford's Hometown** — Archetype A. Phone-only; they already use a PestPortals customer login. Add PhotoBrief link as the public "new customer / show us the pest" path, complementing PestPortals for existing customers.
+- **Big Blue Bug** — Archetype A. Contact page has no form. Drop PhotoBrief CTA on `/contact/` as the primary intake.
+
+### Plumbing (4)
+- **Plumbing Solutions** — Archetype C. Their "How can we help?" textarea becomes a PhotoBrief service select + photo of leak/fixture.
+- **Pipe & Plumber** — Archetype C. Reuse their 6-option service select directly in PhotoBrief.
+- **R. Fresolo** — Archetype D. Long, dated form with a captcha — strong candidate for full replacement. Map every field, drop the verification step (PhotoBrief handles spam).
+- **Worcester MA Plumber** — Archetype C. Notable: a placeholder phone (616-123-4567) sits on their site — flag to customer. PhotoBrief replaces form and fixes that visibility risk.
+
+### Appliance Repair (5) — highest PhotoBrief ROI segment
+- **Bright Appliance** — Archetype E. They already ask for Make/Model/Serial/Part. PhotoBrief adds nameplate photo + appliance photo; conditional logic by appliance type.
+- **Appliance Pro Care** — Archetype A. "Request Service" form is unreachable per audit. Replace with hosted PhotoBrief — biggest single uplift in the cohort.
+- **SmartFix Appliance** — Archetype B → E. Upgrade thin form to appliance-typed intake with photos and model number.
+- **Apex Appliance** — Archetype A. Phone/SMS only. SMS auto-reply with PhotoBrief link is the natural pathway.
+- **Elite Appliance** — Archetype B → E. They run Cliengo chat — push PhotoBrief link from chat opener and as a button beside the form.
+
+## Cross-Cutting Beta Tactics
+
+1. **Hosted link first, embed second.** Every account gets a hosted PhotoBrief URL on day 1; iframe/embed only where the customer's site builder supports it (ruling out a few WordPress lock-ins).
+2. **SMS auto-reply template.** For every account with a phone number (all 21), provide a copy-paste auto-reply: *"Thanks! Send photos + details here: [link]"*. Critical for archetypes A and the 4 SMS-promoting accounts.
+3. **CTA copy guidance.** "Send Photos & Get a Quote" outperforms "Request Service" in tests — recommend uniformly.
+4. **Map service picklists exactly.** Where a service select/checkbox already exists (8 accounts), mirror options verbatim so internal routing/reporting doesn't break.
+5. **Flag site issues during onboarding.** YardSmart broken CTA, Worcester placeholder phone, Green Team / Appliance Pro Care broken forms — surface these as "wins we'll fix while we onboard you."
+
+## Deliverable
+
+On approval I'll generate `/mnt/documents/beta-integration-plan.pdf` (and a matching `.csv`) with one row per company: archetype, exact pathway, CTA copy, fields to mirror, and any site issues to flag.
